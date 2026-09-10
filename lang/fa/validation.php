@@ -154,6 +154,8 @@ return [
         'first_name' => 'نام',
         'last_name' => 'نام خانوادگی',
         'mobile' => 'شماره همراه',
+        'is_admin' => 'دسترسی مدیر',
+        'is_super_admin' => 'دسترسی سوپرادمین',
         'email' => 'ایمیل',
         'password' => 'رمز عبور',
         'password_confirmation' => 'تأیید رمز عبور',

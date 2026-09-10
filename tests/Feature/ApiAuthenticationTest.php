@@ -27,7 +27,9 @@ class ApiAuthenticationTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', $this->registrationPayload())
             ->assertCreated()
-            ->assertJsonMissingPath('data.user.is_admin');
+            ->assertJsonPath('data.user.is_admin', false)
+            ->assertJsonPath('data.user.is_super_admin', false)
+            ->assertJsonPath('data.user.visible_tabs', User::USER_VISIBLE_TABS);
 
         $this->postJson('/api/v1/auth/login', [
             'identifier' => '09121111111',

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuthOtp;
 use App\Models\User;
+use App\Support\MobileNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -24,7 +25,7 @@ class AuthService
             return User::query()->where('email', $identifier)->first();
         }
 
-        $user = User::query()->where('mobile', $identifier)->first();
+        $user = User::query()->whereIn('mobile', MobileNumber::variants($identifier))->first();
 
         return $user ?: User::query()->where('org_code', $identifier)->first();
     }
@@ -182,7 +183,9 @@ class AuthService
     {
         $identifier = trim($identifier);
 
-        return filter_var($identifier, FILTER_VALIDATE_EMAIL) ? strtolower($identifier) : $identifier;
+        return filter_var($identifier, FILTER_VALIDATE_EMAIL)
+            ? strtolower($identifier)
+            : MobileNumber::normalize($identifier);
     }
 
     private function generateOtpCode(): string

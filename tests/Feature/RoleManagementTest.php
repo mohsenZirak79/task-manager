@@ -93,7 +93,7 @@ class RoleManagementTest extends TestCase
         $this->patchJson("/api/v1/users/{$user->id}", ['role_id' => $role->id])
             ->assertOk()
             ->assertJsonPath('data.user.role_id', $role->id)
-            ->assertJsonPath('data.user.visible_tabs', ['tasks', 'organization']);
+            ->assertJsonPath('data.user.visible_tabs', User::USER_VISIBLE_TABS);
 
         $this->assertDatabaseHas('roles', ['id' => $role->id, 'user_id' => $user->id]);
     }

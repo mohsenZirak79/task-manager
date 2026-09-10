@@ -20,6 +20,6 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        app(UserService::class)->createInitialAdmin($config);
+        app(UserService::class)->ensureSuperAdmin($config);
     }
 }

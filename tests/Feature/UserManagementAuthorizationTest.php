@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\Sanctum;
@@ -77,7 +77,7 @@ class UserManagementAuthorizationTest extends TestCase
             ->assertJsonPath('message', 'این کاربر در ساختار سازمانی قرار دارد؛ ابتدا نقش او را از ساختار سازمانی حذف کنید.');
     }
 
-    public function test_admin_accounts_are_hidden_from_the_user_list_and_cannot_be_deleted(): void
+    public function test_admin_accounts_are_hidden_from_a_regular_admin_user_list(): void
     {
         $admin = User::factory()->admin()->create();
         $user = User::factory()->create();
@@ -90,7 +90,90 @@ class UserManagementAuthorizationTest extends TestCase
 
         $this->deleteJson("/api/v1/users/{$admin->id}")
             ->assertUnprocessable()
-            ->assertJsonPath('message', 'حساب مدیر سامانه قابل حذف نیست.');
+            ->assertJsonPath('message', 'مدیر نمی‌تواند حساب خودش را حذف کند.');
+    }
+
+    public function test_super_admin_can_create_both_access_levels(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        Sanctum::actingAs($superAdmin);
+
+        $this->postJson('/api/v1/users', [
+            'first_name' => 'System',
+            'last_name' => 'Admin',
+            'mobile' => '۰۹۱۲۳۳۳۳۳۳۳',
+            'password' => 'ManagedPass!123',
+            'password_confirmation' => 'ManagedPass!123',
+            'is_admin' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.user.mobile', '09123333333')
+            ->assertJsonPath('data.user.is_admin', true)
+            ->assertJsonPath('data.user.is_super_admin', false)
+            ->assertJsonPath('data.user.visible_tabs', User::ADMIN_VISIBLE_TABS);
+
+        $this->postJson('/api/v1/users', [
+            'first_name' => 'Regular',
+            'last_name' => 'User',
+            'mobile' => '09124444444',
+            'password' => 'ManagedPass!123',
+            'password_confirmation' => 'ManagedPass!123',
+            'is_admin' => false,
+        ])->assertCreated()
+            ->assertJsonPath('data.user.is_admin', false)
+            ->assertJsonPath('data.user.visible_tabs', User::USER_VISIBLE_TABS);
+
+        $this->getJson('/api/v1/users')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 2);
+    }
+
+    public function test_regular_admin_can_manage_users_but_cannot_grant_admin_access(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->create();
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/users', [
+            'first_name' => 'Another',
+            'last_name' => 'Admin',
+            'mobile' => '09125555555',
+            'is_admin' => true,
+        ])->assertForbidden();
+
+        $this->patchJson("/api/v1/users/{$user->id}", ['is_admin' => true])
+            ->assertForbidden();
+
+        $this->postJson('/api/v1/users', [
+            'first_name' => 'Regular',
+            'last_name' => 'User',
+            'mobile' => '09126666666',
+            'is_admin' => false,
+        ])->assertCreated();
+    }
+
+    public function test_regular_admin_cannot_manage_the_super_admin_account(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        $admin = User::factory()->admin()->create();
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/api/v1/users/{$superAdmin->id}")->assertForbidden();
+        $this->patchJson("/api/v1/users/{$superAdmin->id}", ['first_name' => 'Changed'])->assertForbidden();
+        $this->postJson("/api/v1/users/{$superAdmin->id}/deactivate")->assertForbidden();
+        $this->deleteJson("/api/v1/users/{$superAdmin->id}")->assertForbidden();
+    }
+
+    public function test_super_admin_cannot_demote_deactivate_or_delete_self(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+        Sanctum::actingAs($superAdmin);
+
+        $this->patchJson("/api/v1/users/{$superAdmin->id}", ['is_admin' => false])
+            ->assertUnprocessable();
+        $this->postJson("/api/v1/users/{$superAdmin->id}/deactivate")
+            ->assertUnprocessable();
+        $this->deleteJson("/api/v1/users/{$superAdmin->id}")
+            ->assertUnprocessable();
     }
 
     public function test_user_list_only_filters_activity_when_the_filter_has_a_value(): void

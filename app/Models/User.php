@@ -13,6 +13,21 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
+    public const ADMIN_VISIBLE_TABS = [
+        'tasks',
+        'requests',
+        'users',
+        'organization',
+        'settings',
+        'contact',
+    ];
+
+    public const USER_VISIBLE_TABS = [
+        'tasks',
+        'requests',
+        'organization',
+    ];
+
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
@@ -30,6 +45,7 @@ class User extends Authenticatable
         'title',
         'is_active',
         'is_admin',
+        'is_super_admin',
         'must_change_password',
         'last_login_at',
         'created_by',
@@ -53,7 +69,7 @@ class User extends Authenticatable
 
     public function visibleTabs(): array
     {
-        return $this->role?->visible_tabs ?? [];
+        return $this->is_admin ? self::ADMIN_VISIBLE_TABS : self::USER_VISIBLE_TABS;
     }
 
     public function createdTasks(): HasMany
@@ -77,6 +93,7 @@ class User extends Authenticatable
             'birth_date' => 'date',
             'is_active' => 'boolean',
             'is_admin' => 'boolean',
+            'is_super_admin' => 'boolean',
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
             'password' => 'hashed',

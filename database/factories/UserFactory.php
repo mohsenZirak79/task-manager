@@ -32,6 +32,7 @@ class UserFactory extends Factory
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
             'is_admin' => false,
+            'is_super_admin' => false,
             'must_change_password' => false,
         ];
     }
@@ -39,5 +40,13 @@ class UserFactory extends Factory
     public function admin(): static
     {
         return $this->state(fn () => ['is_admin' => true]);
+    }
+
+    public function superAdmin(): static
+    {
+        return $this->state(fn () => [
+            'is_admin' => true,
+            'is_super_admin' => true,
+        ]);
     }
 }

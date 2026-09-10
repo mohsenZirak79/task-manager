@@ -20,8 +20,8 @@ class CreateAdminCommand extends Command
 
     public function handle(UserService $userService): int
     {
-        if (User::query()->where('is_admin', true)->exists()) {
-            $this->error('An administrator already exists.');
+        if (User::query()->where('is_super_admin', true)->exists()) {
+            $this->error('A super administrator already exists.');
 
             return self::FAILURE;
         }
@@ -51,7 +51,7 @@ class CreateAdminCommand extends Command
         }
 
         $user = $userService->createInitialAdmin($validator->validated());
-        $this->info("Administrator created with ID {$user->id}.");
+        $this->info("Super administrator created with ID {$user->id}.");
 
         return self::SUCCESS;
     }

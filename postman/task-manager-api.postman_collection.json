@@ -1,48 +1,229 @@
 {
   "info": {
-    "name": "Task Manager API - Auth, Users, Roles & Tasks",
+    "name": "Task Manager API v1 — Frontend Contract & Tests",
     "_postman_id": "7b13d5d1-8c54-4f9f-9f3f-f3f2a51f0001",
-    "description": "Laravel API collection for Authentication, Users, Roles and Tasks.",
+    "description": "# قرارداد API فرانت‌اند\n\nاین کالکشن مطابق route، FormRequest، Resource و تست‌های Feature بک‌اند Laravel در تاریخ 2026-09-06 تهیه شده است. Base URL باید تا `/api/v1` باشد. تمام درخواست‌ها و پاسخ‌ها JSON و تاریخ‌ها ISO-8601 هستند.\n\n## راه‌اندازی\n1. `base_url`، `admin_identifier` و `admin_password` را تنظیم کنید.\n2. درخواست Login را اجرا کنید؛ token خودکار ذخیره می‌شود.\n3. برای عملیات وابسته، ابتدا Create User / Create Role / Create Draft Task را اجرا یا شناسه‌های user_id، role_id، assignee_id را دستی تنظیم کنید.\n4. OTP هرگز در پاسخ production برنمی‌گردد. در local/testing مقدار `OTP_FIXED_CODE` یا کد ثبت‌شده در لاگ را در `otp_code` بگذارید.\n5. Logout را در پایان اجرا کنید چون token جاری را باطل می‌کند.\n\n## Envelope پاسخ موفق\n`{ success: true, message: string, data: object }`. لیست‌های صفحه‌بندی‌شده در `data.items` و اطلاعات صفحه در `data.meta` هستند.\n\n## خطاها برای فرانت\n- 401: توکن/ورود/OTP نامعتبر؛ معمولاً `{ message }`. نشست را پاک و کاربر را به ورود هدایت کنید.\n- 403: حساب غیرفعال یا نداشتن مجوز؛ `{ message }`.\n- 404: منبع پیدا نشد؛ `{ message }`.\n- 409: تعارض وضعیت workflow؛ `{ message }`.\n- 422: خطای اعتبارسنجی یا قانون کسب‌وکار؛ اعتبارسنجی فیلدی به شکل `{ message, errors: { field: [string] } }`. کلیدهای nested ممکن است مانند `assignee_ids.0` باشند.\n- 429: rate limit؛ `{ message }`.\n\n## Enumها\nTask status: `draft`, `pending_approval`, `revision_requested`, `in_progress`, `completed`, `not_completed`, `rejected`. Submission type: `assignment`, `request`. visible_tabs: `tasks`, `requests`, `users`, `organization`, `settings`, `contact`.\n\n## Payload کامل Task\n`title` (required,max255)، `short_description` (required,max100)، `request_description?`، `duration_minutes?` (int>=1)، `due_date?` (YYYY-MM-DD و هنگام submit غیرگذشته)، `progress_percentage?` (0..100)، `requester_id?`، `assignee_ids?[]`، `follower_ids?[]`، `supervisor_ids?[]`، منابع/هزینه/تأمین‌کننده مالی و تجهیزاتی، و `submit?` boolean.\n\nتست سراسری هر پاسخ موفق، Content-Type، envelope، زمان پاسخ و عدم نشت trace را بررسی می‌کند. نمونه پاسخ قابل مشاهده برای تک‌تک درخواست‌ها ثبت شده است.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
-      "value": "http://task-manager-api.test/api/v1"
+      "value": "http://localhost:8000/api/v1",
+      "type": "string",
+      "description": "آدرس API بدون slash انتهایی"
+    },
+    {
+      "key": "admin_identifier",
+      "value": "",
+      "type": "string",
+      "description": "موبایل، ایمیل یا کد سازمانی مدیر"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string",
+      "description": "رمز مدیر؛ مقدار secret در Environment نگهداری شود"
+    },
+    {
+      "key": "login_identifier",
+      "value": "",
+      "type": "string",
+      "description": "شناسه کاربر برای جریان OTP"
+    },
+    {
+      "key": "invite_identifier",
+      "value": "",
+      "type": "string",
+      "description": "موبایل کاربری که Send Invite برای او اجرا شده"
     },
     {
       "key": "token",
-      "value": ""
-    },
-    {
-      "key": "user_id",
-      "value": ""
+      "value": "",
+      "type": "string",
+      "description": "Sanctum Bearer token؛ خودکار از Login/Verify ذخیره می‌شود"
     },
     {
       "key": "otp_code",
-      "value": ""
+      "value": "123456",
+      "type": "string",
+      "description": "فقط local/testing؛ کد production را از کانال ارسال دریافت کنید"
+    },
+    {
+      "key": "test_first_name",
+      "value": "کاربر",
+      "type": "string"
+    },
+    {
+      "key": "test_last_name",
+      "value": "آزمایشی",
+      "type": "string"
+    },
+    {
+      "key": "test_password",
+      "value": "SecurePass!123",
+      "type": "string"
+    },
+    {
+      "key": "new_password",
+      "value": "NewSecurePass!123",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "string",
+      "description": "برای یکتا کردن داده تست؛ برای اجرای دوباره پاک شود"
+    },
+    {
+      "key": "test_mobile",
+      "value": "",
+      "type": "string",
+      "description": "در pre-request به‌صورت یکتا ساخته می‌شود"
+    },
+    {
+      "key": "test_email",
+      "value": "",
+      "type": "string",
+      "description": "در pre-request به‌صورت یکتا ساخته می‌شود"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string",
+      "description": "خودکار از Create User"
     },
     {
       "key": "role_id",
-      "value": ""
+      "value": "",
+      "type": "string",
+      "description": "خودکار از Create Role"
+    },
+    {
+      "key": "parent_role_id",
+      "value": "null",
+      "type": "string",
+      "description": "والد نقش جدید؛ برای ساخت ریشه null و برای زیرنقش یک شناسه عددی"
     },
     {
       "key": "role_user_id",
-      "value": ""
+      "value": "null",
+      "type": "string",
+      "description": "کاربر آزاد برای انتصاب به نقش؛ null یعنی بدون کاربر"
     },
     {
       "key": "task_id",
-      "value": ""
+      "value": "",
+      "type": "string",
+      "description": "خودکار از Create Draft Task"
     },
     {
       "key": "assignee_id",
-      "value": ""
+      "value": "null",
+      "type": "string",
+      "description": "شناسه عددی کاربر مجاز از Eligible Task Users؛ قبل از submit باید تنظیم شود"
+    },
+    {
+      "key": "future_due_date",
+      "value": "",
+      "type": "string",
+      "description": "۳۰ روز آینده؛ خودکار ساخته می‌شود"
     }
   ],
   "item": [
     {
       "name": "Auth",
       "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"{{test_first_name}}\",\n  \"last_name\": \"{{test_last_name}}\",\n  \"mobile\": \"{{test_mobile}}\",\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "ثبت‌نام عمومی (معمولاً فقط staging). ورودی الزامی: first_name، last_name، mobile، password و password_confirmation. email اختیاری است. خروجی 201 شامل data.user است؛ در production معمولاً 403."
+          },
+          "response": [
+            {
+              "name": "201 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"{{test_first_name}}\",\n  \"last_name\": \"{{test_last_name}}\",\n  \"mobile\": \"{{test_mobile}}\",\n  \"email\": \"{{test_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/register",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                },
+                "description": "ثبت‌نام عمومی (معمولاً فقط staging). ورودی الزامی: first_name، last_name، mobile، password و password_confirmation. email اختیاری است. خروجی 201 شامل data.user است؛ در production معمولاً 403."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"ثبت‌نام با موفقیت انجام شد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
+            }
+          ]
+        },
         {
           "name": "Identify",
           "request": {
@@ -59,7 +240,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\"\n}"
+              "raw": "{\n  \"identifier\": \"{{login_identifier}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/identify",
@@ -70,8 +256,64 @@
                 "auth",
                 "identify"
               ]
+            },
+            "description": "بررسی وجود و فعال بودن کاربر با mobile، email یا org_code. خروجی data.login_methods روش‌های password و otp را اعلام می‌کند.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"09120000000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/identify",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "identify"
+                  ]
+                },
+                "description": "بررسی وجود و فعال بودن کاربر با mobile، email یا org_code. خروجی data.login_methods روش‌های password و otp را اعلام می‌کند.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"ادامه ورود\",\"data\":{\"login_methods\":[\"password\",\"otp\"]}}"
+            }
+          ]
         },
         {
           "name": "Login With Password",
@@ -79,13 +321,13 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.token) {",
-                  "  pm.collectionVariables.set('token', json.data.token);",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data?.token) pm.collectionVariables.set('token', json.data.token);",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -103,7 +345,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\",\n  \"password\": \"password\"\n}"
+              "raw": "{\n  \"identifier\": \"{{admin_identifier}}\",\n  \"password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -114,25 +361,67 @@
                 "auth",
                 "login"
               ]
+            },
+            "description": "ورود با mobile/email/org_code و password. خروجی data.token توکن Bearer از نوع Sanctum و data.user پروفایل کاربر است. تست درخواست توکن را در متغیر token ذخیره می‌کند.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"{{admin_identifier}}\",\n  \"password\": \"{{admin_password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "ورود با mobile/email/org_code و password. خروجی data.token توکن Bearer از نوع Sanctum و data.user پروفایل کاربر است. تست درخواست توکن را در متغیر token ذخیره می‌کند.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"ورود با موفقیت انجام شد.\",\"data\":{\"token\":\"1|example-sanctum-token\",\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
+            }
+          ]
         },
         {
           "name": "Send Login OTP",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.otp_debug_code) {",
-                  "  pm.collectionVariables.set('otp_code', json.data.otp_debug_code);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -147,7 +436,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"login\"\n}"
+              "raw": "{\n  \"identifier\": \"{{login_identifier}}\",\n  \"purpose\": \"login\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/otp/send",
@@ -159,8 +453,65 @@
                 "otp",
                 "send"
               ]
+            },
+            "description": "ارسال OTP ورود. purpose فقط login است. پاسخ عمداً کد OTP را برنمی‌گرداند؛ در محیط local/testing کد ثابت یا لاگ سرور را در otp_code قرار دهید.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"login\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/otp/send",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "otp",
+                    "send"
+                  ]
+                },
+                "description": "ارسال OTP ورود. purpose فقط login است. پاسخ عمداً کد OTP را برنمی‌گرداند؛ در محیط local/testing کد ثابت یا لاگ سرور را در otp_code قرار دهید.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"در صورت معتبر بودن اطلاعات، کد تایید ارسال می‌شود.\",\"data\":{}}"
+            }
+          ]
         },
         {
           "name": "Verify Login OTP",
@@ -168,13 +519,13 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.token) {",
-                  "  pm.collectionVariables.set('token', json.data.token);",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data?.token) pm.collectionVariables.set('token', json.data.token);",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -192,7 +543,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"login\",\n  \"code\": \"{{otp_code}}\"\n}"
+              "raw": "{\n  \"identifier\": \"{{login_identifier}}\",\n  \"purpose\": \"login\",\n  \"code\": \"{{otp_code}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/otp/verify",
@@ -204,25 +560,68 @@
                 "otp",
                 "verify"
               ]
+            },
+            "description": "تأیید کد ۶ رقمی ورود. خروجی مانند login شامل token و user است و توکن خودکار ذخیره می‌شود.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"login\",\n  \"code\": \"{{otp_code}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/otp/verify",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "otp",
+                    "verify"
+                  ]
+                },
+                "description": "تأیید کد ۶ رقمی ورود. خروجی مانند login شامل token و user است و توکن خودکار ذخیره می‌شود.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"ورود با موفقیت انجام شد.\",\"data\":{\"token\":\"1|example-sanctum-token\",\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
+            }
+          ]
         },
         {
           "name": "Forgot Password",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.otp_debug_code) {",
-                  "  pm.collectionVariables.set('otp_code', json.data.otp_debug_code);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -237,7 +636,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\"\n}"
+              "raw": "{\n  \"identifier\": \"{{login_identifier}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/password/forgot",
@@ -249,8 +653,65 @@
                 "password",
                 "forgot"
               ]
+            },
+            "description": "درخواست OTP بازیابی رمز. برای جلوگیری از افشای وجود حساب، شناسه ناشناس نیز پاسخ 200 یکسان می‌گیرد.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"09120000000\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/password/forgot",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "password",
+                    "forgot"
+                  ]
+                },
+                "description": "درخواست OTP بازیابی رمز. برای جلوگیری از افشای وجود حساب، شناسه ناشناس نیز پاسخ 200 یکسان می‌گیرد.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"در صورت معتبر بودن اطلاعات، کد بازیابی ارسال می‌شود.\",\"data\":{}}"
+            }
+          ]
         },
         {
           "name": "Reset Password",
@@ -268,7 +729,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"forgot_password\",\n  \"code\": \"{{otp_code}}\",\n  \"password\": \"newPassword123\",\n  \"password_confirmation\": \"newPassword123\"\n}"
+              "raw": "{\n  \"identifier\": \"{{login_identifier}}\",\n  \"purpose\": \"forgot_password\",\n  \"code\": \"{{otp_code}}\",\n  \"password\": \"{{new_password}}\",\n  \"password_confirmation\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/password/reset",
@@ -280,8 +746,65 @@
                 "password",
                 "reset"
               ]
+            },
+            "description": "تغییر رمز با OTP بازیابی. purpose باید forgot_password، code شش‌رقمی و password حداقل ۸ نویسه و confirmed باشد. همه توکن‌های قبلی باطل می‌شوند.",
+            "auth": {
+              "type": "noauth"
             }
-          }
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"09120000000\",\n  \"purpose\": \"forgot_password\",\n  \"code\": \"{{otp_code}}\",\n  \"password\": \"newPassword123\",\n  \"password_confirmation\": \"newPassword123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/password/reset",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "password",
+                    "reset"
+                  ]
+                },
+                "description": "تغییر رمز با OTP بازیابی. purpose باید forgot_password، code شش‌رقمی و password حداقل ۸ نویسه و confirmed باشد. همه توکن‌های قبلی باطل می‌شوند.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"رمز عبور با موفقیت تغییر کرد.\",\"data\":{}}"
+            }
+          ]
         },
         {
           "name": "Logout",
@@ -312,10 +835,162 @@
                 "auth",
                 "logout"
               ]
+            },
+            "description": "توکن Bearer جاری را حذف می‌کند. پس از اجرا متغیر token نیز پاک می‌شود."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.unset('token');"
+                ]
+              }
             }
-          }
+          ],
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/auth/logout",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                },
+                "description": "توکن Bearer جاری را حذف می‌کند. پس از اجرا متغیر token نیز پاک می‌شود."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"خروج با موفقیت انجام شد.\",\"data\":{}}"
+            }
+          ]
+        },
+        {
+          "name": "Set Initial Password",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{invite_identifier}}\",\n  \"purpose\": \"set_password\",\n  \"code\": \"{{otp_code}}\",\n  \"password\": \"{{new_password}}\",\n  \"password_confirmation\": \"{{new_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/password/set",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "password",
+                "set"
+              ]
+            },
+            "description": "تنظیم اولین رمز پس از Send Invite. purpose باید set_password باشد. همه توکن‌های قبلی کاربر باطل می‌شوند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"identifier\": \"{{invite_identifier}}\",\n  \"purpose\": \"set_password\",\n  \"code\": \"{{otp_code}}\",\n  \"password\": \"{{new_password}}\",\n  \"password_confirmation\": \"{{new_password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/password/set",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "password",
+                    "set"
+                  ]
+                },
+                "description": "تنظیم اولین رمز پس از Send Invite. purpose باید set_password باشد. همه توکن‌های قبلی کاربر باطل می‌شوند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"رمز عبور با موفقیت تنظیم شد.\",\"data\":{}}"
+            }
+          ]
         }
-      ]
+      ],
+      "description": "Endpointهای عمومی احراز هویت؛ فقط Logout به Bearer token نیاز دارد. ترتیب پیشنهادی password: Login → Me → ... → Logout. ترتیب OTP: Send OTP → Verify OTP."
     },
     {
       "name": "Profile",
@@ -348,10 +1023,57 @@
               "path": [
                 "me"
               ]
+            },
+            "description": "پروفایل کاربر فعال جاری، شامل نقش، visible_tabs و special_dates. این endpoint منبع مناسب bootstrap نشست فرانت است."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me"
+                  ]
+                },
+                "description": "پروفایل کاربر فعال جاری، شامل نقش، visible_tabs و special_dates. این endpoint منبع مناسب bootstrap نشست فرانت است."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"پروفایل کاربر\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         }
-      ]
+      ],
+      "description": "نیازمند Bearer token و حساب فعال."
     },
     {
       "name": "Users",
@@ -402,8 +1124,72 @@
                   "value": "15"
                 }
               ]
+            },
+            "description": "فقط مدیر. فیلترها: search، is_active=0|1، per_page=1..100 و page. خروجی data.items و data.meta برای pagination."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users?search=&is_active=1&page=1&per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "search",
+                      "value": ""
+                    },
+                    {
+                      "key": "is_active",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "15"
+                    }
+                  ]
+                },
+                "description": "فقط مدیر. فیلترها: search، is_active=0|1، per_page=1..100 و page. خروجی data.items و data.meta برای pagination."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"لیست کاربران\",\"data\":{\"items\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}],\"meta\":{\"current_page\":1,\"last_page\":1,\"per_page\":15,\"total\":1}}}"
             }
-          }
+          ]
         },
         {
           "name": "Create User",
@@ -411,13 +1197,18 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.user && json.data.user.id) {",
-                  "  pm.collectionVariables.set('user_id', json.data.user.id);",
+                  "if (pm.response.code === 201) {",
+                  "  const user = pm.response.json().data?.user;",
+                  "  if (user?.id) {",
+                  "    pm.collectionVariables.set('user_id', user.id);",
+                  "    pm.collectionVariables.set('role_user_id', user.id);",
+                  "    pm.collectionVariables.set('assignee_id', user.id);",
+                  "  }",
+                  "  if (user?.mobile) pm.collectionVariables.set('invite_identifier', user.mobile);",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -445,7 +1236,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Hossein\",\n  \"last_name\": \"Mohammadi\",\n  \"mobile\": \"09121234567\",\n  \"email\": \"hossein@example.com\",\n  \"birth_date\": \"1998-05-12\",\n  \"internal_phone\": \"204\",\n  \"title\": \"Sales Manager\",\n  \"is_active\": true,\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"special_dates\": [\n    {\n      \"title\": \"Birthday\",\n      \"date\": \"1998-05-12\",\n      \"description\": \"Birth date\"\n    }\n  ]\n}"
+              "raw": "{\n  \"first_name\": \"{{test_first_name}}\",\n  \"last_name\": \"{{test_last_name}}\",\n  \"mobile\": \"{{test_mobile}}\",\n  \"email\": \"{{test_email}}\",\n  \"birth_date\": \"1998-05-12\",\n  \"internal_phone\": \"204\",\n  \"is_active\": true,\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\",\n  \"special_dates\": [{\n    \"title\": \"تولد\",\n    \"date\": \"1998-05-12\",\n    \"description\": null\n  }]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/users",
@@ -455,8 +1251,67 @@
               "path": [
                 "users"
               ]
+            },
+            "description": "فقط مدیر. نام، نام خانوادگی و mobile اجباری‌اند. password اختیاری است؛ بدون آن must_change_password=true می‌شود. special_dates آرایه‌ای از title/date/description است. شناسه ساخته‌شده خودکار در user_id ذخیره می‌شود."
+          },
+          "response": [
+            {
+              "name": "201 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"{{test_first_name}}\",\n  \"last_name\": \"{{test_last_name}}\",\n  \"mobile\": \"{{test_mobile}}\",\n  \"email\": \"{{test_email}}\",\n  \"birth_date\": \"1998-05-12\",\n  \"internal_phone\": \"204\",\n  \"is_active\": true,\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\",\n  \"special_dates\": [{\n    \"title\": \"تولد\",\n    \"date\": \"1998-05-12\",\n    \"description\": null\n  }]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/users",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users"
+                  ]
+                },
+                "description": "فقط مدیر. نام، نام خانوادگی و mobile اجباری‌اند. password اختیاری است؛ بدون آن must_change_password=true می‌شود. special_dates آرایه‌ای از title/date/description است. شناسه ساخته‌شده خودکار در user_id ذخیره می‌شود."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربر با موفقیت ایجاد شد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Show User",
@@ -487,8 +1342,55 @@
                 "users",
                 "{{user_id}}"
               ]
+            },
+            "description": "فقط مدیر. خروجی کامل data.user شامل role_id، role_title، visible_tabs و special_dates است."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}"
+                  ]
+                },
+                "description": "فقط مدیر. خروجی کامل data.user شامل role_id، role_title، visible_tabs و special_dates است."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"جزئیات کاربر\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Update User",
@@ -516,7 +1418,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Senior Sales Manager\",\n  \"internal_phone\": \"205\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"first_name\": \"حسین\",\n  \"internal_phone\": \"205\",\n  \"is_active\": true,\n  \"role_id\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/users/{{user_id}}",
@@ -527,8 +1434,68 @@
                 "users",
                 "{{user_id}}"
               ]
+            },
+            "description": "فقط مدیر. PATCH و PUT پشتیبانی می‌شوند؛ فیلدها اختیاری‌اند. role_id نقش سازمانی را تخصیص یا با null آزاد می‌کند. is_admin قابل ارسال نیست."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"حسین\",\n  \"internal_phone\": \"205\",\n  \"is_active\": true,\n  \"role_id\": null\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}"
+                  ]
+                },
+                "description": "فقط مدیر. PATCH و PUT پشتیبانی می‌شوند؛ فیلدها اختیاری‌اند. role_id نقش سازمانی را تخصیص یا با null آزاد می‌کند. is_admin قابل ارسال نیست."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربر با موفقیت بروزرسانی شد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Deactivate User",
@@ -560,8 +1527,56 @@
                 "{{user_id}}",
                 "deactivate"
               ]
+            },
+            "description": "فقط مدیر. وضعیت حساب را تغییر می‌دهد. غیرفعال‌سازی همه توکن‌های کاربر را حذف می‌کند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}/deactivate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}",
+                    "deactivate"
+                  ]
+                },
+                "description": "فقط مدیر. وضعیت حساب را تغییر می‌دهد. غیرفعال‌سازی همه توکن‌های کاربر را حذف می‌کند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربر غیرفعال شد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":false,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Activate User",
@@ -593,25 +1608,59 @@
                 "{{user_id}}",
                 "activate"
               ]
+            },
+            "description": "فقط مدیر. وضعیت حساب را تغییر می‌دهد. غیرفعال‌سازی همه توکن‌های کاربر را حذف می‌کند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}/activate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}",
+                    "activate"
+                  ]
+                },
+                "description": "فقط مدیر. وضعیت حساب را تغییر می‌دهد. غیرفعال‌سازی همه توکن‌های کاربر را حذف می‌کند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربر فعال شد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Send Invite",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const json = pm.response.json();",
-                  "if (json.data && json.data.otp_debug_code) {",
-                  "  pm.collectionVariables.set('otp_code', json.data.otp_debug_code);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "auth": {
               "type": "bearer",
@@ -640,8 +1689,56 @@
                 "{{user_id}}",
                 "send-invite"
               ]
+            },
+            "description": "فقط مدیر. OTP با purpose=set_password برای کاربر فعال می‌سازد/ارسال می‌کند؛ کد در پاسخ API افشا نمی‌شود."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}/send-invite",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}",
+                    "send-invite"
+                  ]
+                },
+                "description": "فقط مدیر. OTP با purpose=set_password برای کاربر فعال می‌سازد/ارسال می‌کند؛ کد در پاسخ API افشا نمی‌شود."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"دعوت‌نامه ارسال شد.\",\"data\":{}}"
             }
-          }
+          ]
         },
         {
           "name": "Admin Reset User Password",
@@ -669,7 +1766,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+              "raw": "{\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/users/{{user_id}}/reset-password",
@@ -681,8 +1783,69 @@
                 "{{user_id}}",
                 "reset-password"
               ]
+            },
+            "description": "فقط مدیر. password حداقل ۸ نویسه و password_confirmation برابر لازم است؛ همه توکن‌های کاربر باطل می‌شوند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}/reset-password",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}",
+                    "reset-password"
+                  ]
+                },
+                "description": "فقط مدیر. password حداقل ۸ نویسه و password_confirmation برابر لازم است؛ همه توکن‌های کاربر باطل می‌شوند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"رمز عبور کاربر تغییر کرد.\",\"data\":{\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"mobile\":\"09121234567\",\"email\":\"hossein@example.com\",\"birth_date\":\"1998-05-12\",\"internal_phone\":\"204\",\"avatar_file_id\":null,\"signature_file_id\":null,\"title\":\"مدیر فروش\",\"is_active\":true,\"role_id\":3,\"role_title\":\"مدیر واحد فروش\",\"visible_tabs\":[\"tasks\",\"requests\"],\"must_change_password\":false,\"last_login_at\":\"2026-09-06T08:30:00.000000Z\",\"created_by\":1,\"updated_by\":1,\"special_dates\":[{\"id\":1,\"title\":\"تولد\",\"date\":\"1998-05-12\",\"description\":null}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:30:00.000000Z\"}}}"
             }
-          }
+          ]
         },
         {
           "name": "Delete User",
@@ -713,37 +1876,1309 @@
                 "users",
                 "{{user_id}}"
               ]
+            },
+            "description": "فقط مدیر. حذف نرم کاربر؛ کاربر مدیر یا کاربری که هنوز نقش سازمانی دارد قابل حذف نیست."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "users",
+                    "{{user_id}}"
+                  ]
+                },
+                "description": "فقط مدیر. حذف نرم کاربر؛ کاربر مدیر یا کاربری که هنوز نقش سازمانی دارد قابل حذف نیست."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربر با موفقیت حذف شد.\",\"data\":{}}"
             }
-          }
+          ]
         }
-      ]
+      ],
+      "description": "تمام endpointها نیازمند Bearer token کاربر فعال و دسترسی مدیر هستند."
     },
     {
       "name": "Roles",
       "item": [
-        { "name": "List Roles", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles" } },
-        { "name": "Create Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"مدیر واحد\",\n  \"user_id\": {{role_user_id}},\n  \"parent_id\": null\n}" }, "url": "{{base_url}}/roles" } },
-        { "name": "Show Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles/{{role_id}}" } },
-        { "name": "Update Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"مدیر واحد ویرایش‌شده\",\n  \"user_id\": {{role_user_id}}\n}" }, "url": "{{base_url}}/roles/{{role_id}}" } },
-        { "name": "Delete Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": "{{base_url}}/roles/{{role_id}}" } },
-        { "name": "Available Role Users", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles/available-users?search=&role_id={{role_id}}" } }
-      ]
+        {
+          "name": "List Roles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{base_url}}/roles",
+            "description": "برای همه کاربران فعال. خروجی data.roles درخت نقش‌هاست و هر گره children دارد."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/roles",
+                "description": "برای همه کاربران فعال. خروجی data.roles درخت نقش‌هاست و هر گره children دارد."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"ساختار سازمانی\",\"data\":{\"roles\":[{\"id\":3,\"title\":\"مدیر واحد فروش\",\"parent_id\":1,\"user_id\":12,\"sort_order\":1,\"visible_tabs\":[\"tasks\",\"requests\"],\"request_up_levels\":2,\"assignment_down_levels\":3,\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"children\":[],\"children_count\":0,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:00:00.000000Z\"}]}}"
+            }
+          ]
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"واحد آزمایشی {{run_id}}\",\n  \"user_id\": {{role_user_id}},\n  \"parent_id\": {{parent_role_id}},\n  \"sort_order\": 1,\n  \"visible_tabs\": [\"tasks\", \"requests\"],\n  \"request_up_levels\": 2,\n  \"assignment_down_levels\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/roles",
+            "description": "فقط مدیر. title الزامی؛ parent_id/user_id nullable؛ visible_tabs از tasks, requests, users, organization, settings, contact؛ محدودیت سطوح اعداد >=0 یا null. role_id خروجی خودکار ذخیره می‌شود."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { const body = pm.response.json(); if (body.data?.role?.id) pm.collectionVariables.set('role_id', body.data.role.id); }"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"واحد آزمایشی {{run_id}}\",\n  \"user_id\": {{role_user_id}},\n  \"parent_id\": {{role_id}},\n  \"sort_order\": 1,\n  \"visible_tabs\": [\"tasks\", \"requests\"],\n  \"request_up_levels\": 2,\n  \"assignment_down_levels\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/roles",
+                "description": "فقط مدیر. title الزامی؛ parent_id/user_id nullable؛ visible_tabs از tasks, requests, users, organization, settings, contact؛ محدودیت سطوح اعداد >=0 یا null. role_id خروجی خودکار ذخیره می‌شود."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"نقش با موفقیت ایجاد شد.\",\"data\":{\"role\":{\"id\":3,\"title\":\"مدیر واحد فروش\",\"parent_id\":1,\"user_id\":12,\"sort_order\":1,\"visible_tabs\":[\"tasks\",\"requests\"],\"request_up_levels\":2,\"assignment_down_levels\":3,\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"children\":[],\"children_count\":0,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Show Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{base_url}}/roles/{{role_id}}",
+            "description": "جزئیات یک نقش با user و children. شناسه باید عددی باشد."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/roles/{{role_id}}",
+                "description": "جزئیات یک نقش با user و children. شناسه باید عددی باشد."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"جزئیات نقش\",\"data\":{\"role\":{\"id\":3,\"title\":\"مدیر واحد فروش\",\"parent_id\":1,\"user_id\":12,\"sort_order\":1,\"visible_tabs\":[\"tasks\",\"requests\"],\"request_up_levels\":2,\"assignment_down_levels\":3,\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"children\":[],\"children_count\":0,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"مدیر واحد ویرایش‌شده\",\n  \"user_id\": {{role_user_id}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/roles/{{role_id}}",
+            "description": "فقط مدیر. PATCH/PUT. از چرخه در درخت، بیش از یک ریشه و تخصیص تکراری user جلوگیری می‌شود."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"مدیر واحد ویرایش‌شده\",\n  \"user_id\": {{role_user_id}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/roles/{{role_id}}",
+                "description": "فقط مدیر. PATCH/PUT. از چرخه در درخت، بیش از یک ریشه و تخصیص تکراری user جلوگیری می‌شود."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"نقش با موفقیت بروزرسانی شد.\",\"data\":{\"role\":{\"id\":3,\"title\":\"مدیر واحد فروش\",\"parent_id\":1,\"user_id\":12,\"sort_order\":1,\"visible_tabs\":[\"tasks\",\"requests\"],\"request_up_levels\":2,\"assignment_down_levels\":3,\"user\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"children\":[],\"children_count\":0,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T08:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "url": "{{base_url}}/roles/{{role_id}}",
+            "description": "فقط مدیر. نقش دارای فرزند حذف نمی‌شود؛ ابتدا فرزندان را جابه‌جا یا حذف کنید."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "url": "{{base_url}}/roles/{{role_id}}",
+                "description": "فقط مدیر. نقش دارای فرزند حذف نمی‌شود؛ ابتدا فرزندان را جابه‌جا یا حذف کنید."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"نقش با موفقیت حذف شد.\",\"data\":{}}"
+            }
+          ]
+        },
+        {
+          "name": "Available Role Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/roles/available-users",
+              "host": ["{{base_url}}"],
+              "path": ["roles", "available-users"],
+              "query": [
+                {"key": "search", "value": "", "description": "جستجو در نام، کد سازمانی و عنوان", "disabled": true},
+                {"key": "role_id", "value": "{{role_id}}", "description": "برای مجاز کردن کاربر فعلی هنگام ویرایش نقش", "disabled": true}
+              ]
+            },
+            "description": "فقط مدیر. کاربران غیرمدیر فاقد نقش را تا ۵۰ مورد برمی‌گرداند. search اختیاری؛ role_id باعث می‌شود کاربر فعلی همان نقش هم قابل انتخاب باشد."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/roles/available-users?search=&role_id={{role_id}}",
+                "description": "فقط مدیر. کاربران غیرمدیر فاقد نقش را تا ۵۰ مورد برمی‌گرداند. search اختیاری؛ role_id باعث می‌شود کاربر فعلی همان نقش هم قابل انتخاب باشد."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربران قابل انتصاب\",\"data\":{\"users\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}]}}"
+            }
+          ]
+        }
+      ],
+      "description": "خواندن نقش‌ها برای کاربر فعال؛ ایجاد/ویرایش/حذف و available-users فقط مدیر."
     },
     {
       "name": "Tasks",
       "item": [
-        { "name": "List Tasks", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks?search=&status=&sort=newest&page=1&per_page=15" } },
-        { "name": "Eligible Task Users", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks/eligible-users?search=" } },
-        { "name": "Create Draft Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"تسک جدید\",\n  \"short_description\": \"شرح کوتاه\",\n  \"request_description\": \"شرح درخواست\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"follower_ids\": [],\n  \"supervisor_ids\": [],\n  \"submit\": false\n}" }, "url": "{{base_url}}/tasks" } },
-        { "name": "Submit Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"duration_minutes\": 120,\n  \"due_date\": \"2026-12-31\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"submit\": true\n}" }, "url": "{{base_url}}/tasks/{{task_id}}" } },
-        { "name": "Show Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks/{{task_id}}" } },
-        { "name": "Update Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"عنوان اصلاح‌شده\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}" } },
-        { "name": "Approve Task Request", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": "{{base_url}}/tasks/{{task_id}}/approve" } },
-        { "name": "Reject Task Request", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"دلیل رد درخواست\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/reject" } },
-        { "name": "Request Task Revision", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"لطفاً اصلاح شود\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/request-revision" } },
-        { "name": "Change Task Status", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/status" } },
-        { "name": "Update Task Progress", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"progress_percentage\": 50\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/progress" } }
-      ]
+        {
+          "name": "List Tasks",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tasks?sort=newest&page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["tasks"],
+              "query": [
+                {"key": "search", "value": "", "description": "جستجو در عنوان و شرح", "disabled": true},
+                {"key": "status", "value": "in_progress", "description": "یکی از وضعیت‌های تعریف‌شده", "disabled": true},
+                {"key": "submission_type", "value": "assignment", "description": "assignment یا request", "disabled": true},
+                {"key": "user_id", "value": "{{user_id}}", "description": "تسک‌های مرتبط با کاربر", "disabled": true},
+                {"key": "created_from", "value": "2026-01-01", "description": "شروع بازه ایجاد (YYYY-MM-DD)", "disabled": true},
+                {"key": "created_to", "value": "2026-12-31", "description": "پایان بازه؛ نباید قبل از created_from باشد", "disabled": true},
+                {"key": "sort", "value": "newest", "description": "newest|oldest|longest_duration|shortest_duration|highest_progress|lowest_progress"},
+                {"key": "page", "value": "1", "description": "عدد صحیح حداقل ۱"},
+                {"key": "per_page", "value": "15", "description": "عدد صحیح ۱ تا ۱۰۰"}
+              ]
+            },
+            "description": "فیلترها: search، status، submission_type، user_id، created_from، created_to، sort، per_page و page. sort: newest|oldest|longest_duration|shortest_duration|highest_progress|lowest_progress. وضعیت‌ها در توضیح کالکشن آمده‌اند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/tasks?search=&status=&sort=newest&page=1&per_page=15",
+                "description": "فیلترها: search، status، submission_type، user_id، created_from، created_to، sort، per_page و page. sort: newest|oldest|longest_duration|shortest_duration|highest_progress|lowest_progress. وضعیت‌ها در توضیح کالکشن آمده‌اند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"لیست تسک‌ها\",\"data\":{\"items\":[{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}],\"meta\":{\"current_page\":1,\"last_page\":1,\"per_page\":15,\"total\":1}}}"
+            }
+          ]
+        },
+        {
+          "name": "Eligible Task Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/tasks/eligible-users",
+              "host": ["{{base_url}}"],
+              "path": ["tasks", "eligible-users"],
+              "query": [
+                {"key": "search", "value": "", "description": "جستجوی اختیاری نام، کد سازمانی یا عنوان", "disabled": true}
+              ]
+            },
+            "description": "اهداف مجاز مطابق ساختار سازمانی. data.assignment_targets برای مسئول، request_targets برای requester و participants برای دنبال‌کننده/ناظر/تأمین‌کننده است."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/tasks/eligible-users?search=",
+                "description": "اهداف مجاز مطابق ساختار سازمانی. data.assignment_targets برای مسئول، request_targets برای requester و participants برای دنبال‌کننده/ناظر/تأمین‌کننده است."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"کاربران مجاز تسک\",\"data\":{\"assignment_targets\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"request_targets\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"participants\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}]}}"
+            }
+          ]
+        },
+        {
+          "name": "Create Draft Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"تسک آزمایشی {{run_id}}\",\n  \"short_description\": \"شرح کوتاه حداکثر ۱۰۰ نویسه\",\n  \"request_description\": \"توضیحات کامل درخواست\",\n  \"duration_minutes\": 120,\n  \"due_date\": \"{{future_due_date}}\",\n  \"progress_percentage\": 0,\n  \"requester_id\": null,\n  \"assignee_ids\": [{{assignee_id}}],\n  \"follower_ids\": [],\n  \"supervisor_ids\": [],\n  \"financial_resources\": null,\n  \"financial_estimated_cost\": null,\n  \"financial_provider_user_id\": null,\n  \"equipment_resources\": null,\n  \"equipment_estimated_cost\": null,\n  \"equipment_provider_user_id\": null,\n  \"submit\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks",
+            "description": "title و short_description اجباری‌اند. submit=false پیش‌نویس می‌سازد. سایر فیلدهای کامل تسک در توضیح کالکشن آمده‌اند؛ task_id خروجی خودکار ذخیره می‌شود."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) { const body = pm.response.json(); if (body.data?.task?.id) pm.collectionVariables.set('task_id', body.data.task.id); }"
+                ]
+              }
+            }
+          ],
+          "response": [
+            {
+              "name": "201 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"تسک آزمایشی {{run_id}}\",\n  \"short_description\": \"شرح کوتاه حداکثر ۱۰۰ نویسه\",\n  \"request_description\": \"توضیحات کامل درخواست\",\n  \"duration_minutes\": 120,\n  \"due_date\": \"{{future_due_date}}\",\n  \"progress_percentage\": 0,\n  \"requester_id\": null,\n  \"assignee_ids\": [{{assignee_id}}],\n  \"follower_ids\": [],\n  \"supervisor_ids\": [],\n  \"financial_resources\": null,\n  \"financial_estimated_cost\": null,\n  \"financial_provider_user_id\": null,\n  \"equipment_resources\": null,\n  \"equipment_estimated_cost\": null,\n  \"equipment_provider_user_id\": null,\n  \"submit\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks",
+                "description": "title و short_description اجباری‌اند. submit=false پیش‌نویس می‌سازد. سایر فیلدهای کامل تسک در توضیح کالکشن آمده‌اند؛ task_id خروجی خودکار ذخیره می‌شود."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"تسک با موفقیت ایجاد شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":0,\"status\":\"draft\",\"submission_type\":null,\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Submit Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"duration_minutes\": 120,\n  \"due_date\": \"{{future_due_date}}\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"submit\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}",
+            "description": "ارسال پیش‌نویس با submit=true. duration_minutes، due_date غیرگذشته و حداقل یک assignee الزامی‌اند. خروجی بسته به جهت سازمانی status=in_progress یا pending_approval دارد."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"duration_minutes\": 120,\n  \"due_date\": \"{{future_due_date}}\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"submit\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}",
+                "description": "ارسال پیش‌نویس با submit=true. duration_minutes، due_date غیرگذشته و حداقل یک assignee الزامی‌اند. خروجی بسته به جهت سازمانی status=in_progress یا pending_approval دارد."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"تسک با موفقیت بروزرسانی شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Show Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": "{{base_url}}/tasks/{{task_id}}",
+            "description": "جزئیات کامل تسک؛ برخلاف لیست، workflow_history را نیز برمی‌گرداند."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "url": "{{base_url}}/tasks/{{task_id}}",
+                "description": "جزئیات کامل تسک؛ برخلاف لیست، workflow_history را نیز برمی‌گرداند."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"جزئیات تسک\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"workflow_history\":[{\"id\":44,\"action\":\"progress_updated\",\"from_status\":null,\"to_status\":null,\"old_progress\":20,\"new_progress\":50,\"reason\":null,\"actor\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"created_at\":\"2026-09-06T09:00:00.000000Z\"}],\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"عنوان اصلاح‌شده\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}",
+            "description": "ویرایش مجاز تسک با PATCH. همان فیلدهای Create را می‌پذیرد و هر فیلد اختیاری است."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"عنوان اصلاح‌شده\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}",
+                "description": "ویرایش مجاز تسک با PATCH. همان فیلدهای Create را می‌پذیرد و هر فیلد اختیاری است."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"تسک با موفقیت بروزرسانی شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Approve Task Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "url": "{{base_url}}/tasks/{{task_id}}/approve",
+            "description": "فقط مسئول مجاز روی درخواست pending_approval؛ وضعیت به in_progress می‌رود."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "url": "{{base_url}}/tasks/{{task_id}}/approve",
+                "description": "فقط مسئول مجاز روی درخواست pending_approval؛ وضعیت به in_progress می‌رود."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"درخواست با موفقیت تأیید شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Reject Task Request",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"دلیل رد درخواست\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}/reject",
+            "description": "رد درخواست pending_approval با reason اجباری و حداکثر ۱۰۰۰ نویسه."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"دلیل رد درخواست\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}/reject",
+                "description": "رد درخواست pending_approval با reason اجباری و حداکثر ۱۰۰۰ نویسه."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"درخواست رد شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"rejected\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":\"دلیل رد درخواست\",\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Request Task Revision",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"لطفاً اصلاح شود\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}/request-revision",
+            "description": "درخواست اصلاح برای pending_approval با reason اجباری و حداکثر ۱۰۰۰ نویسه."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"لطفاً اصلاح شود\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}/request-revision",
+                "description": "درخواست اصلاح برای pending_approval با reason اجباری و حداکثر ۱۰۰۰ نویسه."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"درخواست اصلاح ثبت شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"revision_requested\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":\"لطفاً اصلاح شود\",\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Change Task Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}/status",
+            "description": "status یکی از in_progress، completed، not_completed. گذارهای مجاز: in_progress→completed/not_completed و not_completed→in_progress."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"completed\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}/status",
+                "description": "status یکی از in_progress، completed، not_completed. گذارهای مجاز: in_progress→completed/not_completed و not_completed→in_progress."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"وضعیت تسک تغییر کرد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"completed\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        },
+        {
+          "name": "Update Task Progress",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"progress_percentage\": 50\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/tasks/{{task_id}}/progress",
+            "description": "progress_percentage عدد صحیح ۰ تا ۱۰۰؛ فقط برای تسک in_progress و کاربر مجاز."
+          },
+          "response": [
+            {
+              "name": "200 - نمونه پاسخ موفق",
+              "originalRequest": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"progress_percentage\": 50\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{base_url}}/tasks/{{task_id}}/progress",
+                "description": "progress_percentage عدد صحیح ۰ تا ۱۰۰؛ فقط برای تسک in_progress و کاربر مجاز."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=UTF-8"
+                }
+              ],
+              "cookie": [],
+              "body": "{\"success\":true,\"message\":\"درصد پیشرفت ثبت شد.\",\"data\":{\"task\":{\"id\":25,\"title\":\"تهیه گزارش ماهانه\",\"short_description\":\"گزارش فروش شهریور\",\"request_description\":\"آمار نهایی پس از تأیید مالی ارسال شود.\",\"duration_minutes\":120,\"due_date\":\"2026-10-06\",\"progress_percentage\":50,\"status\":\"in_progress\",\"submission_type\":\"assignment\",\"requester\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"creator\":{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null},\"assignees\":[{\"id\":12,\"org_code\":\"100012\",\"first_name\":\"حسین\",\"last_name\":\"محمدی\",\"title\":\"مدیر فروش\",\"avatar_file_id\":null}],\"followers\":[],\"supervisors\":[],\"financial_resources\":null,\"financial_estimated_cost\":null,\"financial_provider\":null,\"equipment_resources\":null,\"equipment_estimated_cost\":null,\"equipment_provider\":null,\"rejection_reason\":null,\"created_at\":\"2026-09-06T08:00:00.000000Z\",\"updated_at\":\"2026-09-06T09:00:00.000000Z\"}}}"
+            }
+          ]
+        }
+      ],
+      "description": "نیازمند Bearer token کاربر فعال؛ دسترسی هر عملیات با Policy و ساختار سازمانی کنترل می‌شود."
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run_id')) pm.collectionVariables.set('run_id', Date.now().toString().slice(-8));",
+          "const runId = pm.collectionVariables.get('run_id');",
+          "if (!pm.collectionVariables.get('test_mobile')) pm.collectionVariables.set('test_mobile', '091' + runId);",
+          "if (!pm.collectionVariables.get('test_email')) pm.collectionVariables.set('test_email', `frontend.${runId}@example.test`);",
+          "const due = new Date(); due.setUTCDate(due.getUTCDate() + 30);",
+          "pm.collectionVariables.set('future_due_date', due.toISOString().slice(0, 10));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const allowedStatuses = pm.info.requestName === 'Register' ? [201, 403] : [200, 201];",
+          "pm.test('[Contract] status matches endpoint', () => pm.expect(pm.response.code).to.be.oneOf(allowedStatuses));",
+          "pm.test('[Contract] response is JSON', () => pm.expect(pm.response.headers.get('Content-Type') || '').to.include('application/json'));",
+          "pm.test('[Contract] response envelope is valid', () => {",
+          "  const body = pm.response.json();",
+          "  pm.expect(body).to.be.an('object');",
+          "  if ([200, 201].includes(pm.response.code)) {",
+          "    pm.expect(body.success).to.eql(true);",
+          "    pm.expect(body.message).to.be.a('string').and.not.empty;",
+          "    pm.expect(body.data).to.be.an('object');",
+          "  } else {",
+          "    pm.expect(body.message).to.be.a('string').and.not.empty;",
+          "  }",
+          "});",
+          "if ([200, 201].includes(pm.response.code)) pm.test('[Contract] endpoint data shape is valid', () => {",
+          "  const data = pm.response.json().data;",
+          "  const name = pm.info.requestName;",
+          "  if (['Login With Password', 'Verify Login OTP'].includes(name)) {",
+          "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+          "    pm.expect(data.user).to.be.an('object').and.have.property('id');",
+          "  } else if (name === 'Identify') {",
+          "    pm.expect(data.login_methods).to.eql(['password', 'otp']);",
+          "  } else if (name === 'Me' || ['Register', 'Create User', 'Show User', 'Update User', 'Activate User', 'Deactivate User', 'Admin Reset User Password'].includes(name)) {",
+          "    pm.expect(data.user).to.be.an('object').and.have.property('id');",
+          "  } else if (name === 'List Users' || name === 'List Tasks') {",
+          "    pm.expect(data.items).to.be.an('array');",
+          "    pm.expect(data.meta).to.include.all.keys('current_page', 'last_page', 'per_page', 'total');",
+          "  } else if (name === 'List Roles') {",
+          "    pm.expect(data.roles).to.be.an('array');",
+          "  } else if (['Create Role', 'Show Role', 'Update Role'].includes(name)) {",
+          "    pm.expect(data.role).to.be.an('object').and.have.property('id');",
+          "  } else if (name === 'Available Role Users') {",
+          "    pm.expect(data.users).to.be.an('array');",
+          "  } else if (name === 'Eligible Task Users') {",
+          "    pm.expect(data.assignment_targets).to.be.an('array');",
+          "    pm.expect(data.request_targets).to.be.an('array');",
+          "    pm.expect(data.participants).to.be.an('array');",
+          "  } else if (name.includes('Task')) {",
+          "    pm.expect(data.task).to.be.an('object').and.have.property('id');",
+          "    pm.expect(data.task.status).to.be.oneOf(['draft', 'pending_approval', 'revision_requested', 'in_progress', 'completed', 'not_completed', 'rejected']);",
+          "  }",
+          "});",
+          "pm.test('[Security] no debug trace leaked', () => {",
+          "  const body = pm.response.json();",
+          "  ['exception', 'file', 'line', 'trace'].forEach((key) => pm.expect(body).not.to.have.property(key));",
+          "});",
+          "pm.test('[Performance] response under 3000 ms', () => pm.expect(pm.response.responseTime).to.be.below(3000));"
+        ]
+      }
+    }
+  ],
+  "protocolProfileBehavior": {
+    "disableBodyPruning": true
+  }
 }
