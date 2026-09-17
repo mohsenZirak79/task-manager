@@ -6,12 +6,14 @@ use App\Enums\TaskParticipantRole;
 use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
 use App\Models\OrgPosition;
+use App\Models\Tag;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TaskService
@@ -85,6 +87,7 @@ class TaskService
             ]);
 
             $this->syncParticipants($task, $data, true);
+            $this->syncTags($task, $data, true);
 
             if ($submit) {
                 $this->submit($task, $actor);
@@ -106,6 +109,7 @@ class TaskService
             }
 
             $this->ensureOrganizationParticipants($actor, $data);
+            $this->ensureMeetingAssignees($task, $data);
 
             if (in_array($task->status, [TaskStatus::RevisionRequested, TaskStatus::Rejected], true)) {
                 $from = $task->status;
@@ -118,6 +122,7 @@ class TaskService
 
             $task->update($this->taskAttributes($data));
             $this->syncParticipants($task, $data);
+            $this->syncTags($task, $data);
 
             if ((bool) ($data['submit'] ?? false)) {
                 $this->submit($task, $actor);
@@ -504,9 +509,45 @@ class TaskService
         }
     }
 
+    private function syncTags(Task $task, array $data, bool $creating = false): void
+    {
+        if (! $creating && ! array_key_exists('tags', $data)) {
+            return;
+        }
+
+        $tagIds = collect($data['tags'] ?? [])
+            ->map(fn (string $title): string => trim($title))
+            ->filter()
+            ->unique(fn (string $title): string => mb_strtolower($title))
+            ->map(fn (string $title): int => Tag::query()->firstOrCreate(['title' => $title])->id)
+            ->all();
+
+        $task->tags()->sync($tagIds);
+    }
+
+    private function ensureMeetingAssignees(Task $task, array $data): void
+    {
+        if (! array_key_exists('assignee_ids', $data)) {
+            return;
+        }
+
+        $meeting = $task->meetingResolution()->with('meeting')->first()?->meeting;
+        if (! $meeting) {
+            return;
+        }
+
+        $memberIds = $meeting->attendees()->pluck('users.id')->map(fn ($id) => (int) $id)->all();
+        $invalidIds = array_diff(array_map('intval', $data['assignee_ids']), $memberIds);
+        if ($invalidIds !== []) {
+            throw ValidationException::withMessages([
+                'assignee_ids' => 'همه مسئولان تسک مصوبه باید از اعضای همان جلسه باشند.',
+            ]);
+        }
+    }
+
     private function taskAttributes(array $data): array
     {
-        return Arr::except($data, ['assignee_ids', 'follower_ids', 'supervisor_ids', 'submit']);
+        return Arr::except($data, ['assignee_ids', 'follower_ids', 'supervisor_ids', 'tags', 'submit']);
     }
 
     private function recordHistory(
@@ -545,7 +586,7 @@ class TaskService
     {
         return [
             'requester', 'creator', 'assignees', 'followers', 'supervisors',
-            'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
+            'tags', 'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
         ];
     }
 }

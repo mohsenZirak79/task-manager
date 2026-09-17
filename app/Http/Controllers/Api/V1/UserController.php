@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminResetUserPasswordRequest;
+use App\Http\Requests\IndexUsersRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Http\Resources\UserResource;
@@ -20,10 +21,10 @@ class UserController extends Controller
         private readonly AuthService $authService,
     ) {}
 
-    public function index(Request $request): JsonResponse
+    public function index(IndexUsersRequest $request): JsonResponse
     {
         $users = $this->userService->paginate(
-            $request->only(['search', 'is_active', 'per_page']),
+            $request->validated(),
             $request->user(),
         );
 
@@ -49,10 +50,10 @@ class UserController extends Controller
 
     public function show(Request $request, User $user): JsonResponse
     {
-        $this->userService->assertCanManage($user, $request->user());
+        $user = $this->userService->find($user, $request->user());
 
         return $this->success('جزئیات کاربر', [
-            'user' => new UserResource($user->load(['specialDates', 'accessRoles.permissions', 'orgPositions'])),
+            'user' => new UserResource($user),
         ]);
     }
 

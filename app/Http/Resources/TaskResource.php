@@ -26,6 +26,10 @@ class TaskResource extends JsonResource
             'assignees' => UserSummaryResource::collection($this->assignees),
             'followers' => UserSummaryResource::collection($this->followers),
             'supervisors' => UserSummaryResource::collection($this->supervisors),
+            'tags' => $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'title' => $tag->title,
+            ])->values(),
             'financial_resources' => $this->financial_resources,
             'financial_estimated_cost' => $this->financial_estimated_cost,
             'financial_provider' => $this->financialProvider

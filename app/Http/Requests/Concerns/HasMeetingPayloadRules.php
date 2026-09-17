@@ -15,6 +15,7 @@ trait HasMeetingPayloadRules
 
         return [
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'short_description' => ['sometimes', 'nullable', 'string', 'max:500'],
             'location' => ['sometimes', 'nullable', 'string', 'max:500'],
             'meeting_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'start_time' => ['sometimes', 'nullable', 'date_format:H:i'],

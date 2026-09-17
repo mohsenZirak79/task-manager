@@ -25,6 +25,7 @@ class UserFactory extends Factory
     {
         return [
             'org_code' => fake()->unique()->numerify('######'),
+            'username' => fake()->unique()->userName(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'mobile' => fake()->unique()->numerify('09#########'),

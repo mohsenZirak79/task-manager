@@ -37,6 +37,10 @@
     {
       "key": "assignee_id",
       "value": ""
+    },
+    {
+      "key": "avatar_file_id",
+      "value": ""
     }
   ],
   "item": [
@@ -357,6 +361,53 @@
       "name": "Users",
       "item": [
         {
+          "name": "Upload User Avatar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.file && json.data.file.id) {",
+                  "  pm.collectionVariables.set('avatar_file_id', json.data.file.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": "{{base_url}}/uploads/images"
+          }
+        },
+        {
           "name": "List Users",
           "request": {
             "auth": {
@@ -445,7 +496,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Hossein\",\n  \"last_name\": \"Mohammadi\",\n  \"mobile\": \"09121234567\",\n  \"email\": \"hossein@example.com\",\n  \"birth_date\": \"1998-05-12\",\n  \"internal_phone\": \"204\",\n  \"title\": \"Sales Manager\",\n  \"is_active\": true,\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"special_dates\": [\n    {\n      \"title\": \"Birthday\",\n      \"date\": \"1998-05-12\",\n      \"description\": \"Birth date\"\n    }\n  ]\n}"
+              "raw": "{\n  \"username\": \"hossein.mohammadi\",\n  \"first_name\": \"Hossein\",\n  \"last_name\": \"Mohammadi\",\n  \"mobile\": \"09121234567\",\n  \"email\": \"hossein@example.com\",\n  \"title\": \"Sales Manager\",\n  \"is_active\": true,\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"avatar_file_id\": {{avatar_file_id}},\n  \"org_position_id\": {{role_id}}\n}"
             },
             "url": {
               "raw": "{{base_url}}/users",
@@ -516,7 +567,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Senior Sales Manager\",\n  \"internal_phone\": \"205\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"username\": \"hossein.updated\",\n  \"title\": \"Senior Sales Manager\",\n  \"avatar_file_id\": {{avatar_file_id}},\n  \"org_position_id\": {{role_id}}\n}"
             },
             "url": {
               "raw": "{{base_url}}/users/{{user_id}}",

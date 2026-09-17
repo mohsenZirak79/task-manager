@@ -16,7 +16,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class UserService
 {
-    private const RELATIONS = ['specialDates', 'accessRoles.permissions', 'orgPositions'];
+    private const RELATIONS = ['avatar', 'specialDates', 'accessRoles.permissions', 'orgPositions'];
 
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
@@ -26,6 +26,7 @@ class UserService
 
         return User::query()
             ->with(self::RELATIONS)
+            ->withCount(['assignedTasks as tasks_count'])
             ->when(! $actor->isSuperAdmin(), fn ($query) => $query->whereDoesntHave(
                 'accessRoles',
                 fn ($query) => $query->where('slug', AccessRoles::SUPER_ADMIN)->where('is_system', true),
@@ -33,6 +34,7 @@ class UserService
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('first_name', 'like', "%{$search}%")
+                        ->orWhere('username', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('mobile', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
@@ -107,7 +109,7 @@ class UserService
             $user->accessRoles()->syncWithoutDetaching([$role->id]);
             $user->tokens()->delete();
 
-            return $user->fresh(self::RELATIONS);
+            return $this->loadUser($user->fresh());
         });
     }
 
@@ -144,7 +146,7 @@ class UserService
             $this->syncAccessRoles($user, $accessRoleIds ?? [$this->defaultAccessRoleId()]);
             $this->syncOrgPositions($user, $orgPositionIds);
 
-            return $user->load(self::RELATIONS);
+            return $this->loadUser($user);
         });
     }
 
@@ -188,7 +190,7 @@ class UserService
                 $user->tokens()->delete();
             }
 
-            return $user->fresh(self::RELATIONS);
+            return $this->loadUser($user->fresh());
         });
     }
 
@@ -197,7 +199,7 @@ class UserService
         $this->assertCanManage($user, $actor);
         $user->forceFill(['is_active' => true, 'updated_by' => $actor->id])->save();
 
-        return $user->fresh(self::RELATIONS);
+        return $this->loadUser($user->fresh());
     }
 
     public function deactivate(User $user, User $actor): User
@@ -212,7 +214,7 @@ class UserService
         $user->forceFill(['is_active' => false, 'updated_by' => $actor->id])->save();
         $user->tokens()->delete();
 
-        return $user->fresh(self::RELATIONS);
+        return $this->loadUser($user->fresh());
     }
 
     public function resetPassword(User $user, string $password, User $actor): User
@@ -223,7 +225,7 @@ class UserService
             $user->forceFill(['password' => Hash::make($password), 'must_change_password' => false, 'updated_by' => $actor->id])->save();
             $user->tokens()->delete();
 
-            return $user->fresh(self::RELATIONS);
+            return $this->loadUser($user->fresh());
         });
     }
 
@@ -248,6 +250,18 @@ class UserService
         if ($user->isSuperAdmin() && $user->id !== $actor->id) {
             throw new HttpException(403, 'حساب سوپرادمین فقط توسط خودش قابل مدیریت است.');
         }
+    }
+
+    public function find(User $user, User $actor): User
+    {
+        $this->assertCanManage($user, $actor);
+
+        return $this->loadUser($user);
+    }
+
+    private function loadUser(User $user): User
+    {
+        return $user->load(self::RELATIONS)->loadCount(['assignedTasks as tasks_count']);
     }
 
     private function assertCanManageAccess(User $actor, array $roleIds, ?User $target = null): void

@@ -79,6 +79,11 @@ class Task extends Model
             ->withTimestamps();
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->withTimestamps();
+    }
+
     public function workflowHistory(): HasMany
     {
         return $this->hasMany(TaskWorkflowHistory::class)->latest('id');

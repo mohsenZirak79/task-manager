@@ -29,6 +29,8 @@ trait HasTaskPayloadRules
             'follower_ids.*' => ['integer', 'distinct', $userExists],
             'supervisor_ids' => ['sometimes', 'array'],
             'supervisor_ids.*' => ['integer', 'distinct', $userExists],
+            'tags' => ['sometimes', 'array', 'max:20'],
+            'tags.*' => ['required', 'string', 'max:100', 'distinct'],
             'financial_resources' => ['sometimes', 'nullable', 'string'],
             'financial_estimated_cost' => ['sometimes', 'nullable', 'numeric', 'min:0'],
             'financial_provider_user_id' => ['sometimes', 'nullable', 'integer', $userExists],

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Support\AccessRoles;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -19,6 +20,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'org_code',
+        'username',
         'first_name',
         'last_name',
         'mobile',
@@ -32,6 +34,7 @@ class User extends Authenticatable
         'is_active',
         'must_change_password',
         'last_login_at',
+        'last_activity_at',
         'created_by',
         'updated_by',
     ];
@@ -44,6 +47,11 @@ class User extends Authenticatable
     public function specialDates(): HasMany
     {
         return $this->hasMany(UserSpecialDate::class);
+    }
+
+    public function avatar(): BelongsTo
+    {
+        return $this->belongsTo(MediaFile::class, 'avatar_file_id');
     }
 
     public function accessRoles(): BelongsToMany
@@ -115,6 +123,13 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'requester_id');
     }
 
+    public function assignedTasks(): BelongsToMany
+    {
+        return $this->belongsToMany(Task::class, 'task_participants')
+            ->wherePivot('role', 'assignee')
+            ->withTimestamps();
+    }
+
     public function attendedMeetings(): BelongsToMany
     {
         return $this->belongsToMany(Meeting::class, 'meeting_attendees')->withTimestamps();
@@ -137,6 +152,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
+            'last_activity_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

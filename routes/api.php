@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
@@ -20,11 +21,12 @@ Route::prefix('v1')->group(function (): void {
     Route::post('auth/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:otp-verify');
     Route::post('auth/password/set', [AuthController::class, 'setPassword'])->middleware('throttle:otp-verify');
 
-    Route::middleware('auth:sanctum')->group(function (): void {
+    Route::middleware(['auth:sanctum', 'last.activity'])->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 
         Route::middleware('active')->group(function (): void {
             Route::get('me', [ProfileController::class, 'show']);
+            Route::post('uploads/images', [UploadController::class, 'image']);
 
             Route::get('meetings', [MeetingController::class, 'index'])->middleware('permission:'.Permissions::MEETINGS_VIEW);
             Route::post('meetings', [MeetingController::class, 'store'])->middleware('permission:'.Permissions::MEETINGS_CREATE);

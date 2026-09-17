@@ -14,6 +14,7 @@ class MeetingResource extends JsonResource
         return [
             'id' => $this->id,
             'title' => $this->title,
+            'short_description' => $this->short_description,
             'location' => $this->location,
             'meeting_date' => $this->meeting_date?->toDateString(),
             'start_time' => $this->start_time?->format('H:i'),

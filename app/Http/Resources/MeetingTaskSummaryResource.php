@@ -19,6 +19,10 @@ class MeetingTaskSummaryResource extends JsonResource
             'due_date' => $this->due_date?->toDateString(),
             'duration_minutes' => $this->duration_minutes,
             'assignees' => UserSummaryResource::collection($this->whenLoaded('assignees')),
+            'tags' => $this->whenLoaded('tags', fn () => $this->tags->map(fn ($tag) => [
+                'id' => $tag->id,
+                'title' => $tag->title,
+            ])->values()),
         ];
     }
 }

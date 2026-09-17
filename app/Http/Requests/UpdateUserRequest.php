@@ -18,12 +18,19 @@ class UpdateUserRequest extends FormRequest
         $userId = $this->route('user')?->id;
 
         return [
+            'username' => ['sometimes', 'required', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/', Rule::unique('users', 'username')->ignore($userId)],
             'first_name' => ['sometimes', 'required', 'string', 'max:100'],
             'last_name' => ['sometimes', 'required', 'string', 'max:100'],
             'mobile' => ['sometimes', 'required', 'string', 'regex:/^09\d{9}$/', Rule::unique('users', 'mobile')->ignore($userId)],
             'email' => ['nullable', 'email', 'max:255', Rule::unique('users', 'email')->ignore($userId)],
             'birth_date' => ['nullable', 'date'],
             'internal_phone' => ['nullable', 'string', 'max:50'],
+            'avatar_file_id' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                Rule::exists('media_files', 'id')->where(fn ($query) => $query->where('mime_type', 'like', 'image/%')),
+            ],
             'is_active' => ['boolean'],
             'access_role_ids' => ['sometimes', 'array'],
             'access_role_ids.*' => ['integer', 'distinct', 'exists:access_roles,id'],

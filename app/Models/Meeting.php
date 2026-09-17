@@ -14,7 +14,7 @@ class Meeting extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'title', 'location', 'meeting_date', 'start_time', 'status',
+        'title', 'short_description', 'location', 'meeting_date', 'start_time', 'status',
         'chairman_user_id', 'secretary_user_id', 'created_by',
         'submitted_at', 'completed_at',
     ];

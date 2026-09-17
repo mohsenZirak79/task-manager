@@ -23,7 +23,7 @@ class MeetingService
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
         return Meeting::query()
-            ->with(['chairman', 'secretary'])
+            ->with(['chairman', 'secretary', 'creator'])
             ->withCount(['attendees', 'agendaItems', 'resolutions'])
             ->when(! $this->hasAdministrativeAccess($actor), function ($query) use ($actor): void {
                 $query->where(function ($query) use ($actor): void {
@@ -39,6 +39,7 @@ class MeetingService
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('title', 'like', "%{$search}%")
+                        ->orWhere('short_description', 'like', "%{$search}%")
                         ->orWhere('location', 'like', "%{$search}%");
                 });
             })
@@ -185,6 +186,8 @@ class MeetingService
                 throw new HttpException(409, 'برای این مصوبه قبلاً تسک ثبت شده است.');
             }
 
+            $this->ensureTaskAssigneesAttendMeeting($meeting, $data['assignee_ids'] ?? []);
+
             Gate::forUser($actor)->authorize('create', Task::class);
             $task = $this->taskService->create([
                 ...$data,
@@ -211,6 +214,10 @@ class MeetingService
             if (MeetingResolution::query()->where('task_id', $task->id)->exists()) {
                 throw new HttpException(409, 'این تسک قبلاً به مصوبه دیگری متصل شده است.');
             }
+            $this->ensureTaskAssigneesAttendMeeting(
+                $meeting,
+                $task->assignees()->pluck('users.id')->map(fn ($id) => (int) $id)->all(),
+            );
             $resolution->update(['task_id' => $task->id]);
 
             return $this->loadResolution($resolution);
@@ -325,9 +332,21 @@ class MeetingService
         }
     }
 
+    /** @param array<int, int|string> $assigneeIds */
+    private function ensureTaskAssigneesAttendMeeting(Meeting $meeting, array $assigneeIds): void
+    {
+        $memberIds = $meeting->attendees()->pluck('users.id')->map(fn ($id) => (int) $id)->all();
+        $invalidIds = array_diff(array_map('intval', $assigneeIds), $memberIds);
+        if ($invalidIds !== []) {
+            throw ValidationException::withMessages([
+                'assignee_ids' => 'همه مسئولان تسک مصوبه باید از اعضای همان جلسه باشند.',
+            ]);
+        }
+    }
+
     private function meetingAttributes(array $data): array
     {
-        return Arr::only($data, ['title', 'location', 'meeting_date', 'start_time', 'chairman_user_id', 'secretary_user_id']);
+        return Arr::only($data, ['title', 'short_description', 'location', 'meeting_date', 'start_time', 'chairman_user_id', 'secretary_user_id']);
     }
 
     private function hasAdministrativeAccess(User $actor): bool
@@ -339,12 +358,12 @@ class MeetingService
     {
         return $meeting->fresh([
             'chairman', 'secretary', 'creator', 'attendees', 'agendaItems',
-            'resolutions.agendaItem', 'resolutions.creator', 'resolutions.task.assignees',
+            'resolutions.agendaItem', 'resolutions.creator', 'resolutions.task.assignees', 'resolutions.task.tags',
         ]);
     }
 
     private function loadResolution(MeetingResolution $resolution): MeetingResolution
     {
-        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting']);
+        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.tags', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting']);
     }
 }
