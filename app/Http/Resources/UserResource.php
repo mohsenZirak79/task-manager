@@ -24,6 +24,7 @@ class UserResource extends JsonResource
             'signature_file_id' => $this->signature_file_id,
             'title' => $this->title,
             'is_active' => $this->is_active,
+            'is_admin' => $this->is_admin,
             'must_change_password' => $this->must_change_password,
             'last_login_at' => $this->last_login_at?->toISOString(),
             'created_by' => $this->created_by,

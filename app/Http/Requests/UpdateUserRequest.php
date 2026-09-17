@@ -25,7 +25,7 @@ class UpdateUserRequest extends FormRequest
             'internal_phone' => ['nullable', 'string', 'max:50'],
             'title' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
-            'password' => ['nullable', 'confirmed', 'min:8'],
+            'is_admin' => ['boolean'],
             'special_dates' => ['nullable', 'array'],
             'special_dates.*.title' => ['required_with:special_dates', 'string', 'max:255'],
             'special_dates.*.date' => ['required_with:special_dates', 'date'],

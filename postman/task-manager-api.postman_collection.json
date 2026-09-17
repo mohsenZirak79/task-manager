@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Task Manager API - Phase 1 Auth & Users",
+    "name": "Task Manager API - Auth, Users, Roles & Tasks",
     "_postman_id": "7b13d5d1-8c54-4f9f-9f3f-f3f2a51f0001",
-    "description": "Laravel API phase 1 collection for Users and Authentication.",
+    "description": "Laravel API collection for Authentication, Users, Roles and Tasks.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -20,6 +20,22 @@
     },
     {
       "key": "otp_code",
+      "value": ""
+    },
+    {
+      "key": "role_id",
+      "value": ""
+    },
+    {
+      "key": "role_user_id",
+      "value": ""
+    },
+    {
+      "key": "task_id",
+      "value": ""
+    },
+    {
+      "key": "assignee_id",
       "value": ""
     }
   ],
@@ -700,6 +716,33 @@
             }
           }
         }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        { "name": "List Roles", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles" } },
+        { "name": "Create Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"مدیر واحد\",\n  \"user_id\": {{role_user_id}},\n  \"parent_id\": null\n}" }, "url": "{{base_url}}/roles" } },
+        { "name": "Show Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles/{{role_id}}" } },
+        { "name": "Update Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"مدیر واحد ویرایش‌شده\",\n  \"user_id\": {{role_user_id}}\n}" }, "url": "{{base_url}}/roles/{{role_id}}" } },
+        { "name": "Delete Role", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "DELETE", "url": "{{base_url}}/roles/{{role_id}}" } },
+        { "name": "Available Role Users", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/roles/available-users?search=&role_id={{role_id}}" } }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        { "name": "List Tasks", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks?search=&status=&sort=newest&page=1&per_page=15" } },
+        { "name": "Eligible Task Users", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks/eligible-users?search=" } },
+        { "name": "Create Draft Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"تسک جدید\",\n  \"short_description\": \"شرح کوتاه\",\n  \"request_description\": \"شرح درخواست\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"follower_ids\": [],\n  \"supervisor_ids\": [],\n  \"submit\": false\n}" }, "url": "{{base_url}}/tasks" } },
+        { "name": "Submit Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"duration_minutes\": 120,\n  \"due_date\": \"2026-12-31\",\n  \"assignee_ids\": [{{assignee_id}}],\n  \"submit\": true\n}" }, "url": "{{base_url}}/tasks/{{task_id}}" } },
+        { "name": "Show Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "GET", "url": "{{base_url}}/tasks/{{task_id}}" } },
+        { "name": "Update Task", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"عنوان اصلاح‌شده\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}" } },
+        { "name": "Approve Task Request", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "url": "{{base_url}}/tasks/{{task_id}}/approve" } },
+        { "name": "Reject Task Request", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"دلیل رد درخواست\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/reject" } },
+        { "name": "Request Task Revision", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"reason\": \"لطفاً اصلاح شود\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/request-revision" } },
+        { "name": "Change Task Status", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\"\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/status" } },
+        { "name": "Update Task Progress", "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"progress_percentage\": 50\n}" }, "url": "{{base_url}}/tasks/{{task_id}}/progress" } }
       ]
     }
   ]

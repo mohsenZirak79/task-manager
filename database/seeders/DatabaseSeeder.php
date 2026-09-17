@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Services\UserService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,16 +12,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::query()->updateOrCreate([
-            'mobile' => '09120000000',
-        ], [
-            'first_name' => 'Admin',
-            'last_name' => 'User',
-            'email' => 'admin@example.com',
-            'org_code' => '100001',
-            'password' => Hash::make('password'),
-            'is_active' => true,
-            'must_change_password' => false,
-        ]);
+        $config = config('auth_flow.bootstrap_admin');
+
+        if (! $config['mobile'] || ! $config['password']) {
+            $this->command?->warn('Bootstrap admin was skipped: BOOTSTRAP_ADMIN_MOBILE and BOOTSTRAP_ADMIN_PASSWORD are required.');
+
+            return;
+        }
+
+        app(UserService::class)->createInitialAdmin($config);
     }
 }

@@ -17,7 +17,7 @@ class VerifyOtpRequest extends FormRequest
     {
         return [
             'identifier' => ['required', 'string', 'max:255'],
-            'purpose' => ['required', 'string', Rule::in(AuthOtp::PURPOSES)],
+            'purpose' => ['required', 'string', Rule::in([AuthOtp::PURPOSE_LOGIN])],
             'code' => ['required', 'digits:6'],
         ];
     }

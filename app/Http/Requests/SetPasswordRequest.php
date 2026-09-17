@@ -6,7 +6,7 @@ use App\Models\AuthOtp;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class SendOtpRequest extends FormRequest
+class SetPasswordRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +17,9 @@ class SendOtpRequest extends FormRequest
     {
         return [
             'identifier' => ['required', 'string', 'max:255'],
-            'purpose' => ['required', 'string', Rule::in([AuthOtp::PURPOSE_LOGIN])],
+            'purpose' => ['required', Rule::in([AuthOtp::PURPOSE_SET_PASSWORD])],
+            'code' => ['required', 'digits:6'],
+            'password' => ['required', 'confirmed', 'min:8'],
         ];
     }
 }

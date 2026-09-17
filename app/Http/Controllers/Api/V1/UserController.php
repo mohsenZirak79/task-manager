@@ -18,8 +18,7 @@ class UserController extends Controller
     public function __construct(
         private readonly UserService $userService,
         private readonly AuthService $authService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -61,9 +60,9 @@ class UserController extends Controller
         ]);
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
-        $user->delete();
+        $this->userService->delete($user, $request->user());
 
         return $this->success('کاربر با موفقیت حذف شد.');
     }

@@ -11,7 +11,10 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class AuthService
 {
     private const LOGIN_ERROR = 'اطلاعات ورود نامعتبر است.';
+
     private const OTP_ERROR = 'کد وارد شده نامعتبر است.';
+
+    public function __construct(private readonly OtpDeliveryService $otpDelivery) {}
 
     public function findUserByIdentifier(string $identifier): ?User
     {
@@ -45,21 +48,22 @@ class AuthService
     public function sendOtp(string $identifier, string $purpose, ?string $ip = null, ?string $userAgent = null): array
     {
         $user = $this->activeUserOrFail($identifier);
-        $code = (string) random_int(100000, 999999);
+        $this->otpDelivery->assertAvailable();
+        $code = $this->generateOtpCode();
 
         AuthOtp::query()->create([
             'user_id' => $user->id,
             'identifier' => $this->normalizeIdentifier($identifier),
             'purpose' => $purpose,
             'code_hash' => Hash::make($code),
-            'expires_at' => now()->addMinutes(5),
+            'expires_at' => now()->addMinutes(config('auth_flow.otp.expires_minutes')),
             'ip' => $ip,
             'user_agent' => $userAgent,
         ]);
 
-        // SMS dispatch will be added here later.
+        $this->otpDelivery->deliver($user, $code, $purpose);
 
-        return app()->environment('local') ? ['otp_debug_code' => $code] : [];
+        return [];
     }
 
     public function verifyOtp(string $identifier, string $purpose, string $code): AuthOtp
@@ -98,17 +102,29 @@ class AuthService
         return $this->issueToken($otp->user);
     }
 
-    public function verifyOtpForAction(string $identifier, string $purpose, string $code): AuthOtp
-    {
-        return DB::transaction(fn () => $this->verifyOtp($identifier, $purpose, $code));
-    }
-
     public function forgotPassword(string $identifier, ?string $ip = null, ?string $userAgent = null): array
     {
+        $this->otpDelivery->assertAvailable();
+        $user = $this->findUserByIdentifier($identifier);
+
+        if (! $user || ! $user->is_active) {
+            return [];
+        }
+
         return $this->sendOtp($identifier, AuthOtp::PURPOSE_FORGOT_PASSWORD, $ip, $userAgent);
     }
 
     public function resetPassword(string $identifier, string $purpose, string $code, string $password): User
+    {
+        return $this->changePasswordWithOtp($identifier, $purpose, $code, $password);
+    }
+
+    public function setPassword(string $identifier, string $purpose, string $code, string $password): User
+    {
+        return $this->changePasswordWithOtp($identifier, $purpose, $code, $password);
+    }
+
+    private function changePasswordWithOtp(string $identifier, string $purpose, string $code, string $password): User
     {
         return DB::transaction(function () use ($identifier, $purpose, $code, $password) {
             $otp = $this->verifyOtp($identifier, $purpose, $code);
@@ -122,6 +138,7 @@ class AuthService
                 'password' => Hash::make($password),
                 'must_change_password' => false,
             ])->save();
+            $user->tokens()->delete();
 
             return $user;
         });
@@ -166,5 +183,16 @@ class AuthService
         $identifier = trim($identifier);
 
         return filter_var($identifier, FILTER_VALIDATE_EMAIL) ? strtolower($identifier) : $identifier;
+    }
+
+    private function generateOtpCode(): string
+    {
+        $fixedCode = config('auth_flow.otp.fixed_code');
+
+        if ($fixedCode && app()->environment(['local', 'testing']) && preg_match('/^\d{6}$/', $fixedCode)) {
+            return $fixedCode;
+        }
+
+        return (string) random_int(100000, 999999);
     }
 }

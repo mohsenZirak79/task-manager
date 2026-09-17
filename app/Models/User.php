@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,6 +29,7 @@ class User extends Authenticatable
         'signature_file_id',
         'title',
         'is_active',
+        'is_admin',
         'must_change_password',
         'last_login_at',
         'created_by',
@@ -44,6 +46,21 @@ class User extends Authenticatable
         return $this->hasMany(UserSpecialDate::class);
     }
 
+    public function role(): HasOne
+    {
+        return $this->hasOne(Role::class);
+    }
+
+    public function createdTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'created_by');
+    }
+
+    public function requestedTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'requester_id');
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -54,6 +71,7 @@ class User extends Authenticatable
         return [
             'birth_date' => 'date',
             'is_active' => 'boolean',
+            'is_admin' => 'boolean',
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
             'password' => 'hashed',

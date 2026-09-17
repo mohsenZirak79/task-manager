@@ -31,7 +31,13 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
+            'is_admin' => false,
             'must_change_password' => false,
         ];
+    }
+
+    public function admin(): static
+    {
+        return $this->state(fn () => ['is_admin' => true]);
     }
 }

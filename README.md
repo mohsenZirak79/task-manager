@@ -7,6 +7,45 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Task Manager API authentication
+
+Run migrations and create the first administrator after deployment:
+
+```bash
+php artisan migrate --force
+php artisan app:create-admin
+```
+
+For non-interactive hosting, temporarily set the `BOOTSTRAP_ADMIN_*` values in
+`.env`, run `php artisan app:create-admin --no-interaction`, then remove the
+password from `.env` and run `php artisan optimize:clear`.
+
+### Test/staging phase without SMS
+
+Use password registration and login while SMS delivery is not available:
+
+```dotenv
+APP_ENV=staging
+APP_DEBUG=false
+AUTH_REGISTRATION_ENABLED=true
+OTP_DRIVER=log
+```
+
+- `POST /api/v1/auth/register` creates an active, non-admin test user.
+- `POST /api/v1/auth/login` logs the user in with password and returns a Sanctum token.
+- OTP codes are written to `storage/logs/laravel.log` only outside production.
+- User-management endpoints require an active administrator.
+
+Before production, disable public registration and implement the `sms` branch
+in `App\Services\OtpDeliveryService`:
+
+```dotenv
+APP_ENV=production
+APP_DEBUG=false
+AUTH_REGISTRATION_ENABLED=false
+OTP_DRIVER=sms
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

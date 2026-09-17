@@ -22,6 +22,7 @@ class StoreUserRequest extends FormRequest
             'internal_phone' => ['nullable', 'string', 'max:50'],
             'title' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
+            'is_admin' => ['boolean'],
             'password' => ['nullable', 'confirmed', 'min:8'],
             'special_dates' => ['nullable', 'array'],
             'special_dates.*.title' => ['required_with:special_dates', 'string', 'max:255'],
