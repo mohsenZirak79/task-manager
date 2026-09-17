@@ -12,8 +12,8 @@ use App\Http\Requests\RequestTaskRevisionRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskProgressRequest;
 use App\Http\Requests\UpdateTaskRequest;
-use App\Http\Resources\RoleUserResource;
 use App\Http\Resources\TaskResource;
+use App\Http\Resources\UserSummaryResource;
 use App\Models\Task;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
@@ -42,13 +42,13 @@ class TaskController extends Controller
 
     public function eligibleUsers(EligibleTaskUsersRequest $request): JsonResponse
     {
-        Gate::authorize('viewAny', Task::class);
+        Gate::authorize('create', Task::class);
         $users = $this->taskService->eligibleUsers($request->validated('search'), $request->user());
 
         return $this->success('کاربران مجاز تسک', [
-            'assignment_targets' => RoleUserResource::collection($users['assignment_targets']),
-            'request_targets' => RoleUserResource::collection($users['request_targets']),
-            'participants' => RoleUserResource::collection($users['participants']),
+            'assignment_targets' => UserSummaryResource::collection($users['assignment_targets']),
+            'request_targets' => UserSummaryResource::collection($users['request_targets']),
+            'participants' => UserSummaryResource::collection($users['participants']),
         ]);
     }
 
@@ -79,6 +79,14 @@ class TaskController extends Controller
         return $this->success('تسک با موفقیت بروزرسانی شد.', [
             'task' => new TaskResource($task),
         ]);
+    }
+
+    public function destroy(Task $task): JsonResponse
+    {
+        Gate::authorize('delete', $task);
+        $this->taskService->delete($task);
+
+        return $this->success('پیش‌نویس تسک با موفقیت حذف شد.');
     }
 
     public function approve(Request $request, Task $task): JsonResponse

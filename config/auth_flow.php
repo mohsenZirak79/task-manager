@@ -10,8 +10,8 @@ return [
     ],
 
     'bootstrap_admin' => [
-        'first_name' => env('BOOTSTRAP_ADMIN_FIRST_NAME', 'Admin'),
-        'last_name' => env('BOOTSTRAP_ADMIN_LAST_NAME', 'User'),
+        'first_name' => env('BOOTSTRAP_ADMIN_FIRST_NAME') ?: 'Admin',
+        'last_name' => env('BOOTSTRAP_ADMIN_LAST_NAME') ?: 'User',
         'mobile' => env('BOOTSTRAP_ADMIN_MOBILE'),
         'email' => env('BOOTSTRAP_ADMIN_EMAIL'),
         'password' => env('BOOTSTRAP_ADMIN_PASSWORD'),

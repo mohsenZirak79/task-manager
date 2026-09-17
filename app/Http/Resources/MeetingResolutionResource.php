@@ -5,25 +5,19 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class RoleResource extends JsonResource
+class MeetingResolutionResource extends JsonResource
 {
     public static $wrap = null;
 
     public function toArray(Request $request): array
     {
-        $children = $this->relationLoaded('children') ? $this->children : collect();
-
         return [
             'id' => $this->id,
+            'agenda_item_id' => $this->agenda_item_id,
             'title' => $this->title,
-            'parent_id' => $this->parent_id,
-            'user_id' => $this->user_id,
+            'description' => $this->description,
             'sort_order' => $this->sort_order,
-            'user' => $this->relationLoaded('user') && $this->user
-                ? new RoleUserResource($this->user)
-                : null,
-            'children' => self::collection($children),
-            'children_count' => $children->count(),
+            'task' => $this->task ? new MeetingTaskSummaryResource($this->task) : null,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

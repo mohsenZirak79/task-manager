@@ -21,22 +21,28 @@ class TaskResource extends JsonResource
             'progress_percentage' => $this->progress_percentage,
             'status' => $this->status->value,
             'submission_type' => $this->submission_type?->value,
-            'requester' => new RoleUserResource($this->requester),
-            'creator' => new RoleUserResource($this->creator),
-            'assignees' => RoleUserResource::collection($this->assignees),
-            'followers' => RoleUserResource::collection($this->followers),
-            'supervisors' => RoleUserResource::collection($this->supervisors),
+            'requester' => new UserSummaryResource($this->requester),
+            'creator' => new UserSummaryResource($this->creator),
+            'assignees' => UserSummaryResource::collection($this->assignees),
+            'followers' => UserSummaryResource::collection($this->followers),
+            'supervisors' => UserSummaryResource::collection($this->supervisors),
             'financial_resources' => $this->financial_resources,
             'financial_estimated_cost' => $this->financial_estimated_cost,
             'financial_provider' => $this->financialProvider
-                ? new RoleUserResource($this->financialProvider)
+                ? new UserSummaryResource($this->financialProvider)
                 : null,
             'equipment_resources' => $this->equipment_resources,
             'equipment_estimated_cost' => $this->equipment_estimated_cost,
             'equipment_provider' => $this->equipmentProvider
-                ? new RoleUserResource($this->equipmentProvider)
+                ? new UserSummaryResource($this->equipmentProvider)
                 : null,
             'rejection_reason' => $this->rejection_reason,
+            'meeting_source' => $this->meetingResolution ? [
+                'meeting_id' => $this->meetingResolution->meeting_id,
+                'meeting_title' => $this->meetingResolution->meeting?->title,
+                'resolution_id' => $this->meetingResolution->id,
+                'resolution_title' => $this->meetingResolution->title,
+            ] : null,
             'workflow_history' => $this->whenLoaded(
                 'workflowHistory',
                 fn () => TaskWorkflowHistoryResource::collection($this->workflowHistory),

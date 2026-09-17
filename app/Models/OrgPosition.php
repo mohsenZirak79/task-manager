@@ -4,15 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Role extends Model
+class OrgPosition extends Model
 {
     protected $fillable = [
         'title',
         'parent_id',
-        'user_id',
         'sort_order',
+        'request_up_levels',
+        'assignment_down_levels',
     ];
 
     public function parent(): BelongsTo
@@ -25,20 +27,28 @@ class Role extends Model
         return $this->hasMany(self::class, 'parent_id')
             ->orderBy('sort_order')
             ->orderBy('id')
-            ->with(['user', 'children']);
+            ->with(['users', 'children']);
     }
 
-    public function user(): BelongsTo
+    public function users(): BelongsToMany
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsToMany(User::class, 'org_position_user')->withTimestamps();
+    }
+
+    public function assignedUser(): ?User
+    {
+        return $this->relationLoaded('users')
+            ? $this->users->first()
+            : $this->users()->first();
     }
 
     protected function casts(): array
     {
         return [
             'parent_id' => 'integer',
-            'user_id' => 'integer',
             'sort_order' => 'integer',
+            'request_up_levels' => 'integer',
+            'assignment_down_levels' => 'integer',
         ];
     }
 }

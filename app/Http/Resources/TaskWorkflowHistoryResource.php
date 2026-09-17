@@ -19,7 +19,7 @@ class TaskWorkflowHistoryResource extends JsonResource
             'old_progress' => $this->old_progress,
             'new_progress' => $this->new_progress,
             'reason' => $this->reason,
-            'actor' => $this->relationLoaded('actor') ? new RoleUserResource($this->actor) : null,
+            'actor' => $this->relationLoaded('actor') ? new UserSummaryResource($this->actor) : null,
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

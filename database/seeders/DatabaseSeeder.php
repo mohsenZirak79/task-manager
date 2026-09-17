@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Services\UserService;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,6 +13,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        Artisan::call('access:sync');
         $config = config('auth_flow.bootstrap_admin');
 
         if (! $config['mobile'] || ! $config['password']) {
@@ -20,6 +22,6 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        app(UserService::class)->createInitialAdmin($config);
+        app(UserService::class)->ensureSuperAdmin($config);
     }
 }

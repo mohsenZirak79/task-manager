@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Task extends Model
 {
@@ -81,6 +82,11 @@ class Task extends Model
     public function workflowHistory(): HasMany
     {
         return $this->hasMany(TaskWorkflowHistory::class)->latest('id');
+    }
+
+    public function meetingResolution(): HasOne
+    {
+        return $this->hasOne(MeetingResolution::class);
     }
 
     protected function casts(): array

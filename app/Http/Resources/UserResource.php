@@ -24,7 +24,17 @@ class UserResource extends JsonResource
             'signature_file_id' => $this->signature_file_id,
             'title' => $this->title,
             'is_active' => $this->is_active,
-            'is_admin' => $this->is_admin,
+            'access_roles' => $this->whenLoaded('accessRoles', fn () => $this->accessRoles->map(fn ($role) => [
+                'id' => $role->id,
+                'name' => $role->name,
+                'slug' => $role->slug,
+            ])->values()),
+            'permissions' => $this->whenLoaded('accessRoles', fn () => $this->permissionNames()),
+            'org_positions' => $this->whenLoaded('orgPositions', fn () => $this->orgPositions->map(fn ($position) => [
+                'id' => $position->id,
+                'title' => $position->title,
+                'parent_id' => $position->parent_id,
+            ])->values()),
             'must_change_password' => $this->must_change_password,
             'last_login_at' => $this->last_login_at?->toISOString(),
             'created_by' => $this->created_by,

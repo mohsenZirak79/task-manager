@@ -1,0 +1,5806 @@
+{
+  "document": {
+    "title": "قرارداد API فرانت‌اند Task Manager",
+    "version": "1.0.0",
+    "generated_from": "Laravel routes, FormRequests, Resources, Policies and Enums",
+    "base_path": "/api/v1",
+    "generated_at": "2026-09-13",
+    "response_envelope": {
+      "success": {
+        "success": true,
+        "message": "پیام فارسی",
+        "data": {}
+      },
+      "validation_error": {
+        "message": "اطلاعات ارسال‌شده معتبر نیست.",
+        "errors": {
+          "field_name": [
+            "پیام اعتبارسنجی"
+          ]
+        }
+      }
+    }
+  },
+  "enums": {
+    "task_status": [
+      "draft",
+      "pending_approval",
+      "revision_requested",
+      "in_progress",
+      "completed",
+      "not_completed",
+      "rejected"
+    ],
+    "task_submission_type": [
+      "assignment",
+      "request"
+    ],
+    "meeting_status": [
+      "draft",
+      "scheduled",
+      "completed",
+      "cancelled"
+    ],
+    "otp_purpose": [
+      "login",
+      "forgot_password",
+      "set_password"
+    ],
+    "task_sort": [
+      "newest",
+      "oldest",
+      "longest_duration",
+      "shortest_duration",
+      "highest_progress",
+      "lowest_progress"
+    ]
+  },
+  "auth": [
+    {
+      "name": "Register",
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "ثبت‌نام عمومی در صورت فعال‌بودن تنظیم سامانه",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "first_name": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "کاربر"
+          },
+          "last_name": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "نمونه"
+          },
+          "mobile": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "Iran mobile /^09\\\\d{9}$/ unique",
+            "example": "09120000000"
+          },
+          "email": {
+            "type": "string(email)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:255|unique",
+            "example": "sample@example.test"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "min:8|confirmed",
+            "example": "ExamplePass123!"
+          },
+          "password_confirmation": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "must match password",
+            "example": "ExamplePass123!"
+          }
+        },
+        "required_fields": [
+          "first_name",
+          "last_name",
+          "mobile",
+          "password",
+          "password_confirmation"
+        ],
+        "optional_fields": [
+          "email"
+        ],
+        "example": {
+          "first_name": "کاربر",
+          "last_name": "نمونه",
+          "mobile": "09120000000",
+          "email": "sample@example.test",
+          "password": "ExamplePass123!",
+          "password_confirmation": "ExamplePass123!"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "ثبت‌نام با موفقیت انجام شد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Identify login methods",
+      "method": "POST",
+      "path": "/api/v1/auth/identify",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "بررسی شناسه ورود و اعلام روش‌های ورود",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          }
+        },
+        "required_fields": [
+          "identifier"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "ادامه ورود",
+          "data": {
+            "login_methods": [
+              "password",
+              "otp"
+            ]
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Password login",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "ورود با رمز عبور",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "required",
+            "example": "ExamplePass123!"
+          }
+        },
+        "required_fields": [
+          "identifier",
+          "password"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008",
+          "password": "ExamplePass123!"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "ورود با موفقیت انجام شد.",
+          "data": {
+            "token": "example-token-not-real",
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Send login OTP",
+      "method": "POST",
+      "path": "/api/v1/auth/otp/send",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "ارسال کد یک‌بارمصرف ورود",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          },
+          "purpose": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "allowed: login",
+            "example": "login"
+          }
+        },
+        "required_fields": [
+          "identifier",
+          "purpose"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008",
+          "purpose": "login"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "در صورت معتبر بودن اطلاعات، کد تایید ارسال می‌شود.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        },
+        "503": {
+          "body": {
+            "message": "سرویس ارسال کد تأیید پیکربندی نشده است."
+          }
+        }
+      }
+    },
+    {
+      "name": "Verify login OTP",
+      "method": "POST",
+      "path": "/api/v1/auth/otp/verify",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "تأیید کد ورود و دریافت توکن",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          },
+          "purpose": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "allowed: login",
+            "example": "login"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "exactly 6 digits",
+            "example": "000000"
+          }
+        },
+        "required_fields": [
+          "identifier",
+          "purpose",
+          "code"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008",
+          "purpose": "login",
+          "code": "000000"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "ورود با موفقیت انجام شد.",
+          "data": {
+            "token": "example-token-not-real",
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Forgot password",
+      "method": "POST",
+      "path": "/api/v1/auth/password/forgot",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "درخواست کد بازیابی رمز عبور",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          }
+        },
+        "required_fields": [
+          "identifier"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "در صورت معتبر بودن اطلاعات، کد بازیابی ارسال می‌شود.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        },
+        "503": {
+          "body": {
+            "message": "سرویس ارسال کد تأیید پیکربندی نشده است."
+          }
+        }
+      }
+    },
+    {
+      "name": "Reset password",
+      "method": "POST",
+      "path": "/api/v1/auth/password/reset",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "تغییر رمز با کد بازیابی",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          },
+          "purpose": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "allowed: forgot_password",
+            "example": "forgot_password"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "exactly 6 digits",
+            "example": "000000"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "min:8|confirmed",
+            "example": "NewExamplePass123!"
+          },
+          "password_confirmation": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "must match password",
+            "example": "NewExamplePass123!"
+          }
+        },
+        "required_fields": [
+          "identifier",
+          "purpose",
+          "code",
+          "password",
+          "password_confirmation"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008",
+          "purpose": "forgot_password",
+          "code": "000000",
+          "password": "NewExamplePass123!",
+          "password_confirmation": "NewExamplePass123!"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "رمز عبور با موفقیت تغییر کرد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Set invited user password",
+      "method": "POST",
+      "path": "/api/v1/auth/password/set",
+      "authentication": false,
+      "permission": null,
+      "description_fa": "تنظیم رمز اولیه کاربر دعوت‌شده",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "identifier": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "100008"
+          },
+          "purpose": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "allowed: set_password",
+            "example": "set_password"
+          },
+          "code": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "exactly 6 digits",
+            "example": "000000"
+          },
+          "password": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "min:8|confirmed",
+            "example": "ExamplePass123!"
+          },
+          "password_confirmation": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "must match password",
+            "example": "ExamplePass123!"
+          }
+        },
+        "required_fields": [
+          "identifier",
+          "purpose",
+          "code",
+          "password",
+          "password_confirmation"
+        ],
+        "optional_fields": [],
+        "example": {
+          "identifier": "100008",
+          "purpose": "set_password",
+          "code": "000000",
+          "password": "ExamplePass123!",
+          "password_confirmation": "ExamplePass123!"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "رمز عبور با موفقیت تنظیم شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        }
+      }
+    },
+    {
+      "name": "Logout",
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "authentication": true,
+      "permission": null,
+      "description_fa": "حذف توکن دسترسی جاری",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "خروج با موفقیت انجام شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        }
+      }
+    }
+  ],
+  "profile": [
+    {
+      "name": "Current profile",
+      "method": "GET",
+      "path": "/api/v1/me",
+      "authentication": true,
+      "permission": null,
+      "description_fa": "دریافت پروفایل، مجوزها، نقش‌های دسترسی و جایگاه‌های سازمانی کاربر جاری",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "پروفایل کاربر",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        }
+      }
+    }
+  ],
+  "users": [
+    {
+      "name": "List users",
+      "method": "GET",
+      "path": "/api/v1/users",
+      "authentication": true,
+      "permission": "users:view",
+      "description_fa": "فهرست صفحه‌بندی‌شده کاربران",
+      "path_parameters": {},
+      "query_parameters": {
+        "search": {
+          "type": "string",
+          "required": false,
+          "rules": "name, mobile, email or organization code",
+          "example": "نمونه"
+        },
+        "is_active": {
+          "type": "boolean",
+          "required": false,
+          "rules": "true or false",
+          "example": true
+        },
+        "per_page": {
+          "type": "integer",
+          "required": false,
+          "rules": "1..100; default 15",
+          "example": 15
+        }
+      },
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست کاربران",
+          "data": {
+            "items": [
+              {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "mobile": "09120000000",
+                "email": "sample@example.test",
+                "birth_date": "1990-01-15",
+                "internal_phone": "123",
+                "avatar_file_id": null,
+                "signature_file_id": null,
+                "title": "مدیر فروش",
+                "is_active": true,
+                "access_roles": [
+                  {
+                    "id": 2,
+                    "name": "Admin",
+                    "slug": "admin"
+                  }
+                ],
+                "permissions": [
+                  "meetings:view",
+                  "meetings:create"
+                ],
+                "org_positions": [
+                  {
+                    "id": 3,
+                    "title": "مدیریت فروش",
+                    "parent_id": 1
+                  }
+                ],
+                "must_change_password": false,
+                "last_login_at": "2026-09-13T08:00:00.000000Z",
+                "created_by": 1,
+                "updated_by": 1,
+                "special_dates": [
+                  {
+                    "id": 1,
+                    "title": "سالگرد همکاری",
+                    "date": "2026-10-01",
+                    "description": null
+                  }
+                ],
+                "created_at": "2026-09-01T08:00:00.000000Z",
+                "updated_at": "2026-09-13T08:00:00.000000Z"
+              }
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 15,
+              "total": 1
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Create user",
+      "method": "POST",
+      "path": "/api/v1/users",
+      "authentication": true,
+      "permission": "users:create",
+      "description_fa": "ایجاد کاربر و تخصیص نقش‌های دسترسی و جایگاه‌های موجود",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "first_name": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "کاربر"
+          },
+          "last_name": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "نمونه"
+          },
+          "mobile": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "/^09\\\\d{9}$/ unique",
+            "example": "09120000000"
+          },
+          "email": {
+            "type": "string(email)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable unique",
+            "example": "sample@example.test"
+          },
+          "birth_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "1990-01-15"
+          },
+          "internal_phone": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:50",
+            "example": "123"
+          },
+          "is_active": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "boolean",
+            "example": true
+          },
+          "access_role_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct existing access role ids",
+            "example": [
+              3
+            ]
+          },
+          "org_position_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct existing organization position ids",
+            "example": [
+              3
+            ]
+          },
+          "password": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:8|confirmed",
+            "example": "ExamplePass123!"
+          },
+          "password_confirmation": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "required with password",
+            "example": "ExamplePass123!"
+          },
+          "special_dates": {
+            "type": "array<object>",
+            "required": false,
+            "nullable": true,
+            "rules": "title/date required per item",
+            "example": [
+              {
+                "title": "سالگرد همکاری",
+                "date": "2026-10-01",
+                "description": null
+              }
+            ]
+          }
+        },
+        "required_fields": [
+          "first_name",
+          "last_name",
+          "mobile"
+        ],
+        "optional_fields": [
+          "email",
+          "birth_date",
+          "internal_phone",
+          "is_active",
+          "access_role_ids",
+          "org_position_ids",
+          "password",
+          "password_confirmation",
+          "special_dates"
+        ],
+        "example": {
+          "first_name": "کاربر",
+          "last_name": "نمونه",
+          "mobile": "09120000000",
+          "email": "sample@example.test",
+          "is_active": true,
+          "access_role_ids": [
+            3
+          ],
+          "org_position_ids": [
+            3
+          ]
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "کاربر با موفقیت ایجاد شد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Show user",
+      "method": "GET",
+      "path": "/api/v1/users/{user}",
+      "authentication": true,
+      "permission": "users:view",
+      "description_fa": "دریافت جزئیات کاربر",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات کاربر",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        }
+      }
+    },
+    {
+      "name": "Update user",
+      "method": "PUT|PATCH",
+      "path": "/api/v1/users/{user}",
+      "authentication": true,
+      "permission": "users:update",
+      "description_fa": "ویرایش فیلدهای ارسال‌شده کاربر",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "first_name": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "کاربر"
+          },
+          "last_name": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "ویرایش‌شده"
+          },
+          "mobile": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "/^09\\\\d{9}$/ unique",
+            "example": "09120000000"
+          },
+          "email": {
+            "type": "string(email)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable unique",
+            "example": "sample@example.test"
+          },
+          "birth_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "1990-01-15"
+          },
+          "internal_phone": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:50",
+            "example": "124"
+          },
+          "is_active": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "boolean",
+            "example": true
+          },
+          "access_role_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct existing ids",
+            "example": [
+              3
+            ]
+          },
+          "org_position_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct existing ids",
+            "example": [
+              3
+            ]
+          },
+          "special_dates": {
+            "type": "array<object>",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable; replaces current list",
+            "example": []
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "first_name",
+          "last_name",
+          "mobile",
+          "email",
+          "birth_date",
+          "internal_phone",
+          "is_active",
+          "access_role_ids",
+          "org_position_ids",
+          "special_dates"
+        ],
+        "example": {
+          "last_name": "ویرایش‌شده",
+          "internal_phone": "124"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربر با موفقیت بروزرسانی شد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Delete user",
+      "method": "DELETE",
+      "path": "/api/v1/users/{user}",
+      "authentication": true,
+      "permission": "users:delete",
+      "description_fa": "حذف نرم کاربر مجاز",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربر با موفقیت حذف شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Activate user",
+      "method": "POST",
+      "path": "/api/v1/users/{user}/activate",
+      "authentication": true,
+      "permission": "users:activate",
+      "description_fa": "فعال‌کردن کاربر",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربر فعال شد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Deactivate user",
+      "method": "POST",
+      "path": "/api/v1/users/{user}/deactivate",
+      "authentication": true,
+      "permission": "users:activate",
+      "description_fa": "غیرفعال‌کردن کاربر و ابطال توکن‌ها",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربر غیرفعال شد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": false,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Send user invite",
+      "method": "POST",
+      "path": "/api/v1/users/{user}/send-invite",
+      "authentication": true,
+      "permission": "users:reset_password",
+      "description_fa": "ارسال دعوت تنظیم رمز به کاربر فعال",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "دعوت‌نامه ارسال شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "429": {
+          "body": {
+            "message": "Too Many Attempts."
+          }
+        },
+        "503": {
+          "body": {
+            "message": "سرویس ارسال کد تأیید پیکربندی نشده است."
+          }
+        }
+      }
+    },
+    {
+      "name": "Admin reset user password",
+      "method": "POST",
+      "path": "/api/v1/users/{user}/reset-password",
+      "authentication": true,
+      "permission": "users:reset_password",
+      "description_fa": "تغییر رمز کاربر و ابطال توکن‌های قبلی",
+      "path_parameters": {
+        "user": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه کاربر",
+          "example": 8
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "password": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "min:8|confirmed",
+            "example": "NewExamplePass123!"
+          },
+          "password_confirmation": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "must match password",
+            "example": "NewExamplePass123!"
+          }
+        },
+        "required_fields": [
+          "password",
+          "password_confirmation"
+        ],
+        "optional_fields": [],
+        "example": {
+          "password": "NewExamplePass123!",
+          "password_confirmation": "NewExamplePass123!"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "رمز عبور کاربر تغییر کرد.",
+          "data": {
+            "user": {
+              "id": 8,
+              "org_code": "100008",
+              "first_name": "کریم",
+              "last_name": "نمونه",
+              "mobile": "09120000000",
+              "email": "sample@example.test",
+              "birth_date": "1990-01-15",
+              "internal_phone": "123",
+              "avatar_file_id": null,
+              "signature_file_id": null,
+              "title": "مدیر فروش",
+              "is_active": true,
+              "access_roles": [
+                {
+                  "id": 2,
+                  "name": "Admin",
+                  "slug": "admin"
+                }
+              ],
+              "permissions": [
+                "meetings:view",
+                "meetings:create"
+              ],
+              "org_positions": [
+                {
+                  "id": 3,
+                  "title": "مدیریت فروش",
+                  "parent_id": 1
+                }
+              ],
+              "must_change_password": false,
+              "last_login_at": "2026-09-13T08:00:00.000000Z",
+              "created_by": 1,
+              "updated_by": 1,
+              "special_dates": [
+                {
+                  "id": 1,
+                  "title": "سالگرد همکاری",
+                  "date": "2026-10-01",
+                  "description": null
+                }
+              ],
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "org_positions": [
+    {
+      "name": "Organization tree",
+      "method": "GET",
+      "path": "/api/v1/org-positions",
+      "authentication": true,
+      "permission": "org_positions:view",
+      "description_fa": "دریافت درخت کامل جایگاه‌های سازمانی",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "ساختار سازمانی",
+          "data": {
+            "org_positions": [
+              {
+                "id": 3,
+                "title": "مدیریت فروش",
+                "parent_id": 1,
+                "user_id": 8,
+                "sort_order": 1,
+                "request_up_levels": 1,
+                "assignment_down_levels": 2,
+                "user": {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                },
+                "children": [],
+                "children_count": 0,
+                "created_at": "2026-09-01T08:00:00.000000Z",
+                "updated_at": "2026-09-13T08:00:00.000000Z"
+              }
+            ]
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Available organization users",
+      "method": "GET",
+      "path": "/api/v1/org-positions/available-users",
+      "authentication": true,
+      "permission": "org_positions:view",
+      "description_fa": "جستجوی حداکثر ۵۰ کاربر فعال قابل انتصاب",
+      "path_parameters": {},
+      "query_parameters": {
+        "search": {
+          "type": "string",
+          "required": false,
+          "rules": "nullable|max:255",
+          "example": "نمونه"
+        }
+      },
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربران قابل انتصاب",
+          "data": {
+            "users": [
+              {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              }
+            ]
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Create organization position",
+      "method": "POST",
+      "path": "/api/v1/org-positions",
+      "authentication": true,
+      "permission": "org_positions:create",
+      "description_fa": "ایجاد جایگاه سازمانی و انتصاب اختیاری کاربر",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "مدیریت فروش"
+          },
+          "parent_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable existing position",
+            "example": 1
+          },
+          "user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable existing active user",
+            "example": 8
+          },
+          "sort_order": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "min:0",
+            "example": 1
+          },
+          "request_up_levels": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|0..255",
+            "example": 1
+          },
+          "assignment_down_levels": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|0..255",
+            "example": 2
+          }
+        },
+        "required_fields": [
+          "title"
+        ],
+        "optional_fields": [
+          "parent_id",
+          "user_id",
+          "sort_order",
+          "request_up_levels",
+          "assignment_down_levels"
+        ],
+        "example": {
+          "title": "مدیریت فروش",
+          "parent_id": 1,
+          "user_id": 8,
+          "sort_order": 1,
+          "request_up_levels": 1,
+          "assignment_down_levels": 2
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "جایگاه با موفقیت ایجاد شد.",
+          "data": {
+            "org_position": {
+              "id": 3,
+              "title": "مدیریت فروش",
+              "parent_id": 1,
+              "user_id": 8,
+              "sort_order": 1,
+              "request_up_levels": 1,
+              "assignment_down_levels": 2,
+              "user": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "children": [],
+              "children_count": 0,
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Show organization position",
+      "method": "GET",
+      "path": "/api/v1/org-positions/{org_position}",
+      "authentication": true,
+      "permission": "org_positions:view",
+      "description_fa": "دریافت جزئیات یک جایگاه",
+      "path_parameters": {
+        "org_position": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه جایگاه سازمانی",
+          "example": 3
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات جایگاه",
+          "data": {
+            "org_position": {
+              "id": 3,
+              "title": "مدیریت فروش",
+              "parent_id": 1,
+              "user_id": 8,
+              "sort_order": 1,
+              "request_up_levels": 1,
+              "assignment_down_levels": 2,
+              "user": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "children": [],
+              "children_count": 0,
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        }
+      }
+    },
+    {
+      "name": "Update organization position",
+      "method": "PUT|PATCH",
+      "path": "/api/v1/org-positions/{org_position}",
+      "authentication": true,
+      "permission": "org_positions:update",
+      "description_fa": "ویرایش جایگاه و انتصاب کاربر؛ از خودوالدی و چرخه جلوگیری می‌شود",
+      "path_parameters": {
+        "org_position": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه جایگاه سازمانی",
+          "example": 3
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "مدیریت فروش"
+          },
+          "parent_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable existing; not self or descendant",
+            "example": 1
+          },
+          "user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": 8
+          },
+          "sort_order": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "min:0",
+            "example": 1
+          },
+          "request_up_levels": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|0..255",
+            "example": 1
+          },
+          "assignment_down_levels": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|0..255",
+            "example": 2
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "title",
+          "parent_id",
+          "user_id",
+          "sort_order",
+          "request_up_levels",
+          "assignment_down_levels"
+        ],
+        "example": {
+          "title": "مدیریت فروش و بازاریابی",
+          "user_id": 8
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جایگاه با موفقیت بروزرسانی شد.",
+          "data": {
+            "org_position": {
+              "id": 3,
+              "title": "مدیریت فروش",
+              "parent_id": 1,
+              "user_id": 8,
+              "sort_order": 1,
+              "request_up_levels": 1,
+              "assignment_down_levels": 2,
+              "user": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "children": [],
+              "children_count": 0,
+              "created_at": "2026-09-01T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:00:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Delete organization position",
+      "method": "DELETE",
+      "path": "/api/v1/org-positions/{org_position}",
+      "authentication": true,
+      "permission": "org_positions:delete",
+      "description_fa": "حذف جایگاه فاقد زیرمجموعه",
+      "path_parameters": {
+        "org_position": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه جایگاه سازمانی",
+          "example": 3
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جایگاه با موفقیت حذف شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "name": "List tasks",
+      "method": "GET",
+      "path": "/api/v1/tasks",
+      "authentication": true,
+      "permission": "tasks:view",
+      "description_fa": "فهرست صفحه‌بندی‌شده تسک‌های مجاز؛ برای پیش‌نویس‌ها status=draft ارسال شود",
+      "path_parameters": {},
+      "query_parameters": {
+        "search": {
+          "type": "string",
+          "required": false,
+          "rules": "max:255",
+          "example": "گزارش"
+        },
+        "status": {
+          "type": "string",
+          "required": false,
+          "rules": "TaskStatus enum",
+          "example": "draft",
+          "allowed_values": [
+            "draft",
+            "pending_approval",
+            "revision_requested",
+            "in_progress",
+            "completed",
+            "not_completed",
+            "rejected"
+          ]
+        },
+        "submission_type": {
+          "type": "string",
+          "required": false,
+          "rules": "assignment or request",
+          "example": "assignment",
+          "allowed_values": [
+            "assignment",
+            "request"
+          ]
+        },
+        "user_id": {
+          "type": "integer",
+          "required": false,
+          "rules": "existing user",
+          "example": 8
+        },
+        "created_from": {
+          "type": "string(date)",
+          "required": false,
+          "rules": "date",
+          "example": "2026-09-01"
+        },
+        "created_to": {
+          "type": "string(date)",
+          "required": false,
+          "rules": "after_or_equal created_from",
+          "example": "2026-09-30"
+        },
+        "sort": {
+          "type": "string",
+          "required": false,
+          "rules": "Task sort enum",
+          "example": "newest",
+          "allowed_values": [
+            "newest",
+            "oldest",
+            "longest_duration",
+            "shortest_duration",
+            "highest_progress",
+            "lowest_progress"
+          ]
+        },
+        "per_page": {
+          "type": "integer",
+          "required": false,
+          "rules": "1..100",
+          "example": 15
+        },
+        "page": {
+          "type": "integer",
+          "required": false,
+          "rules": "min:1",
+          "example": 1
+        }
+      },
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست تسک‌ها",
+          "data": {
+            "items": [
+              {
+                "id": 80,
+                "title": "تهیه گزارش فروش",
+                "short_description": "آماده‌سازی گزارش ماهانه",
+                "request_description": null,
+                "duration_minutes": 120,
+                "due_date": "2026-09-30",
+                "progress_percentage": 0,
+                "status": "in_progress",
+                "submission_type": "assignment",
+                "requester": {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                },
+                "creator": {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                },
+                "assignees": [
+                  {
+                    "id": 8,
+                    "org_code": "100008",
+                    "first_name": "کریم",
+                    "last_name": "نمونه",
+                    "full_name": "کریم نمونه",
+                    "title": "مدیر فروش",
+                    "avatar_file_id": null
+                  }
+                ],
+                "followers": [],
+                "supervisors": [],
+                "financial_resources": null,
+                "financial_estimated_cost": null,
+                "financial_provider": null,
+                "equipment_resources": null,
+                "equipment_estimated_cost": null,
+                "equipment_provider": null,
+                "rejection_reason": null,
+                "meeting_source": null,
+                "created_at": "2026-09-13T08:00:00.000000Z",
+                "updated_at": "2026-09-13T08:10:00.000000Z"
+              }
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 15,
+              "total": 1
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Eligible task users",
+      "method": "GET",
+      "path": "/api/v1/tasks/eligible-users",
+      "authentication": true,
+      "permission": "tasks:create",
+      "description_fa": "دریافت کاربران مجاز طبق جهت و محدودیت ساختار سازمانی",
+      "path_parameters": {},
+      "query_parameters": {
+        "search": {
+          "type": "string",
+          "required": false,
+          "rules": "max:255",
+          "example": "نمونه"
+        }
+      },
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربران مجاز تسک",
+          "data": {
+            "assignment_targets": [
+              {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              }
+            ],
+            "request_targets": [],
+            "participants": [
+              {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              }
+            ]
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Create task",
+      "method": "POST",
+      "path": "/api/v1/tasks",
+      "authentication": true,
+      "permission": "tasks:create",
+      "description_fa": "ایجاد تسک عادی؛ submit=false پیش‌نویس می‌سازد",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "تهیه گزارش فروش"
+          },
+          "short_description": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "آماده‌سازی گزارش ماهانه"
+          },
+          "request_description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "شرح کامل درخواست"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:1",
+            "example": 120
+          },
+          "due_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|after_or_equal:today",
+            "example": "2026-09-30"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "between:0,100",
+            "example": 0
+          },
+          "requester_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "active existing user",
+            "example": 8
+          },
+          "assignee_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": [
+              12
+            ]
+          },
+          "follower_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "supervisor_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "financial_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "بودجه جاری"
+          },
+          "financial_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": 150000
+          },
+          "financial_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "equipment_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "یک رایانه"
+          },
+          "equipment_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": null
+          },
+          "equipment_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "submit": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "when true: duration, due date and assignee required",
+            "example": false
+          }
+        },
+        "required_fields": [
+          "title",
+          "short_description"
+        ],
+        "optional_fields": [
+          "request_description",
+          "duration_minutes",
+          "due_date",
+          "progress_percentage",
+          "requester_id",
+          "assignee_ids",
+          "follower_ids",
+          "supervisor_ids",
+          "financial_resources",
+          "financial_estimated_cost",
+          "financial_provider_user_id",
+          "equipment_resources",
+          "equipment_estimated_cost",
+          "equipment_provider_user_id",
+          "submit"
+        ],
+        "example": {
+          "title": "تهیه گزارش فروش",
+          "short_description": "آماده‌سازی گزارش ماهانه",
+          "assignee_ids": [],
+          "submit": false
+        },
+        "notes_fa": [
+          "برای submit=true حداقل یک مسئول، مدت و تاریخ اتمام الزامی است.",
+          "کاربران انتخابی باید در محدوده سازمانی مجاز باشند."
+        ]
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "تسک با موفقیت ایجاد شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": null,
+              "due_date": null,
+              "progress_percentage": 0,
+              "status": "draft",
+              "submission_type": null,
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Show task",
+      "method": "GET",
+      "path": "/api/v1/tasks/{task}",
+      "authentication": true,
+      "permission": "tasks:view",
+      "description_fa": "جزئیات تسک همراه تاریخچه گردش کار و منبع جلسه در صورت وجود",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات تسک",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "in_progress",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z",
+              "workflow_history": [
+                {
+                  "id": 1,
+                  "action": "submitted",
+                  "from_status": "draft",
+                  "to_status": "in_progress",
+                  "old_progress": null,
+                  "new_progress": null,
+                  "reason": null,
+                  "actor": {
+                    "id": 8,
+                    "org_code": "100008",
+                    "first_name": "کریم",
+                    "last_name": "نمونه",
+                    "full_name": "کریم نمونه",
+                    "title": "مدیر فروش",
+                    "avatar_file_id": null
+                  },
+                  "created_at": "2026-09-13T08:10:00.000000Z"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        }
+      }
+    },
+    {
+      "name": "Update or submit draft task",
+      "method": "PATCH",
+      "path": "/api/v1/tasks/{task}",
+      "authentication": true,
+      "permission": "tasks:update",
+      "description_fa": "ویرایش پیش‌نویس یا ارسال آن؛ نمونه زیر پیش‌نویس موجود را ارسال می‌کند",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "تهیه گزارش فروش"
+          },
+          "short_description": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:100",
+            "example": "آماده‌سازی گزارش ماهانه"
+          },
+          "request_description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "شرح کامل درخواست"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:1",
+            "example": 120
+          },
+          "due_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|after_or_equal:today",
+            "example": "2026-09-30"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "between:0,100",
+            "example": 0
+          },
+          "requester_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "active existing user",
+            "example": 8
+          },
+          "assignee_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": [
+              12
+            ]
+          },
+          "follower_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "supervisor_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "financial_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "بودجه جاری"
+          },
+          "financial_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": 150000
+          },
+          "financial_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "equipment_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "یک رایانه"
+          },
+          "equipment_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": null
+          },
+          "equipment_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "submit": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "when true: duration, due date and assignee required",
+            "example": false
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "title",
+          "short_description",
+          "request_description",
+          "duration_minutes",
+          "due_date",
+          "progress_percentage",
+          "requester_id",
+          "assignee_ids",
+          "follower_ids",
+          "supervisor_ids",
+          "financial_resources",
+          "financial_estimated_cost",
+          "financial_provider_user_id",
+          "equipment_resources",
+          "equipment_estimated_cost",
+          "equipment_provider_user_id",
+          "submit"
+        ],
+        "example": {
+          "duration_minutes": 120,
+          "due_date": "2026-09-30",
+          "assignee_ids": [
+            12
+          ],
+          "submit": true
+        },
+        "notes_fa": [
+          "فقط سازنده می‌تواند وضعیت‌های draft، revision_requested یا rejected را ویرایش کند.",
+          "برای submit=true مقادیر قبلی تسک با ورودی جدید ترکیب و الزامات ارسال بررسی می‌شوند."
+        ]
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "تسک با موفقیت بروزرسانی شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "in_progress",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Delete draft task",
+      "method": "DELETE",
+      "path": "/api/v1/tasks/{task}",
+      "authentication": true,
+      "permission": "tasks:delete",
+      "description_fa": "حذف دائمی پیش‌نویس توسط سازنده؛ تسک ارسال‌شده قابل حذف نیست",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "پیش‌نویس تسک با موفقیت حذف شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Approve request task",
+      "method": "POST",
+      "path": "/api/v1/tasks/{task}/approve",
+      "authentication": true,
+      "permission": "tasks:approve",
+      "description_fa": "تأیید درخواست pending_approval توسط مسئول مجاز",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "درخواست با موفقیت تأیید شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "in_progress",
+              "submission_type": "request",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Reject request task",
+      "method": "POST",
+      "path": "/api/v1/tasks/{task}/reject",
+      "authentication": true,
+      "permission": "tasks:reject",
+      "description_fa": "رد درخواست pending_approval با دلیل",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "reason": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:1000",
+            "example": "اطلاعات درخواست کافی نیست."
+          }
+        },
+        "required_fields": [
+          "reason"
+        ],
+        "optional_fields": [],
+        "example": {
+          "reason": "اطلاعات درخواست کافی نیست."
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "درخواست رد شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "rejected",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": "اطلاعات درخواست کافی نیست.",
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Request task revision",
+      "method": "POST",
+      "path": "/api/v1/tasks/{task}/request-revision",
+      "authentication": true,
+      "permission": "tasks:reject",
+      "description_fa": "درخواست اصلاح برای تسک pending_approval",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "reason": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:1000",
+            "example": "لطفاً شرح درخواست تکمیل شود."
+          }
+        },
+        "required_fields": [
+          "reason"
+        ],
+        "optional_fields": [],
+        "example": {
+          "reason": "لطفاً شرح درخواست تکمیل شود."
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "درخواست اصلاح ثبت شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "revision_requested",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": "لطفاً شرح درخواست تکمیل شود.",
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Change task status",
+      "method": "POST",
+      "path": "/api/v1/tasks/{task}/status",
+      "authentication": true,
+      "permission": "tasks:update_status",
+      "description_fa": "تغییر وضعیت مجاز در گردش کار",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "status": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "allowed: in_progress, completed, not_completed",
+            "example": "completed"
+          }
+        },
+        "required_fields": [
+          "status"
+        ],
+        "optional_fields": [],
+        "example": {
+          "status": "completed"
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "وضعیت تسک تغییر کرد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "completed",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Update task progress",
+      "method": "POST",
+      "path": "/api/v1/tasks/{task}/progress",
+      "authentication": true,
+      "permission": "tasks:update_progress",
+      "description_fa": "ثبت درصد پیشرفت تسک in_progress توسط مسئول انجام",
+      "path_parameters": {
+        "task": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه تسک",
+          "example": 80
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "progress_percentage": {
+            "type": "integer",
+            "required": true,
+            "nullable": false,
+            "rules": "between:0,100",
+            "example": 40
+          }
+        },
+        "required_fields": [
+          "progress_percentage"
+        ],
+        "optional_fields": [],
+        "example": {
+          "progress_percentage": 40
+        },
+        "notes_fa": []
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "درصد پیشرفت ثبت شد.",
+          "data": {
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 40,
+              "status": "in_progress",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "meetings": [
+    {
+      "name": "List meetings",
+      "method": "GET",
+      "path": "/api/v1/meetings",
+      "authentication": true,
+      "permission": "meetings:view",
+      "description_fa": "فهرست صفحه‌بندی‌شده جلساتی که کاربر عضو، سازنده، رئیس یا دبیر آن‌هاست؛ مدیران همه را می‌بینند",
+      "path_parameters": {},
+      "query_parameters": {
+        "status": {
+          "type": "string",
+          "required": false,
+          "rules": "MeetingStatus enum",
+          "example": "scheduled",
+          "allowed_values": [
+            "draft",
+            "scheduled",
+            "completed",
+            "cancelled"
+          ]
+        },
+        "from_date": {
+          "type": "string(date)",
+          "required": false,
+          "rules": "format:Y-m-d",
+          "example": "2026-09-01"
+        },
+        "to_date": {
+          "type": "string(date)",
+          "required": false,
+          "rules": "format:Y-m-d and after_or_equal from_date",
+          "example": "2026-09-30"
+        },
+        "search": {
+          "type": "string",
+          "required": false,
+          "rules": "max:255; title or location",
+          "example": "فروش"
+        },
+        "per_page": {
+          "type": "integer",
+          "required": false,
+          "rules": "1..100; default 15",
+          "example": 15
+        }
+      },
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست صورت‌جلسه‌ها",
+          "data": {
+            "items": [
+              {
+                "id": 10,
+                "title": "جلسه برنامه‌ریزی فروش",
+                "location": "سالن جلسات طبقه دوم",
+                "meeting_date": "2026-09-20",
+                "start_time": "10:30",
+                "status": "scheduled",
+                "chairman": {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                },
+                "secretary": {
+                  "id": 15,
+                  "org_code": "100015",
+                  "first_name": "دبیر",
+                  "last_name": "نمونه",
+                  "full_name": "دبیر نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                },
+                "attendees_count": 4,
+                "agenda_items_count": 2,
+                "resolutions_count": 1,
+                "submitted_at": "2026-09-13T08:20:00.000000Z",
+                "completed_at": null,
+                "created_at": "2026-09-13T08:00:00.000000Z",
+                "updated_at": "2026-09-13T08:20:00.000000Z"
+              }
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 15,
+              "total": 1
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Create meeting",
+      "method": "POST",
+      "path": "/api/v1/meetings",
+      "authentication": true,
+      "permission": "meetings:create",
+      "description_fa": "ایجاد صورت‌جلسه به‌صورت پیش‌نویس یا ارسال‌شده",
+      "path_parameters": {},
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:255",
+            "example": "جلسه برنامه‌ریزی فروش"
+          },
+          "location": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:500",
+            "example": "سالن جلسات طبقه دوم"
+          },
+          "meeting_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|format:Y-m-d",
+            "example": "2026-09-20"
+          },
+          "start_time": {
+            "type": "string(time)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|format:H:i",
+            "example": "10:30"
+          },
+          "chairman_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active existing user",
+            "example": 8
+          },
+          "secretary_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active existing user",
+            "example": 15
+          },
+          "attendee_user_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active existing users",
+            "example": [
+              8,
+              15,
+              22
+            ]
+          },
+          "agenda_items": {
+            "type": "array<object>",
+            "required": false,
+            "nullable": false,
+            "rules": "item title required; sort_order required, distinct, min:0",
+            "example": [
+              {
+                "title": "بررسی خرید تجهیزات",
+                "description": null,
+                "sort_order": 1
+              }
+            ]
+          },
+          "submit": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "true requires complete meeting fields",
+            "example": false
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "title",
+          "location",
+          "meeting_date",
+          "start_time",
+          "chairman_user_id",
+          "secretary_user_id",
+          "attendee_user_ids",
+          "agenda_items",
+          "submit"
+        ],
+        "example": {
+          "title": "جلسه برنامه‌ریزی فروش",
+          "location": "سالن جلسات طبقه دوم",
+          "meeting_date": "2026-09-20",
+          "start_time": "10:30",
+          "chairman_user_id": 8,
+          "secretary_user_id": 15,
+          "attendee_user_ids": [
+            8,
+            15,
+            22
+          ],
+          "agenda_items": [
+            {
+              "title": "بررسی خرید تجهیزات",
+              "description": null,
+              "sort_order": 1
+            }
+          ],
+          "submit": false
+        },
+        "notes_fa": [
+          "در draft همه فیلدها اختیاری‌اند.",
+          "با submit=true عنوان، مکان، تاریخ، ساعت، رئیس، دبیر و حداقل یک دستور جلسه الزامی‌اند.",
+          "رئیس و دبیر خودکار به حاضرین افزوده می‌شوند."
+        ]
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "صورت‌جلسه با موفقیت ایجاد شد.",
+          "data": {
+            "meeting": {
+              "id": 10,
+              "title": "جلسه برنامه‌ریزی فروش",
+              "location": "سالن جلسات طبقه دوم",
+              "meeting_date": "2026-09-20",
+              "start_time": "10:30",
+              "status": "draft",
+              "chairman": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "secretary": {
+                "id": 15,
+                "org_code": "100015",
+                "first_name": "دبیر",
+                "last_name": "نمونه",
+                "full_name": "دبیر نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "attendees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "agenda_items": [
+                {
+                  "id": 12,
+                  "title": "بررسی خرید تجهیزات",
+                  "description": null,
+                  "sort_order": 1
+                }
+              ],
+              "resolutions": [],
+              "submitted_at": null,
+              "completed_at": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:20:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Show meeting",
+      "method": "GET",
+      "path": "/api/v1/meetings/{meeting}",
+      "authentication": true,
+      "permission": "meetings:view",
+      "description_fa": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات صورت‌جلسه",
+          "data": {
+            "meeting": {
+              "id": 10,
+              "title": "جلسه برنامه‌ریزی فروش",
+              "location": "سالن جلسات طبقه دوم",
+              "meeting_date": "2026-09-20",
+              "start_time": "10:30",
+              "status": "scheduled",
+              "chairman": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "secretary": {
+                "id": 15,
+                "org_code": "100015",
+                "first_name": "دبیر",
+                "last_name": "نمونه",
+                "full_name": "دبیر نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "attendees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "agenda_items": [
+                {
+                  "id": 12,
+                  "title": "بررسی خرید تجهیزات",
+                  "description": null,
+                  "sort_order": 1
+                }
+              ],
+              "resolutions": [
+                {
+                  "id": 42,
+                  "agenda_item_id": 12,
+                  "title": "خرید تجهیزات",
+                  "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+                  "sort_order": 1,
+                  "task": {
+                    "id": 80,
+                    "title": "خرید تجهیزات",
+                    "status": "in_progress",
+                    "progress_percentage": 0,
+                    "due_date": "2026-09-30",
+                    "duration_minutes": 120,
+                    "assignees": [
+                      {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      }
+                    ]
+                  },
+                  "created_at": "2026-09-13T08:30:00.000000Z",
+                  "updated_at": "2026-09-13T08:40:00.000000Z"
+                }
+              ],
+              "submitted_at": "2026-09-13T08:20:00.000000Z",
+              "completed_at": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:20:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        }
+      }
+    },
+    {
+      "name": "Update meeting",
+      "method": "PATCH",
+      "path": "/api/v1/meetings/{meeting}",
+      "authentication": true,
+      "permission": "meetings:update",
+      "description_fa": "ویرایش جلسه draft یا scheduled. ارسال agenda_items فهرست دستورهای جلسه را کاملاً جایگزین می‌کند؛ اگر agenda_items ارسال نشود، دستورهای قبلی بدون تغییر باقی می‌مانند.",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "title": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:255",
+            "example": "جلسه برنامه‌ریزی فروش"
+          },
+          "location": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:500",
+            "example": "سالن جلسات طبقه دوم"
+          },
+          "meeting_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|format:Y-m-d",
+            "example": "2026-09-20"
+          },
+          "start_time": {
+            "type": "string(time)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|format:H:i",
+            "example": "10:30"
+          },
+          "chairman_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active existing user",
+            "example": 8
+          },
+          "secretary_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active existing user",
+            "example": 15
+          },
+          "attendee_user_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active existing users",
+            "example": [
+              8,
+              15,
+              22
+            ]
+          },
+          "agenda_items": {
+            "type": "array<object>",
+            "required": false,
+            "nullable": false,
+            "rules": "full replacement; existing items should include id",
+            "example": [
+              {
+                "id": 12,
+                "title": "بررسی خرید تجهیزات",
+                "description": null,
+                "sort_order": 1
+              }
+            ]
+          },
+          "submit": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "true requires complete meeting fields",
+            "example": false
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "title",
+          "location",
+          "meeting_date",
+          "start_time",
+          "chairman_user_id",
+          "secretary_user_id",
+          "attendee_user_ids",
+          "agenda_items",
+          "submit"
+        ],
+        "example": {
+          "title": "جلسه برنامه‌ریزی فروش و بازاریابی",
+          "attendee_user_ids": [
+            8,
+            15,
+            22
+          ],
+          "agenda_items": [
+            {
+              "id": 12,
+              "title": "بررسی خرید تجهیزات",
+              "description": null,
+              "sort_order": 1
+            }
+          ],
+          "submit": false
+        },
+        "notes_fa": [
+          "agenda_items در صورت ارسال، جایگزین کامل فهرست فعلی است.",
+          "attendee_user_ids در صورت ارسال جایگزین می‌شود ولی رئیس و دبیر همیشه حفظ می‌شوند."
+        ]
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "صورت‌جلسه با موفقیت بروزرسانی شد.",
+          "data": {
+            "meeting": {
+              "id": 10,
+              "title": "جلسه برنامه‌ریزی فروش",
+              "location": "سالن جلسات طبقه دوم",
+              "meeting_date": "2026-09-20",
+              "start_time": "10:30",
+              "status": "scheduled",
+              "chairman": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "secretary": {
+                "id": 15,
+                "org_code": "100015",
+                "first_name": "دبیر",
+                "last_name": "نمونه",
+                "full_name": "دبیر نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "attendees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "agenda_items": [
+                {
+                  "id": 12,
+                  "title": "بررسی خرید تجهیزات",
+                  "description": null,
+                  "sort_order": 1
+                }
+              ],
+              "resolutions": [
+                {
+                  "id": 42,
+                  "agenda_item_id": 12,
+                  "title": "خرید تجهیزات",
+                  "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+                  "sort_order": 1,
+                  "task": {
+                    "id": 80,
+                    "title": "خرید تجهیزات",
+                    "status": "in_progress",
+                    "progress_percentage": 0,
+                    "due_date": "2026-09-30",
+                    "duration_minutes": 120,
+                    "assignees": [
+                      {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      }
+                    ]
+                  },
+                  "created_at": "2026-09-13T08:30:00.000000Z",
+                  "updated_at": "2026-09-13T08:40:00.000000Z"
+                }
+              ],
+              "submitted_at": "2026-09-13T08:20:00.000000Z",
+              "completed_at": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:20:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Delete meeting",
+      "method": "DELETE",
+      "path": "/api/v1/meetings/{meeting}",
+      "authentication": true,
+      "permission": "meetings:delete",
+      "description_fa": "حذف نرم جلسه draft یا scheduled؛ تسک‌های متصل حذف نمی‌شوند",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "صورت‌جلسه با موفقیت حذف شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Submit meeting",
+      "method": "POST",
+      "path": "/api/v1/meetings/{meeting}/submit",
+      "authentication": true,
+      "permission": "meetings:update",
+      "description_fa": "ارسال جلسه draft کامل و تغییر وضعیت به scheduled",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "صورت‌جلسه با موفقیت ارسال و زمان‌بندی شد.",
+          "data": {
+            "meeting": {
+              "id": 10,
+              "title": "جلسه برنامه‌ریزی فروش",
+              "location": "سالن جلسات طبقه دوم",
+              "meeting_date": "2026-09-20",
+              "start_time": "10:30",
+              "status": "scheduled",
+              "chairman": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "secretary": {
+                "id": 15,
+                "org_code": "100015",
+                "first_name": "دبیر",
+                "last_name": "نمونه",
+                "full_name": "دبیر نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "attendees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "agenda_items": [
+                {
+                  "id": 12,
+                  "title": "بررسی خرید تجهیزات",
+                  "description": null,
+                  "sort_order": 1
+                }
+              ],
+              "resolutions": [
+                {
+                  "id": 42,
+                  "agenda_item_id": 12,
+                  "title": "خرید تجهیزات",
+                  "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+                  "sort_order": 1,
+                  "task": {
+                    "id": 80,
+                    "title": "خرید تجهیزات",
+                    "status": "in_progress",
+                    "progress_percentage": 0,
+                    "due_date": "2026-09-30",
+                    "duration_minutes": 120,
+                    "assignees": [
+                      {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      }
+                    ]
+                  },
+                  "created_at": "2026-09-13T08:30:00.000000Z",
+                  "updated_at": "2026-09-13T08:40:00.000000Z"
+                }
+              ],
+              "submitted_at": "2026-09-13T08:20:00.000000Z",
+              "completed_at": null,
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:20:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Complete meeting",
+      "method": "POST",
+      "path": "/api/v1/meetings/{meeting}/complete",
+      "authentication": true,
+      "permission": "meetings:complete",
+      "description_fa": "اتمام جلسه scheduled دارای حداقل یک مصوبه و قفل‌کردن جلسه بدون تغییر وضعیت تسک‌ها",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جلسه با موفقیت تکمیل و قفل شد.",
+          "data": {
+            "meeting": {
+              "id": 10,
+              "title": "جلسه برنامه‌ریزی فروش",
+              "location": "سالن جلسات طبقه دوم",
+              "meeting_date": "2026-09-20",
+              "start_time": "10:30",
+              "status": "completed",
+              "chairman": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "secretary": {
+                "id": 15,
+                "org_code": "100015",
+                "first_name": "دبیر",
+                "last_name": "نمونه",
+                "full_name": "دبیر نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "attendees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "agenda_items": [
+                {
+                  "id": 12,
+                  "title": "بررسی خرید تجهیزات",
+                  "description": null,
+                  "sort_order": 1
+                }
+              ],
+              "resolutions": [
+                {
+                  "id": 42,
+                  "agenda_item_id": 12,
+                  "title": "خرید تجهیزات",
+                  "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+                  "sort_order": 1,
+                  "task": {
+                    "id": 80,
+                    "title": "خرید تجهیزات",
+                    "status": "in_progress",
+                    "progress_percentage": 0,
+                    "due_date": "2026-09-30",
+                    "duration_minutes": 120,
+                    "assignees": [
+                      {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      }
+                    ]
+                  },
+                  "created_at": "2026-09-13T08:30:00.000000Z",
+                  "updated_at": "2026-09-13T08:40:00.000000Z"
+                }
+              ],
+              "submitted_at": "2026-09-13T08:20:00.000000Z",
+              "completed_at": "2026-09-20T12:00:00.000000Z",
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:20:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "meeting_resolutions": [
+    {
+      "name": "Create meeting resolution",
+      "method": "POST",
+      "path": "/api/v1/meetings/{meeting}/resolutions",
+      "authentication": true,
+      "permission": "meetings:manage_resolutions",
+      "description_fa": "ثبت مصوبه برای جلسه scheduled؛ برای اتصال یک تسک موجود و قابل مشاهده، task_id را ارسال کنید",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "agenda_item_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable; must belong to same meeting",
+            "example": 12
+          },
+          "title": {
+            "type": "string",
+            "required": true,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "خرید تجهیزات"
+          },
+          "description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "پس از دریافت پیش‌فاکتور انجام شود."
+          },
+          "sort_order": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "min:0",
+            "example": 1
+          },
+          "task_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable; must reference an existing task visible to the current user; unique across meeting resolutions",
+            "example": 80
+          }
+        },
+        "required_fields": [
+          "title"
+        ],
+        "optional_fields": [
+          "agenda_item_id",
+          "description",
+          "sort_order",
+          "task_id"
+        ],
+        "example": {
+          "agenda_item_id": 12,
+          "title": "خرید تجهیزات",
+          "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+          "sort_order": 1
+        },
+        "notes_fa": [
+          "task_id اختیاری، تسک موجود را به مصوبه متصل می‌کند؛ هر تسک فقط به یک مصوبه قابل اتصال است."
+        ]
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "مصوبه با موفقیت ثبت شد.",
+          "data": {
+            "resolution": {
+              "id": 42,
+              "agenda_item_id": 12,
+              "title": "خرید تجهیزات",
+              "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+              "sort_order": 1,
+              "task": null,
+              "created_at": "2026-09-13T08:30:00.000000Z",
+              "updated_at": "2026-09-13T08:40:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Update meeting resolution",
+      "method": "PATCH",
+      "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}",
+      "authentication": true,
+      "permission": "meetings:manage_resolutions",
+      "description_fa": "ویرایش مصوبه متعلق به همان جلسه در وضعیت scheduled؛ task_id تسک موجود را متصل یا با null جدا می‌کند",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        },
+        "resolution": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه مصوبه متعلق به همان جلسه",
+          "example": 42
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "agenda_item_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable; must belong to same meeting",
+            "example": 12
+          },
+          "title": {
+            "type": "string",
+            "required": false,
+            "nullable": false,
+            "rules": "max:255",
+            "example": "خرید تجهیزات اداری"
+          },
+          "description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "شرح ویرایش‌شده"
+          },
+          "sort_order": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "min:0",
+            "example": 2
+          },
+          "task_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable; must reference an existing task visible to the current user; unique across meeting resolutions",
+            "example": 80
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "agenda_item_id",
+          "title",
+          "description",
+          "sort_order",
+          "task_id"
+        ],
+        "example": {
+          "title": "خرید تجهیزات اداری",
+          "sort_order": 2,
+          "task_id": 80
+        },
+        "notes_fa": [
+          "ارسال task_id تسک موجود را متصل می‌کند؛ ارسال null اتصال را حذف می‌کند و خود تسک حذف نمی‌شود."
+        ]
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "مصوبه با موفقیت بروزرسانی شد.",
+          "data": {
+            "resolution": {
+              "id": 42,
+              "agenda_item_id": 12,
+              "title": "خرید تجهیزات",
+              "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+              "sort_order": 1,
+              "task": {
+                "id": 80,
+                "title": "خرید تجهیزات",
+                "status": "in_progress",
+                "progress_percentage": 0,
+                "due_date": "2026-09-30",
+                "duration_minutes": 120,
+                "assignees": [
+                  {
+                    "id": 8,
+                    "org_code": "100008",
+                    "first_name": "کریم",
+                    "last_name": "نمونه",
+                    "full_name": "کریم نمونه",
+                    "title": "مدیر فروش",
+                    "avatar_file_id": null
+                  }
+                ]
+              },
+              "created_at": "2026-09-13T08:30:00.000000Z",
+              "updated_at": "2026-09-13T08:40:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Delete meeting resolution",
+      "method": "DELETE",
+      "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}",
+      "authentication": true,
+      "permission": "meetings:manage_resolutions",
+      "description_fa": "حذف مصوبه جلسه scheduled؛ تسک واقعی متصل حذف نمی‌شود",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        },
+        "resolution": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه مصوبه متعلق به همان جلسه",
+          "example": 42
+        }
+      },
+      "query_parameters": {},
+      "request_body": {},
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "مصوبه با موفقیت حذف شد.",
+          "data": {}
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        }
+      }
+    },
+    {
+      "name": "Create task from resolution",
+      "method": "POST",
+      "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}/create-task",
+      "authentication": true,
+      "permission": [
+        "meetings:manage_resolutions",
+        "tasks:create"
+      ],
+      "description_fa": "ساخت تسک واقعی از مصوبه با استفاده از Validation و قوانین سازمانی Task؛ ایجاد مجدد برای همان مصوبه با 409 رد می‌شود",
+      "path_parameters": {
+        "meeting": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه صورت‌جلسه",
+          "example": 10
+        },
+        "resolution": {
+          "type": "integer",
+          "required": true,
+          "description": "شناسه مصوبه متعلق به همان جلسه",
+          "example": 42
+        }
+      },
+      "query_parameters": {},
+      "request_body": {
+        "content_type": "application/json",
+        "fields": {
+          "short_description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|max:100; defaults from resolution title",
+            "example": "اجرای مصوبه خرید تجهیزات"
+          },
+          "request_description": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "شرح کامل درخواست"
+          },
+          "duration_minutes": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:1",
+            "example": 120
+          },
+          "due_date": {
+            "type": "string(date)",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|after_or_equal:today",
+            "example": "2026-09-30"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "required": false,
+            "nullable": false,
+            "rules": "between:0,100",
+            "example": 0
+          },
+          "requester_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "active existing user",
+            "example": 8
+          },
+          "assignee_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": [
+              12
+            ]
+          },
+          "follower_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "supervisor_ids": {
+            "type": "array<integer>",
+            "required": false,
+            "nullable": false,
+            "rules": "distinct active users",
+            "example": []
+          },
+          "financial_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "بودجه جاری"
+          },
+          "financial_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": 150000
+          },
+          "financial_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "equipment_resources": {
+            "type": "string",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable",
+            "example": "یک رایانه"
+          },
+          "equipment_estimated_cost": {
+            "type": "number",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable|min:0",
+            "example": null
+          },
+          "equipment_provider_user_id": {
+            "type": "integer",
+            "required": false,
+            "nullable": true,
+            "rules": "nullable active user",
+            "example": null
+          },
+          "submit": {
+            "type": "boolean",
+            "required": false,
+            "nullable": false,
+            "rules": "when true: duration, due date and assignee required",
+            "example": false
+          }
+        },
+        "required_fields": [],
+        "optional_fields": [
+          "short_description",
+          "request_description",
+          "duration_minutes",
+          "due_date",
+          "progress_percentage",
+          "requester_id",
+          "assignee_ids",
+          "follower_ids",
+          "supervisor_ids",
+          "financial_resources",
+          "financial_estimated_cost",
+          "financial_provider_user_id",
+          "equipment_resources",
+          "equipment_estimated_cost",
+          "equipment_provider_user_id",
+          "submit"
+        ],
+        "example": {
+          "short_description": "اجرای مصوبه خرید تجهیزات",
+          "request_description": "طبق مصوبه جلسه انجام شود.",
+          "duration_minutes": 120,
+          "due_date": "2026-09-30",
+          "assignee_ids": [
+            12
+          ],
+          "follower_ids": [
+            15
+          ],
+          "supervisor_ids": [
+            8
+          ],
+          "financial_resources": null,
+          "financial_estimated_cost": null,
+          "financial_provider_user_id": null,
+          "equipment_resources": null,
+          "equipment_estimated_cost": null,
+          "equipment_provider_user_id": null,
+          "submit": true
+        },
+        "notes_fa": [
+          "عنوان تسک در صورت ارسال‌نشدن از عنوان مصوبه گرفته می‌شود.",
+          "submit=false تسک draft می‌سازد.",
+          "submit=true حداقل مسئول، مدت و مهلت می‌خواهد و جهت سازمانی را کنترل می‌کند."
+        ]
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "تسک مصوبه با موفقیت ایجاد شد.",
+          "data": {
+            "resolution": {
+              "id": 42,
+              "agenda_item_id": 12,
+              "title": "خرید تجهیزات",
+              "description": "پس از دریافت پیش‌فاکتور انجام شود.",
+              "sort_order": 1,
+              "task": {
+                "id": 80,
+                "title": "خرید تجهیزات",
+                "status": "in_progress",
+                "progress_percentage": 0,
+                "due_date": "2026-09-30",
+                "duration_minutes": 120,
+                "assignees": [
+                  {
+                    "id": 8,
+                    "org_code": "100008",
+                    "first_name": "کریم",
+                    "last_name": "نمونه",
+                    "full_name": "کریم نمونه",
+                    "title": "مدیر فروش",
+                    "avatar_file_id": null
+                  }
+                ]
+              },
+              "created_at": "2026-09-13T08:30:00.000000Z",
+              "updated_at": "2026-09-13T08:40:00.000000Z"
+            },
+            "task": {
+              "id": 80,
+              "title": "تهیه گزارش فروش",
+              "short_description": "آماده‌سازی گزارش ماهانه",
+              "request_description": null,
+              "duration_minutes": 120,
+              "due_date": "2026-09-30",
+              "progress_percentage": 0,
+              "status": "in_progress",
+              "submission_type": "assignment",
+              "requester": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "creator": {
+                "id": 8,
+                "org_code": "100008",
+                "first_name": "کریم",
+                "last_name": "نمونه",
+                "full_name": "کریم نمونه",
+                "title": "مدیر فروش",
+                "avatar_file_id": null
+              },
+              "assignees": [
+                {
+                  "id": 8,
+                  "org_code": "100008",
+                  "first_name": "کریم",
+                  "last_name": "نمونه",
+                  "full_name": "کریم نمونه",
+                  "title": "مدیر فروش",
+                  "avatar_file_id": null
+                }
+              ],
+              "followers": [],
+              "supervisors": [],
+              "financial_resources": null,
+              "financial_estimated_cost": null,
+              "financial_provider": null,
+              "equipment_resources": null,
+              "equipment_estimated_cost": null,
+              "equipment_provider": null,
+              "rejection_reason": null,
+              "meeting_source": {
+                "meeting_id": 10,
+                "meeting_title": "جلسه برنامه‌ریزی فروش",
+                "resolution_id": 42,
+                "resolution_title": "خرید تجهیزات"
+              },
+              "created_at": "2026-09-13T08:00:00.000000Z",
+              "updated_at": "2026-09-13T08:10:00.000000Z"
+            }
+          }
+        }
+      },
+      "error_responses": {
+        "401": {
+          "body": {
+            "message": "Unauthenticated."
+          }
+        },
+        "403": {
+          "body": {
+            "message": "این عملیات مجاز نیست."
+          }
+        },
+        "404": {
+          "body": {
+            "message": "رکورد موردنظر یافت نشد."
+          }
+        },
+        "409": {
+          "body": {
+            "message": "عملیات با وضعیت فعلی منبع سازگار نیست."
+          }
+        },
+        "422": {
+          "body": {
+            "message": "اطلاعات ارسال‌شده معتبر نیست.",
+            "errors": {
+              "field_name": [
+                "پیام اعتبارسنجی فارسی"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

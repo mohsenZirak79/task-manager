@@ -15,7 +15,7 @@ class ProfileController extends Controller
             'success' => true,
             'message' => 'پروفایل کاربر',
             'data' => [
-                'user' => new UserResource($request->user()->load('specialDates')),
+                'user' => new UserResource($request->user()->load(['specialDates', 'accessRoles.permissions', 'orgPositions'])),
             ],
         ]);
     }

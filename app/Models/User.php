@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use App\Support\AccessRoles;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -29,7 +30,6 @@ class User extends Authenticatable
         'signature_file_id',
         'title',
         'is_active',
-        'is_admin',
         'must_change_password',
         'last_login_at',
         'created_by',
@@ -46,9 +46,63 @@ class User extends Authenticatable
         return $this->hasMany(UserSpecialDate::class);
     }
 
-    public function role(): HasOne
+    public function accessRoles(): BelongsToMany
     {
-        return $this->hasOne(Role::class);
+        return $this->belongsToMany(AccessRole::class, 'access_role_user')->withTimestamps();
+    }
+
+    public function orgPositions(): BelongsToMany
+    {
+        return $this->belongsToMany(OrgPosition::class, 'org_position_user')->withTimestamps();
+    }
+
+    public function hasAccessRole(string $slug): bool
+    {
+        return $this->relationLoaded('accessRoles')
+            ? $this->accessRoles->contains('slug', $slug)
+            : $this->accessRoles()->where('slug', $slug)->exists();
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        $matches = fn (AccessRole $role): bool => $role->slug === AccessRoles::SUPER_ADMIN && $role->is_system;
+
+        return $this->relationLoaded('accessRoles')
+            ? $this->accessRoles->contains($matches)
+            : $this->accessRoles()->where('slug', AccessRoles::SUPER_ADMIN)->where('is_system', true)->exists();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('accessRoles') && $this->accessRoles->every->relationLoaded('permissions')) {
+            return $this->accessRoles->contains(
+                fn (AccessRole $role): bool => $role->permissions->contains('name', $permission),
+            );
+        }
+
+        return $this->accessRoles()->whereHas('permissions', fn ($query) => $query->where('name', $permission))->exists();
+    }
+
+    /** @return list<string> */
+    public function permissionNames(): array
+    {
+        if ($this->isSuperAdmin()) {
+            return Permission::query()->orderBy('name')->pluck('name')->all();
+        }
+
+        if ($this->relationLoaded('accessRoles') && $this->accessRoles->every->relationLoaded('permissions')) {
+            return $this->accessRoles->flatMap->permissions->pluck('name')->unique()->sort()->values()->all();
+        }
+
+        return Permission::query()
+            ->whereHas('accessRoles.users', fn ($query) => $query->whereKey($this->getKey()))
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
     }
 
     public function createdTasks(): HasMany
@@ -61,6 +115,16 @@ class User extends Authenticatable
         return $this->hasMany(Task::class, 'requester_id');
     }
 
+    public function attendedMeetings(): BelongsToMany
+    {
+        return $this->belongsToMany(Meeting::class, 'meeting_attendees')->withTimestamps();
+    }
+
+    public function createdMeetings(): HasMany
+    {
+        return $this->hasMany(Meeting::class, 'created_by');
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -71,7 +135,6 @@ class User extends Authenticatable
         return [
             'birth_date' => 'date',
             'is_active' => 'boolean',
-            'is_admin' => 'boolean',
             'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
             'password' => 'hashed',

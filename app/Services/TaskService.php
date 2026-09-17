@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Enums\TaskParticipantRole;
 use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
-use App\Models\Role;
+use App\Models\OrgPosition;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -23,7 +23,7 @@ class TaskService
 
         $query = Task::query()
             ->with($this->summaryRelations())
-            ->when(! $actor->is_admin, function ($query) use ($actor): void {
+            ->when(! $actor->isSuperAdmin(), function ($query) use ($actor): void {
                 $query->where(function ($query) use ($actor): void {
                     $query->where('created_by', $actor->id)
                         ->orWhere('requester_id', $actor->id)
@@ -132,6 +132,17 @@ class TaskService
         return $this->loadTask($task, true);
     }
 
+    public function delete(Task $task): void
+    {
+        DB::transaction(function () use ($task): void {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            if ($task->status !== TaskStatus::Draft) {
+                throw new HttpException(409, 'فقط پیش‌نویس تسک قابل حذف است.');
+            }
+            $task->delete();
+        });
+    }
+
     public function approve(Task $task, User $actor): Task
     {
         return DB::transaction(function () use ($task, $actor): Task {
@@ -198,7 +209,7 @@ class TaskService
             });
         }
 
-        if ($actor->is_admin) {
+        if ($actor->isSuperAdmin()) {
             $all = $activeUsers->orderBy('first_name')->orderBy('last_name')->get();
 
             return [
@@ -208,19 +219,19 @@ class TaskService
             ];
         }
 
-        $roleIds = $this->relatedRoleIds($actor);
-        $ancestorIds = $this->ancestorRoleIds($actor);
-        $descendantIds = array_values(array_diff($roleIds, $ancestorIds));
+        $ancestorIds = $this->ancestorPositionIds($actor);
+        $descendantIds = $this->descendantPositionIds($actor);
+        $positionIds = array_values(array_unique([...$ancestorIds, ...$descendantIds]));
         $load = fn (array $ids): Collection => (clone $activeUsers)
             ->where(function ($query) use ($actor, $ids): void {
-                $query->whereKey($actor->id)->orWhereHas('role', fn ($query) => $query->whereIn('id', $ids));
+                $query->whereKey($actor->id)->orWhereHas('orgPositions', fn ($query) => $query->whereIn('org_positions.id', $ids));
             })
             ->orderBy('first_name')->orderBy('last_name')->get();
 
         return [
             'assignment_targets' => $load($descendantIds),
             'request_targets' => $load($ancestorIds),
-            'participants' => $load($roleIds),
+            'participants' => $load($positionIds),
         ];
     }
 
@@ -310,32 +321,40 @@ class TaskService
 
     private function determineSubmissionType(User $actor, array $assigneeIds): TaskSubmissionType
     {
-        if ($actor->is_admin) {
+        if ($actor->isSuperAdmin()) {
             return TaskSubmissionType::Assignment;
         }
 
-        $actorRoleId = $actor->role()->value('id');
-        if (! $actorRoleId) {
+        $actorPositions = $actor->orgPositions()->get(['org_positions.id', 'parent_id', 'request_up_levels', 'assignment_down_levels']);
+        if ($actorPositions->isEmpty()) {
             throw new HttpException(403, 'کاربر ایجادکننده جایگاه سازمانی ندارد.');
         }
 
-        $targetRoleIds = Role::query()
-            ->whereIn('user_id', $assigneeIds)
-            ->pluck('id', 'user_id');
-
-        if ($targetRoleIds->count() !== count(array_unique($assigneeIds))) {
+        $targets = User::query()->whereKey($assigneeIds)->with('orgPositions:id,parent_id')->get();
+        if ($targets->count() !== count(array_unique($assigneeIds)) || $targets->contains(fn (User $user) => $user->orgPositions->isEmpty())) {
             throw new HttpException(422, 'همه مسئولان انجام باید جایگاه سازمانی داشته باشند.');
         }
 
-        $parents = Role::query()->pluck('parent_id', 'id')->all();
-        $allBelow = $targetRoleIds->every(
-            fn (int $targetRoleId) => $targetRoleId === $actorRoleId
-                || $this->isAncestor($actorRoleId, $targetRoleId, $parents),
-        );
-        $allAbove = $targetRoleIds->every(
-            fn (int $targetRoleId) => $targetRoleId === $actorRoleId
-                || $this->isAncestor($targetRoleId, $actorRoleId, $parents),
-        );
+        $parents = $this->positionParents();
+        $directions = $targets->map(function (User $target) use ($actorPositions, $parents): array {
+            $below = false;
+            $above = false;
+            foreach ($actorPositions as $actorPosition) {
+                foreach ($target->orgPositions as $targetPosition) {
+                    $below = $below || $this->isWithinLevelLimit(
+                        $actorPosition->id, $targetPosition->id, $parents, $actorPosition->assignment_down_levels,
+                    );
+                    $above = $above || $this->isWithinLevelLimit(
+                        $targetPosition->id, $actorPosition->id, $parents, $actorPosition->request_up_levels,
+                    );
+                }
+            }
+
+            return ['below' => $below, 'above' => $above];
+        });
+
+        $allBelow = $directions->every(fn (array $direction): bool => $direction['below']);
+        $allAbove = $directions->every(fn (array $direction): bool => $direction['above']);
 
         if ($allBelow) {
             return TaskSubmissionType::Assignment;
@@ -345,36 +364,49 @@ class TaskService
             return TaskSubmissionType::Request;
         }
 
-        throw new HttpException(403, 'ارسال فقط بین جایگاه بالاتر و زیرمجموعه‌های سازمانی آن مجاز است.');
+        throw new HttpException(403, 'مسئولان باید همگی در محدوده مجازِ بالاتر یا همگی در محدوده مجازِ پایین‌تر یکی از جایگاه‌های شما باشند.');
     }
 
-    private function isAncestor(int $ancestorId, int $descendantId, array $parents): bool
+    private function isWithinLevelLimit(int $ancestorId, int $descendantId, array $parents, ?int $limit): bool
     {
+        $distance = $this->positionDistance($ancestorId, $descendantId, $parents);
+
+        return $distance !== null && ($limit === null || $distance <= $limit);
+    }
+
+    private function positionDistance(int $ancestorId, int $descendantId, array $parents): ?int
+    {
+        if ($ancestorId === $descendantId) {
+            return 0;
+        }
+
         $currentId = $parents[$descendantId] ?? null;
         $visited = [];
+        $distance = 1;
 
         while ($currentId !== null && ! isset($visited[$currentId])) {
             if ((int) $currentId === $ancestorId) {
-                return true;
+                return $distance;
             }
 
             $visited[$currentId] = true;
             $currentId = $parents[$currentId] ?? null;
+            $distance++;
         }
 
-        return false;
+        return null;
     }
 
     private function ensureRequesterCanBeSelected(User $actor, int $requesterId): void
     {
-        if (! $actor->is_admin && $requesterId !== $actor->id) {
+        if (! $actor->isSuperAdmin() && $requesterId !== $actor->id) {
             throw new HttpException(403, 'ثبت تسک به درخواست کاربر دیگر مجاز نیست.');
         }
     }
 
     private function ensureOrganizationParticipants(User $actor, array $data): void
     {
-        if ($actor->is_admin) {
+        if ($actor->isSuperAdmin()) {
             return;
         }
 
@@ -396,56 +428,60 @@ class TaskService
 
     private function allowedUserIds(User $actor): array
     {
-        return User::query()->whereHas('role', fn ($query) => $query->whereIn('id', $this->relatedRoleIds($actor)))
-            ->orWhere('id', $actor->id)
+        $positionIds = $this->relatedPositionIds($actor);
+
+        return User::query()->where(function ($query) use ($actor, $positionIds): void {
+            $query->whereKey($actor->id)
+                ->orWhereHas('orgPositions', fn ($query) => $query->whereIn('org_positions.id', $positionIds));
+        })
             ->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 
-    private function relatedRoleIds(User $actor): array
+    private function relatedPositionIds(User $actor): array
     {
-        $actorRoleId = $actor->role()->value('id');
-        if (! $actorRoleId) {
-            return [];
-        }
+        return array_values(array_unique([...$this->ancestorPositionIds($actor), ...$this->descendantPositionIds($actor)]));
+    }
 
-        $parents = Role::query()->pluck('parent_id', 'id')->map(fn ($id) => $id === null ? null : (int) $id)->all();
-        $ids = [(int) $actorRoleId];
-        foreach ($parents as $roleId => $parentId) {
-            $current = $parentId;
-            while ($current !== null) {
-                if ((int) $current === (int) $actorRoleId) {
-                    $ids[] = (int) $roleId;
-                    break;
-                }
+    private function ancestorPositionIds(User $actor): array
+    {
+        $positions = $actor->orgPositions()->get(['org_positions.id', 'request_up_levels']);
+        $parents = $this->positionParents();
+        $ids = [];
+        foreach ($positions as $position) {
+            $current = $parents[$position->id] ?? null;
+            $distance = 1;
+            while ($current !== null && ($position->request_up_levels === null || $distance <= $position->request_up_levels)) {
+                $ids[] = (int) $current;
                 $current = $parents[$current] ?? null;
+                $distance++;
             }
-        }
-
-        $current = $parents[$actorRoleId] ?? null;
-        while ($current !== null) {
-            $ids[] = (int) $current;
-            $current = $parents[$current] ?? null;
         }
 
         return array_values(array_unique($ids));
     }
 
-    private function ancestorRoleIds(User $actor): array
+    private function descendantPositionIds(User $actor): array
     {
-        $actorRoleId = $actor->role()->value('id');
-        if (! $actorRoleId) {
-            return [];
-        }
-
-        $parents = Role::query()->pluck('parent_id', 'id')->all();
+        $positions = $actor->orgPositions()->get(['org_positions.id', 'assignment_down_levels']);
+        $parents = $this->positionParents();
         $ids = [];
-        $current = $parents[$actorRoleId] ?? null;
-        while ($current !== null) {
-            $ids[] = (int) $current;
-            $current = $parents[$current] ?? null;
+        foreach ($positions as $position) {
+            $ids[] = (int) $position->id;
+            foreach (array_keys($parents) as $positionId) {
+                $distance = $this->positionDistance((int) $position->id, (int) $positionId, $parents);
+                if ($distance !== null && ($position->assignment_down_levels === null || $distance <= $position->assignment_down_levels)) {
+                    $ids[] = (int) $positionId;
+                }
+            }
         }
 
-        return $ids;
+        return array_values(array_unique($ids));
+    }
+
+    /** @return array<int, int|null> */
+    private function positionParents(): array
+    {
+        return OrgPosition::query()->pluck('parent_id', 'id')->map(fn ($id) => $id === null ? null : (int) $id)->all();
     }
 
     private function syncParticipants(Task $task, array $data, bool $creating = false): void
@@ -509,7 +545,7 @@ class TaskService
     {
         return [
             'requester', 'creator', 'assignees', 'followers', 'supervisors',
-            'financialProvider', 'equipmentProvider',
+            'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
         ];
     }
 }

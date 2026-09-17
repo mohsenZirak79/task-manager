@@ -4,7 +4,9 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Services\UserService;
+use App\Support\AccessRoles;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Validator;
 
 class CreateAdminCommand extends Command
@@ -20,8 +22,10 @@ class CreateAdminCommand extends Command
 
     public function handle(UserService $userService): int
     {
-        if (User::query()->where('is_admin', true)->exists()) {
-            $this->error('An administrator already exists.');
+        Artisan::call('access:sync');
+
+        if (User::query()->whereHas('accessRoles', fn ($query) => $query->where('slug', AccessRoles::SUPER_ADMIN)->where('is_system', true))->exists()) {
+            $this->error('A super administrator already exists.');
 
             return self::FAILURE;
         }
@@ -37,8 +41,8 @@ class CreateAdminCommand extends Command
         $validator = Validator::make($data, [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
-            'mobile' => ['required', 'string', 'max:20', 'unique:users,mobile'],
-            'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'mobile' => ['required', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
@@ -51,7 +55,7 @@ class CreateAdminCommand extends Command
         }
 
         $user = $userService->createInitialAdmin($validator->validated());
-        $this->info("Administrator created with ID {$user->id}.");
+        $this->info("Super administrator created with ID {$user->id}.");
 
         return self::SUCCESS;
     }

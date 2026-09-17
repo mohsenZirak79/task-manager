@@ -22,10 +22,13 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $users = $this->userService->paginate($request->only(['search', 'is_active', 'per_page']));
+        $users = $this->userService->paginate(
+            $request->only(['search', 'is_active', 'per_page']),
+            $request->user(),
+        );
 
         return $this->success('لیست کاربران', [
-            'items' => UserResource::collection($users->items()),
+            'items' => UserResource::collection($users->getCollection()),
             'meta' => [
                 'current_page' => $users->currentPage(),
                 'last_page' => $users->lastPage(),
@@ -44,10 +47,12 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function show(User $user): JsonResponse
+    public function show(Request $request, User $user): JsonResponse
     {
+        $this->userService->assertCanManage($user, $request->user());
+
         return $this->success('جزئیات کاربر', [
-            'user' => new UserResource($user->load('specialDates')),
+            'user' => new UserResource($user->load(['specialDates', 'accessRoles.permissions', 'orgPositions'])),
         ]);
     }
 

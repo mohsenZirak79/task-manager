@@ -1,0 +1,9 @@
+app/Http/Controllers/Api/V1/RoleController.php
+app/Http/Middleware/EnsureUserIsAdmin.php
+app/Http/Requests/AvailableRoleUsersRequest.php
+app/Http/Requests/StoreRoleRequest.php
+app/Http/Requests/UpdateRoleRequest.php
+app/Http/Resources/RoleResource.php
+app/Http/Resources/RoleUserResource.php
+app/Models/Role.php
+app/Services/RoleService.php

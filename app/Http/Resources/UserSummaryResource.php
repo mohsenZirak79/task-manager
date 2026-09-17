@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class RoleUserResource extends JsonResource
+class UserSummaryResource extends JsonResource
 {
     public static $wrap = null;
 
@@ -16,6 +16,7 @@ class RoleUserResource extends JsonResource
             'org_code' => $this->org_code,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
+            'full_name' => trim("{$this->first_name} {$this->last_name}"),
             'title' => $this->title,
             'avatar_file_id' => $this->avatar_file_id,
         ];
