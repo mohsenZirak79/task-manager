@@ -84,6 +84,21 @@ class Task extends Model
         return $this->belongsToMany(Tag::class)->withTimestamps();
     }
 
+    public function attachments(): BelongsToMany
+    {
+        return $this->belongsToMany(MediaFile::class)->withTimestamps();
+    }
+
+    public function planningItems(): HasMany
+    {
+        return $this->hasMany(TaskPlanningItem::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(TaskComment::class);
+    }
+
     public function workflowHistory(): HasMany
     {
         return $this->hasMany(TaskWorkflowHistory::class)->latest('id');

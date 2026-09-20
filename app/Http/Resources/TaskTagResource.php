@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class MediaFileResource extends JsonResource
+class TaskTagResource extends JsonResource
 {
     public static $wrap = null;
 
@@ -13,11 +13,7 @@ class MediaFileResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'url' => $this->url,
-            'original_name' => $this->original_name,
-            'mime_type' => $this->mime_type,
-            'category' => $this->category,
-            'size' => $this->size,
+            'title' => $this->title,
         ];
     }
 }

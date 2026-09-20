@@ -2,8 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Models\AccessRole;
 use App\Models\User;
+use App\Support\AccessRoles;
+use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -32,13 +36,33 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
             'is_active' => true,
-            'is_admin' => false,
             'must_change_password' => false,
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if (! AccessRole::query()
+                ->where('slug', AccessRoles::USER)
+                ->whereHas('permissions', fn ($query) => $query->where('name', Permissions::TASKS_CREATE))
+                ->exists()) {
+                Artisan::call('access:sync');
+            }
+            $role = AccessRole::query()->where('slug', AccessRoles::USER)->first();
+            if ($role) {
+                $user->accessRoles()->syncWithoutDetaching([$role->id]);
+            }
+        });
+    }
+
     public function admin(): static
     {
-        return $this->state(fn () => ['is_admin' => true]);
+        return $this->afterCreating(function (User $user): void {
+            $role = AccessRole::query()->where('slug', AccessRoles::SUPER_ADMIN)->first();
+            if ($role) {
+                $user->accessRoles()->syncWithoutDetaching([$role->id]);
+            }
+        });
     }
 }

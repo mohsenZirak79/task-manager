@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\TaskStatus;
+use App\Enums\TaskSubmissionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangeTaskStatusRequest;
 use App\Http\Requests\EligibleTaskUsersRequest;
@@ -27,6 +28,7 @@ class TaskController extends Controller
     public function index(IndexTaskRequest $request): JsonResponse
     {
         Gate::authorize('viewAny', Task::class);
+        $request->user()->loadMissing('accessRoles.permissions');
         $tasks = $this->taskService->paginate($request->validated(), $request->user());
 
         return $this->success('لیست تسک‌ها', [
@@ -42,8 +44,19 @@ class TaskController extends Controller
 
     public function eligibleUsers(EligibleTaskUsersRequest $request): JsonResponse
     {
-        Gate::authorize('create', Task::class);
-        $users = $this->taskService->eligibleUsers($request->validated('search'), $request->user());
+        $taskId = $request->validated('task_id');
+        if ($taskId) {
+            Gate::authorize('update', Task::query()->findOrFail($taskId));
+        } else {
+            Gate::authorize('create', Task::class);
+        }
+
+        $submissionType = $request->validated('submission_type');
+        $users = $this->taskService->eligibleUsers(
+            $request->validated('search'),
+            $request->user(),
+            $submissionType ? TaskSubmissionType::from($submissionType) : null,
+        );
 
         return $this->success('کاربران مجاز تسک', [
             'assignment_targets' => UserSummaryResource::collection($users['assignment_targets']),

@@ -71,13 +71,14 @@ class RoleManagementTest extends TestCase
         $this->assertDatabaseHas('roles', ['id' => $childId, 'parent_id' => $rootId, 'user_id' => $user->id]);
     }
 
-    public function test_a_role_cannot_be_created_without_a_user(): void
+    public function test_a_vacant_organizational_position_can_be_created(): void
     {
         $this->actingAsAdmin();
 
         $this->postJson('/api/v1/roles', ['title' => 'بدون مسئول'])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('user_id');
+            ->assertCreated()
+            ->assertJsonPath('data.role.user_id', null)
+            ->assertJsonPath('data.role.user', null);
     }
 
     public function test_roles_are_returned_as_an_unlimited_multilevel_tree(): void

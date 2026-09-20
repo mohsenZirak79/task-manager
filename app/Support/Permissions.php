@@ -42,6 +42,12 @@ final class Permissions
 
     public const TASKS_DELETE = 'tasks:delete';
 
+    public const TASKS_VIEW_ALL = 'tasks:view_all';
+
+    public const TASKS_COMMENT = 'tasks:comment';
+
+    public const TASKS_MANAGE_COMMENTS = 'tasks:manage_comments';
+
     public const MEETINGS_VIEW = 'meetings:view';
 
     public const MEETINGS_CREATE = 'meetings:create';
@@ -79,6 +85,9 @@ final class Permissions
             self::TASKS_UPDATE_STATUS => 'Update task status',
             self::TASKS_UPDATE_PROGRESS => 'Update task progress',
             self::TASKS_DELETE => 'Delete own draft tasks',
+            self::TASKS_VIEW_ALL => 'View all tasks across management scope',
+            self::TASKS_COMMENT => 'Create comments and reactions on visible tasks',
+            self::TASKS_MANAGE_COMMENTS => 'Delete comments by other users in management scope',
             self::MEETINGS_VIEW => 'View permitted meetings',
             self::MEETINGS_CREATE => 'Create meetings',
             self::MEETINGS_UPDATE => 'Update permitted meetings',
@@ -116,6 +125,7 @@ final class Permissions
             self::TASKS_REJECT,
             self::TASKS_UPDATE_STATUS,
             self::TASKS_UPDATE_PROGRESS,
+            self::TASKS_COMMENT,
         ];
     }
 }

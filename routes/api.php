@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\TaskCommentController;
 use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\TaskTagController;
 use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Support\Permissions;
@@ -27,6 +29,8 @@ Route::prefix('v1')->group(function (): void {
         Route::middleware('active')->group(function (): void {
             Route::get('me', [ProfileController::class, 'show']);
             Route::post('uploads/images', [UploadController::class, 'image']);
+            Route::post('uploads/files', [UploadController::class, 'file']);
+            Route::delete('uploads/files/{file}', [UploadController::class, 'destroyFile'])->whereNumber('file');
 
             Route::get('meetings', [MeetingController::class, 'index'])->middleware('permission:'.Permissions::MEETINGS_VIEW);
             Route::post('meetings', [MeetingController::class, 'store'])->middleware('permission:'.Permissions::MEETINGS_CREATE);
@@ -42,7 +46,8 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:'.Permissions::TASKS_CREATE);
-            Route::get('tasks/eligible-users', [TaskController::class, 'eligibleUsers'])->middleware('permission:'.Permissions::TASKS_CREATE);
+            Route::get('tasks/eligible-users', [TaskController::class, 'eligibleUsers']);
+            Route::get('task-tags', [TaskTagController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('tasks/{task}', [TaskController::class, 'show'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::patch('tasks/{task}', [TaskController::class, 'update'])->middleware('permission:'.Permissions::TASKS_UPDATE);
             Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->middleware('permission:'.Permissions::TASKS_DELETE);
@@ -51,6 +56,11 @@ Route::prefix('v1')->group(function (): void {
             Route::post('tasks/{task}/request-revision', [TaskController::class, 'requestRevision'])->middleware('permission:'.Permissions::TASKS_REJECT);
             Route::post('tasks/{task}/status', [TaskController::class, 'changeStatus'])->middleware('permission:'.Permissions::TASKS_UPDATE_STATUS);
             Route::post('tasks/{task}/progress', [TaskController::class, 'updateProgress'])->middleware('permission:'.Permissions::TASKS_UPDATE_PROGRESS);
+            Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index']);
+            Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store']);
+            Route::patch('tasks/{task}/comments/{comment}', [TaskCommentController::class, 'update'])->whereNumber(['task', 'comment']);
+            Route::delete('tasks/{task}/comments/{comment}', [TaskCommentController::class, 'destroy'])->whereNumber(['task', 'comment']);
+            Route::put('tasks/{task}/comments/{comment}/reaction', [TaskCommentController::class, 'reaction'])->whereNumber(['task', 'comment']);
 
             Route::get('org-positions/available-users', [OrgPositionController::class, 'availableUsers'])->middleware('permission:'.Permissions::ORG_POSITIONS_VIEW);
             Route::get('org-positions', [OrgPositionController::class, 'index'])->middleware('permission:'.Permissions::ORG_POSITIONS_VIEW);

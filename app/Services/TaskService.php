@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\TaskParticipantRole;
 use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
+use App\Models\MediaFile;
 use App\Models\OrgPosition;
 use App\Models\Tag;
 use App\Models\Task;
@@ -18,22 +19,15 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class TaskService
 {
+    public function __construct(private readonly TaskVisibilityService $visibility) {}
+
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $sort = $filters['sort'] ?? 'newest';
 
-        $query = Task::query()
-            ->with($this->summaryRelations())
-            ->when(! $actor->isSuperAdmin(), function ($query) use ($actor): void {
-                $query->where(function ($query) use ($actor): void {
-                    $query->where('created_by', $actor->id)
-                        ->orWhere('requester_id', $actor->id)
-                        ->orWhere('financial_provider_user_id', $actor->id)
-                        ->orWhere('equipment_provider_user_id', $actor->id)
-                        ->orWhereHas('participantRecords', fn ($query) => $query->where('user_id', $actor->id));
-                });
-            })
+        $scope = $this->visibility->resolveScope($filters['scope'] ?? null, $filters['submission_type'] ?? null);
+        $query = $this->visibility->apply(Task::query()->with($this->summaryRelations()), $actor, $scope)
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('title', 'like', "%{$search}%")
@@ -55,6 +49,24 @@ class TaskService
                         ->orWhereHas('participantRecords', fn ($query) => $query->where('user_id', $userId));
                 });
             })
+            ->when($filters['assignee_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
+                'participantRecords',
+                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Assignee->value),
+            ))
+            ->when($filters['follower_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
+                'participantRecords',
+                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Follower->value),
+            ))
+            ->when($filters['supervisor_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
+                'participantRecords',
+                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Supervisor->value),
+            ))
+            ->when($filters['tag'] ?? null, fn ($query, string $tag) => $query->whereHas(
+                'tags',
+                fn ($query) => $query->where('title', 'like', "%{$tag}%"),
+            ))
+            ->when($filters['due_from'] ?? null, fn ($query, string $date) => $query->whereDate('due_date', '>=', $date))
+            ->when($filters['due_to'] ?? null, fn ($query, string $date) => $query->whereDate('due_date', '<=', $date))
             ->when($filters['created_from'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '>=', $date))
             ->when($filters['created_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date));
 
@@ -83,11 +95,13 @@ class TaskService
                 'requester_id' => $requesterId,
                 'created_by' => $actor->id,
                 'status' => TaskStatus::Draft,
-                'submission_type' => null,
+                'submission_type' => $data['submission_type'],
             ]);
 
             $this->syncParticipants($task, $data, true);
             $this->syncTags($task, $data, true);
+            $this->syncAttachments($task, $data, $actor, true);
+            $this->syncPlanningItems($task, $data, true);
 
             if ($submit) {
                 $this->submit($task, $actor);
@@ -101,6 +115,10 @@ class TaskService
     {
         return DB::transaction(function () use ($task, $data, $actor): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+
+            if (array_key_exists('submission_type', $data) && $task->status !== TaskStatus::Draft) {
+                throw new HttpException(409, 'نوع تسک فقط در وضعیت پیش‌نویس قابل تغییر است.');
+            }
 
             if (array_key_exists('requester_id', $data)) {
                 $requesterId = (int) ($data['requester_id'] ?? $actor->id);
@@ -123,6 +141,8 @@ class TaskService
             $task->update($this->taskAttributes($data));
             $this->syncParticipants($task, $data);
             $this->syncTags($task, $data);
+            $this->syncAttachments($task, $data, $actor);
+            $this->syncPlanningItems($task, $data);
 
             if ((bool) ($data['submit'] ?? false)) {
                 $this->submit($task, $actor);
@@ -153,7 +173,7 @@ class TaskService
         return DB::transaction(function () use ($task, $actor): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
-            if ($task->status !== TaskStatus::PendingApproval) {
+            if ($task->submission_type !== TaskSubmissionType::Request || $task->status !== TaskStatus::PendingApproval) {
                 throw new HttpException(409, 'این درخواست دیگر در انتظار تأیید نیست.');
             }
 
@@ -170,7 +190,7 @@ class TaskService
         return DB::transaction(function () use ($task, $actor, $reason): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
-            if ($task->status !== TaskStatus::PendingApproval) {
+            if ($task->submission_type !== TaskSubmissionType::Request || $task->status !== TaskStatus::PendingApproval) {
                 throw new HttpException(409, 'این درخواست دیگر در انتظار تأیید نیست.');
             }
 
@@ -187,7 +207,7 @@ class TaskService
         return DB::transaction(function () use ($task, $actor, $reason): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
-            if ($task->status !== TaskStatus::PendingApproval) {
+            if ($task->submission_type !== TaskSubmissionType::Request || $task->status !== TaskStatus::PendingApproval) {
                 throw new HttpException(409, 'فقط درخواست در انتظار تأیید قابل اصلاح است.');
             }
 
@@ -202,7 +222,7 @@ class TaskService
         });
     }
 
-    public function eligibleUsers(?string $search, User $actor): array
+    public function eligibleUsers(?string $search, User $actor, ?TaskSubmissionType $submissionType = null): array
     {
         $activeUsers = User::query()->where('is_active', true);
         if ($search) {
@@ -217,11 +237,11 @@ class TaskService
         if ($actor->isSuperAdmin()) {
             $all = $activeUsers->orderBy('first_name')->orderBy('last_name')->get();
 
-            return [
+            return $this->filterEligibleGroups([
                 'assignment_targets' => $all,
                 'request_targets' => $all,
                 'participants' => $all,
-            ];
+            ], $submissionType);
         }
 
         $ancestorIds = $this->ancestorPositionIds($actor);
@@ -233,11 +253,22 @@ class TaskService
             })
             ->orderBy('first_name')->orderBy('last_name')->get();
 
-        return [
+        return $this->filterEligibleGroups([
             'assignment_targets' => $load($descendantIds),
             'request_targets' => $load($ancestorIds),
             'participants' => $load($positionIds),
-        ];
+        ], $submissionType);
+    }
+
+    private function filterEligibleGroups(array $groups, ?TaskSubmissionType $submissionType): array
+    {
+        if ($submissionType === TaskSubmissionType::Assignment) {
+            $groups['request_targets'] = new Collection;
+        } elseif ($submissionType === TaskSubmissionType::Request) {
+            $groups['assignment_targets'] = new Collection;
+        }
+
+        return $groups;
     }
 
     public function changeStatus(Task $task, User $actor, TaskStatus $status): Task
@@ -251,7 +282,7 @@ class TaskService
             };
 
             if (! in_array($status, $allowed, true)) {
-                throw new HttpException(422, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');
+                throw new HttpException(409, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');
             }
 
             $from = $task->status;
@@ -268,7 +299,7 @@ class TaskService
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
             if ($task->status !== TaskStatus::InProgress) {
-                throw new HttpException(422, 'درصد پیشرفت فقط برای تسک در حال انجام قابل ثبت است.');
+                throw new HttpException(409, 'درصد پیشرفت فقط برای تسک در حال انجام قابل ثبت است.');
             }
 
             $oldProgress = $task->progress_percentage;
@@ -291,6 +322,9 @@ class TaskService
             throw new HttpException(409, 'فقط پیش‌نویس قابل ارسال است.');
         }
 
+        $participantIds = $task->participantRecords()->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $this->ensureSelectedUsersRemainValid($task, $actor, $participantIds);
+
         $assigneeIds = $task->participantRecords()
             ->where('role', TaskParticipantRole::Assignee->value)
             ->pluck('user_id')
@@ -312,7 +346,8 @@ class TaskService
             throw new HttpException(422, 'تاریخ اتمام در زمان ارسال نمی‌تواند گذشته باشد.');
         }
 
-        $submissionType = $this->determineSubmissionType($actor, $assigneeIds);
+        $submissionType = $this->resolveSubmissionType($task, $actor, $assigneeIds);
+        $this->validateCompleteSubmission($task, $submissionType);
         $newStatus = $submissionType === TaskSubmissionType::Request
             ? TaskStatus::PendingApproval
             : TaskStatus::InProgress;
@@ -324,10 +359,10 @@ class TaskService
         $this->recordHistory($task, $actor, 'submitted', TaskStatus::Draft, $newStatus);
     }
 
-    private function determineSubmissionType(User $actor, array $assigneeIds): TaskSubmissionType
+    private function resolveSubmissionType(Task $task, User $actor, array $assigneeIds): TaskSubmissionType
     {
         if ($actor->isSuperAdmin()) {
-            return TaskSubmissionType::Assignment;
+            return $task->submission_type ?? TaskSubmissionType::Assignment;
         }
 
         $actorPositions = $actor->orgPositions()->get(['org_positions.id', 'parent_id', 'request_up_levels', 'assignment_down_levels']);
@@ -361,15 +396,70 @@ class TaskService
         $allBelow = $directions->every(fn (array $direction): bool => $direction['below']);
         $allAbove = $directions->every(fn (array $direction): bool => $direction['above']);
 
-        if ($allBelow) {
-            return TaskSubmissionType::Assignment;
+        $actual = match (true) {
+            $allBelow && ! $allAbove => TaskSubmissionType::Assignment,
+            $allAbove && ! $allBelow => TaskSubmissionType::Request,
+            $allBelow && $allAbove => $task->submission_type ?? TaskSubmissionType::Assignment,
+            default => null,
+        };
+
+        if ($actual === null) {
+            throw new HttpException(403, 'مسئولان باید همگی در محدوده مجازِ بالاتر یا همگی در محدوده مجازِ پایین‌تر یکی از جایگاه‌های شما باشند.');
         }
 
-        if ($allAbove) {
-            return TaskSubmissionType::Request;
+        if ($task->submission_type !== null && $task->submission_type !== $actual) {
+            throw ValidationException::withMessages([
+                'submission_type' => 'نوع انتخاب‌شده با جهت سازمانی مسئولان سازگار نیست.',
+            ]);
         }
 
-        throw new HttpException(403, 'مسئولان باید همگی در محدوده مجازِ بالاتر یا همگی در محدوده مجازِ پایین‌تر یکی از جایگاه‌های شما باشند.');
+        return $task->submission_type ?? $actual;
+    }
+
+    private function validateCompleteSubmission(Task $task, TaskSubmissionType $submissionType): void
+    {
+        $errors = [];
+        if (blank($task->title)) {
+            $errors['title'] = 'عنوان هنگام ارسال اجباری است.';
+        }
+        if (blank($task->short_description)) {
+            $errors['short_description'] = 'توضیحات مختصر هنگام ارسال اجباری است.';
+        }
+
+        if ($submissionType === TaskSubmissionType::Request) {
+            if (! $task->tags()->exists()) {
+                $errors['tags'] = 'برای ارسال درخواست حداقل یک تگ لازم است.';
+            }
+            foreach ([
+                'follower_ids' => TaskParticipantRole::Follower,
+                'supervisor_ids' => TaskParticipantRole::Supervisor,
+            ] as $field => $role) {
+                if (! $task->participantRecords()->where('role', $role->value)->exists()) {
+                    $errors[$field] = "برای ارسال درخواست حداقل یک {$role->value} لازم است.";
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    private function ensureSelectedUsersRemainValid(Task $task, User $actor, array $participantIds): void
+    {
+        $selectedIds = collect($participantIds)
+            ->push($task->requester_id, $task->financial_provider_user_id, $task->equipment_provider_user_id)
+            ->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $activeIds = User::query()->whereKey($selectedIds)->where('is_active', true)
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if (array_diff($selectedIds, $activeIds) !== []) {
+            throw ValidationException::withMessages(['users' => 'تمام کاربران انتخاب‌شده باید فعال باشند.']);
+        }
+
+        if (! $actor->isSuperAdmin() && array_diff($selectedIds, $this->allowedUserIds($actor)) !== []) {
+            throw new HttpException(403, 'یکی از کاربران انتخاب‌شده خارج از محدوده سازمانی مجاز است.');
+        }
     }
 
     private function isWithinLevelLimit(int $ancestorId, int $descendantId, array $parents, ?int $limit): bool
@@ -519,10 +609,54 @@ class TaskService
             ->map(fn (string $title): string => trim($title))
             ->filter()
             ->unique(fn (string $title): string => mb_strtolower($title))
-            ->map(fn (string $title): int => Tag::query()->firstOrCreate(['title' => $title])->id)
+            ->map(function (string $title): int {
+                $tag = Tag::query()->whereRaw('LOWER(title) = ?', [mb_strtolower($title)])->first();
+
+                return ($tag ?? Tag::query()->firstOrCreate(['title' => $title]))->id;
+            })
             ->all();
 
         $task->tags()->sync($tagIds);
+    }
+
+    private function syncAttachments(Task $task, array $data, User $actor, bool $creating = false): void
+    {
+        if (! $creating && ! array_key_exists('attachment_file_ids', $data)) {
+            return;
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $data['attachment_file_ids'] ?? [])));
+        $files = MediaFile::query()->whereKey($ids)->where('category', 'attachment')->get();
+        if ($files->count() !== count($ids)) {
+            throw ValidationException::withMessages(['attachment_file_ids' => 'یکی از فایل‌های پیوست معتبر نیست.']);
+        }
+
+        $existingIds = $task->attachments()->pluck('media_files.id')->map(fn ($id) => (int) $id)->all();
+        $unauthorized = $files->contains(fn (MediaFile $file): bool => ! $actor->isSuperAdmin()
+            && $file->uploaded_by !== $actor->id
+            && ! in_array($file->id, $existingIds, true));
+        if ($unauthorized) {
+            throw new HttpException(403, 'اتصال فایل متعلق به کاربر دیگر مجاز نیست.');
+        }
+
+        $task->attachments()->sync($ids);
+    }
+
+    private function syncPlanningItems(Task $task, array $data, bool $creating = false): void
+    {
+        if (! $creating && ! array_key_exists('planning_items', $data)) {
+            return;
+        }
+
+        $task->planningItems()->delete();
+        foreach (array_values($data['planning_items'] ?? []) as $index => $item) {
+            $task->planningItems()->create([
+                'title' => $item['title'],
+                'weight' => $item['weight'],
+                'progress_percentage' => $item['progress_percentage'] ?? 0,
+                'sort_order' => $item['sort_order'] ?? $index,
+            ]);
+        }
     }
 
     private function ensureMeetingAssignees(Task $task, array $data): void
@@ -547,7 +681,10 @@ class TaskService
 
     private function taskAttributes(array $data): array
     {
-        return Arr::except($data, ['assignee_ids', 'follower_ids', 'supervisor_ids', 'tags', 'submit']);
+        return Arr::except($data, [
+            'assignee_ids', 'follower_ids', 'supervisor_ids', 'tags',
+            'attachment_file_ids', 'planning_items', 'submit',
+        ]);
     }
 
     private function recordHistory(
@@ -586,7 +723,8 @@ class TaskService
     {
         return [
             'requester', 'creator', 'assignees', 'followers', 'supervisors',
-            'tags', 'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
+            'participantRecords', 'tags', 'attachments', 'planningItems',
+            'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
         ];
     }
 }

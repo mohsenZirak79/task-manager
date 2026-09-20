@@ -25,7 +25,16 @@ class IndexTaskRequest extends FormRequest
             'search' => ['sometimes', 'string', 'max:255'],
             'status' => ['sometimes', Rule::enum(TaskStatus::class)],
             'submission_type' => ['sometimes', Rule::enum(TaskSubmissionType::class)],
+            'scope' => ['sometimes', Rule::in([
+                'created_by_me', 'assigned_to_me', 'involved', 'action_required', 'all',
+            ])],
             'user_id' => ['sometimes', 'integer', 'exists:users,id'],
+            'assignee_id' => ['sometimes', 'integer', 'exists:users,id'],
+            'follower_id' => ['sometimes', 'integer', 'exists:users,id'],
+            'supervisor_id' => ['sometimes', 'integer', 'exists:users,id'],
+            'tag' => ['sometimes', 'string', 'max:100'],
+            'due_from' => ['sometimes', 'date'],
+            'due_to' => ['sometimes', 'date', 'after_or_equal:due_from'],
             'created_from' => ['sometimes', 'date'],
             'created_to' => $createdToRules,
             'sort' => ['sometimes', Rule::in([
