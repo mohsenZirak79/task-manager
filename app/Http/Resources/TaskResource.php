@@ -63,6 +63,10 @@ class TaskResource extends JsonResource
                 fn () => TaskWorkflowHistoryResource::collection($this->workflowHistory),
             ),
             'allowed_actions' => $this->allowedActions($request),
+            'registered_at' => $this->registered_at?->toISOString(),
+            'started_at' => $this->started_at?->toISOString(),
+            'completion_requested_at' => $this->completion_requested_at?->toISOString(),
+            'completed_at' => $this->completed_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
@@ -73,6 +77,11 @@ class TaskResource extends JsonResource
         $gate = Gate::forUser($request->user());
         $pendingRequest = $this->status === TaskStatus::PendingApproval
             && $this->submission_type === TaskSubmissionType::Request;
+        $assignment = $this->submission_type === TaskSubmissionType::Assignment;
+        $pendingAssignment = $assignment && $this->status === TaskStatus::PendingApproval;
+        $hasPlanningItems = $this->relationLoaded('planningItems')
+            ? $this->planningItems->isNotEmpty()
+            : $this->planningItems()->exists();
 
         return [
             'view' => $gate->allows('view', $this->resource),
@@ -82,11 +91,29 @@ class TaskResource extends JsonResource
             'approve' => $pendingRequest && $gate->allows('approve', $this->resource),
             'reject' => $pendingRequest && $gate->allows('reject', $this->resource),
             'request_revision' => $pendingRequest && $gate->allows('requestRevision', $this->resource),
-            'change_status' => in_array($this->status, [TaskStatus::InProgress, TaskStatus::NotCompleted], true)
+            'change_status' => ($assignment
+                ? $this->status === TaskStatus::Registered
+                : in_array($this->status, [TaskStatus::InProgress, TaskStatus::NotCompleted], true))
                 && $gate->allows('changeStatus', $this->resource),
             'update_progress' => $this->status === TaskStatus::InProgress
+                && (! $assignment || ! $hasPlanningItems)
                 && $gate->allows('updateProgress', $this->resource),
             'comment' => $gate->allows('comment', $this->resource),
+            'approve_assignment' => $pendingAssignment && $gate->allows('approve', $this->resource),
+            'request_assignment_revision' => $pendingAssignment
+                && $gate->allows('requestRevision', $this->resource),
+            'start' => $assignment && $this->status === TaskStatus::Registered
+                && $gate->allows('changeStatus', $this->resource),
+            'update_planning_progress' => $assignment
+                && $hasPlanningItems
+                && in_array($this->status, [TaskStatus::Registered, TaskStatus::InProgress], true)
+                && $gate->allows('updatePlanningProgress', $this->resource),
+            'request_completion' => $assignment && $this->status === TaskStatus::InProgress
+                && $gate->allows('requestCompletion', $this->resource),
+            'approve_completion' => $assignment && $this->status === TaskStatus::PendingCompletionApproval
+                && $gate->allows('approveCompletion', $this->resource),
+            'reject_completion' => $assignment && $this->status === TaskStatus::PendingCompletionApproval
+                && $gate->allows('rejectCompletion', $this->resource),
         ];
     }
 }

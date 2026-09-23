@@ -31,6 +31,10 @@ class Task extends Model
         'equipment_estimated_cost',
         'equipment_provider_user_id',
         'rejection_reason',
+        'registered_at',
+        'started_at',
+        'completion_requested_at',
+        'completed_at',
     ];
 
     public function requester(): BelongsTo
@@ -119,6 +123,10 @@ class Task extends Model
             'equipment_estimated_cost' => 'decimal:2',
             'status' => TaskStatus::class,
             'submission_type' => TaskSubmissionType::class,
+            'registered_at' => 'datetime',
+            'started_at' => 'datetime',
+            'completion_requested_at' => 'datetime',
+            'completed_at' => 'datetime',
         ];
     }
 }

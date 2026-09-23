@@ -24,6 +24,7 @@ class UpdateTaskRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                $this->addAssignmentValidationErrors($validator, $this->route('task'));
                 $this->addSubmitValidationErrors($validator, $this->route('task'));
             },
         ];

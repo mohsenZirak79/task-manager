@@ -18,41 +18,209 @@ class TaskManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_a_draft_can_be_created_and_edited_with_multiple_participants(): void
+    public function test_assignment_requires_one_distinct_eligible_assignee(): void
     {
-        [$manager, $worker, $secondWorker, $follower, $supervisor] = $this->organization();
-        Sanctum::actingAs($manager);
+        [$creator, $assignee] = $this->organization();
+        $unrelated = User::factory()->create();
+        $this->position('شاخه نامرتبط', $unrelated);
+        Sanctum::actingAs($creator);
 
-        $response = $this->postJson('/api/v1/tasks', [
+        $this->postJson('/api/v1/tasks', [
             ...$this->validPayload(),
-            'assignee_ids' => [$worker->id, $secondWorker->id],
-            'follower_ids' => [$follower->id],
-            'supervisor_ids' => [$supervisor->id],
-            'financial_resources' => 'بودجه جاری',
-            'financial_estimated_cost' => 125000,
-            'financial_provider_user_id' => $follower->id,
-            'equipment_resources' => 'دو لپ‌تاپ',
-            'equipment_estimated_cost' => 80000,
-            'equipment_provider_user_id' => $supervisor->id,
+            'assignee_ids' => [$assignee->id],
         ])->assertCreated()
             ->assertJsonPath('data.task.status', TaskStatus::Draft->value)
-            ->assertJsonCount(2, 'data.task.assignees')
-            ->assertJsonCount(1, 'data.task.followers')
-            ->assertJsonCount(1, 'data.task.supervisors');
+            ->assertJsonPath('data.task.creator.id', $creator->id)
+            ->assertJsonPath('data.task.requester.id', $creator->id)
+            ->assertJsonPath('data.task.assignees.0.id', $assignee->id);
 
-        $taskId = $response->json('data.task.id');
+        foreach ([[], [$creator->id], [$assignee->id, $unrelated->id]] as $ids) {
+            $this->postJson('/api/v1/tasks', [
+                ...$this->validPayload(),
+                'assignee_ids' => $ids,
+            ])->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+        }
 
-        $this->patchJson("/api/v1/tasks/{$taskId}", [
-            'title' => 'عنوان ویرایش‌شده',
-            'duration_minutes' => 180,
-            'assignee_ids' => [$worker->id],
+        $this->postJson('/api/v1/tasks', [
+            ...$this->validPayload(),
+            'assignee_ids' => [$unrelated->id],
+        ])->assertForbidden();
+
+        $targets = $this->getJson('/api/v1/tasks/eligible-users?submission_type=assignment')
+            ->assertOk()->json('data.assignment_targets');
+        $targetIds = collect($targets)->pluck('id');
+        $this->assertTrue($targetIds->contains($assignee->id));
+        $this->assertFalse($targetIds->contains($creator->id));
+        $this->assertFalse($targetIds->contains($unrelated->id));
+    }
+
+    public function test_assignment_review_revision_resubmit_and_registration_are_actor_bound(): void
+    {
+        [$creator, $assignee, $other] = $this->organization();
+        $task = $this->submitAssignment($creator, $assignee);
+        $this->assertSame(TaskStatus::PendingApproval, $task->status);
+
+        Sanctum::actingAs($creator);
+        $this->postJson("/api/v1/tasks/{$task->id}/approve")->assertForbidden();
+        Sanctum::actingAs($other);
+        $this->postJson("/api/v1/tasks/{$task->id}/approve")->assertForbidden();
+
+        Sanctum::actingAs($assignee);
+        $this->getJson('/api/v1/tasks?submission_type=assignment&scope=action_required')
+            ->assertOk()->assertJsonPath('data.items.0.id', $task->id)
+            ->assertJsonPath('data.items.0.allowed_actions.approve_assignment', true)
+            ->assertJsonPath('data.items.0.allowed_actions.request_assignment_revision', true);
+        $this->postJson("/api/v1/tasks/{$task->id}/request-revision", ['reason' => 'شرح نیاز به اصلاح دارد.'])
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::RevisionRequested->value);
+
+        Sanctum::actingAs($creator);
+        $this->patchJson("/api/v1/tasks/{$task->id}", ['title' => 'عنوان اصلاح‌شده'])
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::RevisionRequested->value);
+        $this->patchJson("/api/v1/tasks/{$task->id}", ['submit' => true])
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::PendingApproval->value);
+
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::Registered->value)
+            ->assertJsonPath('data.task.allowed_actions.start', true)
+            ->assertJsonPath('data.task.started_at', null);
+        $this->postJson("/api/v1/tasks/{$task->id}/approve")->assertStatus(409);
+
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $assignee->id,
+            'action' => 'assignee_revision', 'reason' => 'شرح نیاز به اصلاح دارد.',
+        ]);
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $assignee->id, 'action' => 'assignee_approved',
+        ]);
+    }
+
+    public function test_only_assignee_can_start_registered_assignment(): void
+    {
+        [$creator, $assignee] = $this->organization();
+        $task = $this->registerAssignment($creator, $assignee);
+
+        Sanctum::actingAs($creator);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'in_progress'])->assertForbidden();
+
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'in_progress'])
+            ->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+        Sanctum::actingAs($creator);
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 10])
+            ->assertForbidden();
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'in_progress'])->assertStatus(409);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'completed'])->assertStatus(409);
+        $this->assertNotNull(Task::query()->findOrFail($task->id)->started_at);
+    }
+
+    public function test_planning_progress_auto_starts_and_recalculates_weighted_progress(): void
+    {
+        [$creator, $assignee] = $this->organization();
+        $task = $this->registerAssignment($creator, $assignee, [
+            ['title' => 'مرحله اول', 'weight' => 30, 'sort_order' => 1],
+            ['title' => 'مرحله دوم', 'weight' => 70, 'sort_order' => 2],
+        ])->fresh('planningItems');
+        [$first, $second] = $task->planningItems;
+
+        Sanctum::actingAs($creator);
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning-items/{$first->id}", [
+            'progress_percentage' => 10,
+        ])->assertForbidden();
+
+        Sanctum::actingAs($assignee);
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning-items/{$first->id}", [
+            'progress_percentage' => 50,
         ])->assertOk()
-            ->assertJsonPath('data.task.title', 'عنوان ویرایش‌شده')
-            ->assertJsonPath('data.task.duration_minutes', 180)
-            ->assertJsonCount(1, 'data.task.assignees');
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value)
+            ->assertJsonPath('data.task.progress_percentage', 15);
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning-items/{$second->id}", [
+            'progress_percentage' => 100,
+        ])->assertOk()->assertJsonPath('data.task.progress_percentage', 85)
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning-items/{$first->id}", [
+            'progress_percentage' => 100,
+        ])->assertOk()->assertJsonPath('data.task.progress_percentage', 100)
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 20])
+            ->assertStatus(409);
 
-        $this->assertDatabaseHas('tasks', ['id' => $taskId, 'created_by' => $manager->id]);
-        $this->assertDatabaseCount('task_participants', 3);
+        $other = $this->registerAssignment($creator, $assignee, [
+            ['title' => 'آیتم دیگر', 'weight' => 0],
+        ])->fresh('planningItems');
+        Sanctum::actingAs($assignee);
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning-items/{$other->planningItems->first()->id}", [
+            'progress_percentage' => 20,
+        ])->assertNotFound();
+        $otherItem = $other->planningItems->first();
+        $this->patchJson("/api/v1/tasks/{$other->id}/planning-items/{$otherItem->id}", [
+            'progress_percentage' => 40,
+        ])->assertOk()->assertJsonPath('data.task.progress_percentage', 40);
+
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $assignee->id, 'action' => 'task_started',
+        ]);
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $assignee->id, 'action' => 'planning_progress',
+        ]);
+    }
+
+    public function test_assignment_completion_requires_assignee_request_and_creator_review(): void
+    {
+        [$creator, $assignee, $other] = $this->organization();
+        $task = $this->registerAssignment($creator, $assignee);
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'in_progress'])->assertOk();
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/request")
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::PendingCompletionApproval->value);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/request")->assertStatus(409);
+
+        Sanctum::actingAs($other);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/approve")->assertForbidden();
+        Sanctum::actingAs($creator);
+        $this->getJson('/api/v1/tasks?submission_type=assignment&scope=action_required')
+            ->assertOk()->assertJsonPath('data.items.0.id', $task->id)
+            ->assertJsonPath('data.items.0.allowed_actions.approve_completion', true)
+            ->assertJsonPath('data.items.0.allowed_actions.reject_completion', true);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/reject", ['reason' => 'نیاز به تکمیل دارد.'])
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 100])->assertOk();
+        $this->assertDatabaseHas('tasks', ['id' => $task->id, 'status' => TaskStatus::InProgress->value]);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/request")->assertOk();
+
+        Sanctum::actingAs($creator);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/approve")
+            ->assertOk()->assertJsonPath('data.task.status', TaskStatus::Completed->value);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/approve")->assertStatus(409);
+        $this->assertNotNull(Task::query()->findOrFail($task->id)->completed_at);
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $creator->id,
+            'action' => 'completion_rejected', 'reason' => 'نیاز به تکمیل دارد.',
+        ]);
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id, 'actor_id' => $creator->id, 'action' => 'completion_approved',
+        ]);
+    }
+
+    public function test_super_admin_can_choose_any_active_assignee_but_cannot_bypass_actor_roles(): void
+    {
+        $creator = User::factory()->admin()->create();
+        $assignee = User::factory()->create();
+        $otherAdmin = User::factory()->admin()->create();
+        Sanctum::actingAs($creator);
+        $taskId = $this->postJson('/api/v1/tasks', [
+            ...$this->validPayload(), 'assignee_ids' => [$assignee->id], 'submit' => true,
+        ])->assertCreated()->json('data.task.id');
+
+        Sanctum::actingAs($otherAdmin);
+        $this->postJson("/api/v1/tasks/{$taskId}/approve")->assertForbidden();
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$taskId}/approve")->assertOk();
     }
 
     public function test_submission_obeys_the_organizational_direction(): void
@@ -66,7 +234,7 @@ class TaskManagementTest extends TestCase
             'submit' => true,
         ])->assertCreated()
             ->assertJsonPath('data.task.submission_type', 'assignment')
-            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+            ->assertJsonPath('data.task.status', TaskStatus::PendingApproval->value);
 
         Sanctum::actingAs($worker);
         $this->postJson('/api/v1/tasks', [
@@ -127,37 +295,31 @@ class TaskManagementTest extends TestCase
     public function test_assignee_can_record_progress_and_status_changes_are_logged(): void
     {
         [$manager, $worker] = $this->organization();
-        Sanctum::actingAs($manager);
-        $taskId = $this->postJson('/api/v1/tasks', [
-            ...$this->validPayload(),
-            'assignee_ids' => [$worker->id],
-            'submit' => true,
-        ])->assertCreated()->json('data.task.id');
-
+        $task = $this->registerAssignment($manager, $worker);
         Sanctum::actingAs($worker);
-        $this->postJson("/api/v1/tasks/{$taskId}/progress", ['progress_percentage' => 65])
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => TaskStatus::InProgress->value])
+            ->assertOk();
+
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 65])
             ->assertOk()
             ->assertJsonPath('data.task.progress_percentage', 65);
-        $this->postJson("/api/v1/tasks/{$taskId}/status", ['status' => TaskStatus::Completed->value])
-            ->assertOk()
-            ->assertJsonPath('data.task.status', TaskStatus::Completed->value);
 
         $this->assertDatabaseHas('task_workflow_histories', [
-            'task_id' => $taskId,
+            'task_id' => $task->id,
             'action' => 'progress_updated',
             'old_progress' => 0,
             'new_progress' => 65,
         ]);
         $this->assertDatabaseHas('task_workflow_histories', [
-            'task_id' => $taskId,
-            'action' => 'status_changed',
-            'from_status' => TaskStatus::InProgress->value,
-            'to_status' => TaskStatus::Completed->value,
+            'task_id' => $task->id,
+            'action' => 'task_started',
+            'from_status' => TaskStatus::Registered->value,
+            'to_status' => TaskStatus::InProgress->value,
         ]);
 
-        $this->getJson("/api/v1/tasks/{$taskId}")
+        $this->getJson("/api/v1/tasks/{$task->id}")
             ->assertOk()
-            ->assertJsonPath('data.task.workflow_history.0.action', 'status_changed');
+            ->assertJsonPath('data.task.workflow_history.0.action', 'progress_updated');
     }
 
     public function test_list_supports_search_filters_sorting_and_pagination(): void
@@ -237,7 +399,7 @@ class TaskManagementTest extends TestCase
 
     public function test_task_dates_duration_descriptions_and_progress_are_validated_on_create_and_update(): void
     {
-        [$manager] = $this->organization();
+        [$manager, $worker] = $this->organization();
         Sanctum::actingAs($manager);
 
         $this->postJson('/api/v1/tasks', [
@@ -252,7 +414,10 @@ class TaskManagementTest extends TestCase
                 'title', 'short_description', 'duration_minutes', 'due_date', 'progress_percentage',
             ]);
 
-        $taskId = $this->postJson('/api/v1/tasks', $this->validPayload())
+        $taskId = $this->postJson('/api/v1/tasks', [
+            ...$this->validPayload(),
+            'assignee_ids' => [$worker->id],
+        ])
             ->assertCreated()->json('data.task.id');
         $this->patchJson("/api/v1/tasks/{$taskId}", [
             'duration_minutes' => -5,
@@ -384,20 +549,14 @@ class TaskManagementTest extends TestCase
     public function test_invalid_status_transitions_are_rejected(): void
     {
         [$manager, $worker] = $this->organization();
-        Sanctum::actingAs($manager);
-        $taskId = $this->postJson('/api/v1/tasks', [
-            ...$this->validPayload(),
-            'assignee_ids' => [$worker->id],
-            'submit' => true,
-        ])
-            ->assertCreated()->json('data.task.id');
-
+        $task = $this->registerAssignment($manager, $worker);
         Sanctum::actingAs($worker);
-        $this->postJson("/api/v1/tasks/{$taskId}/status", ['status' => TaskStatus::Completed->value])
-            ->assertOk();
-        $this->postJson("/api/v1/tasks/{$taskId}/status", ['status' => TaskStatus::InProgress->value])
+
+        $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => TaskStatus::Completed->value])
             ->assertStatus(409);
-        $this->postJson("/api/v1/tasks/{$taskId}/progress", ['progress_percentage' => 50])
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 50])
+            ->assertStatus(409);
+        $this->postJson("/api/v1/tasks/{$task->id}/completion/request")
             ->assertStatus(409);
     }
 
@@ -622,13 +781,14 @@ class TaskManagementTest extends TestCase
             'follower_ids' => [$peer->id],
             'submit' => true,
         ])->assertCreated()->json('data.task.id');
-        $this->getJson('/api/v1/tasks?submission_type=assignment')
-            ->assertOk()->assertJsonPath('data.meta.total', 0);
-
         Sanctum::actingAs($worker);
         $this->getJson('/api/v1/tasks?submission_type=assignment')
             ->assertOk()->assertJsonPath('data.meta.total', 1)
             ->assertJsonPath('data.items.0.id', $assignmentId);
+
+        Sanctum::actingAs($manager);
+        $this->getJson('/api/v1/tasks?submission_type=assignment')
+            ->assertOk()->assertJsonPath('data.meta.total', 0);
 
         Sanctum::actingAs($peer);
         $this->getJson('/api/v1/tasks?submission_type=assignment&scope=assigned_to_me')
@@ -692,6 +852,32 @@ class TaskManagementTest extends TestCase
         ])->assertCreated()->json('data.task.id');
 
         return Task::query()->findOrFail($taskId);
+    }
+
+    private function submitAssignment(User $creator, User $assignee, array $planningItems = []): Task
+    {
+        Sanctum::actingAs($creator);
+        $taskId = $this->postJson('/api/v1/tasks', [
+            ...$this->validPayload(),
+            'assignee_ids' => [$assignee->id],
+            'planning_items' => $planningItems,
+            'submit' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.task.status', TaskStatus::PendingApproval->value)
+            ->json('data.task.id');
+
+        return Task::query()->findOrFail($taskId);
+    }
+
+    private function registerAssignment(User $creator, User $assignee, array $planningItems = []): Task
+    {
+        $task = $this->submitAssignment($creator, $assignee, $planningItems);
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$task->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::Registered->value);
+
+        return Task::query()->findOrFail($task->id);
     }
 
     private function deepOrganization(): array

@@ -9,6 +9,7 @@ use App\Models\MediaFile;
 use App\Models\OrgPosition;
 use App\Models\Tag;
 use App\Models\Task;
+use App\Models\TaskPlanningItem;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -85,6 +86,7 @@ class TaskService
     public function create(array $data, User $actor): Task
     {
         return DB::transaction(function () use ($data, $actor): Task {
+            $data = $this->prepareAssignmentData($data, $actor);
             $submit = (bool) ($data['submit'] ?? false);
             $requesterId = (int) ($data['requester_id'] ?? $actor->id);
             $this->ensureRequesterCanBeSelected($actor, $requesterId);
@@ -120,6 +122,8 @@ class TaskService
                 throw new HttpException(409, 'نوع تسک فقط در وضعیت پیش‌نویس قابل تغییر است.');
             }
 
+            $data = $this->prepareAssignmentData($data, $actor, $task);
+
             if (array_key_exists('requester_id', $data)) {
                 $requesterId = (int) ($data['requester_id'] ?? $actor->id);
                 $this->ensureRequesterCanBeSelected($actor, $requesterId);
@@ -129,7 +133,8 @@ class TaskService
             $this->ensureOrganizationParticipants($actor, $data);
             $this->ensureMeetingAssignees($task, $data);
 
-            if (in_array($task->status, [TaskStatus::RevisionRequested, TaskStatus::Rejected], true)) {
+            if ($task->submission_type !== TaskSubmissionType::Assignment
+                && in_array($task->status, [TaskStatus::RevisionRequested, TaskStatus::Rejected], true)) {
                 $from = $task->status;
                 $task->update([
                     'status' => TaskStatus::Draft,
@@ -173,13 +178,24 @@ class TaskService
         return DB::transaction(function () use ($task, $actor): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
-            if ($task->submission_type !== TaskSubmissionType::Request || $task->status !== TaskStatus::PendingApproval) {
+            if ($task->status !== TaskStatus::PendingApproval) {
                 throw new HttpException(409, 'این درخواست دیگر در انتظار تأیید نیست.');
             }
 
             $from = $task->status;
-            $task->update(['status' => TaskStatus::InProgress, 'rejection_reason' => null]);
-            $this->recordHistory($task, $actor, 'approved', $from, TaskStatus::InProgress);
+            if ($task->submission_type === TaskSubmissionType::Assignment) {
+                $task->update([
+                    'status' => TaskStatus::Registered,
+                    'registered_at' => now(),
+                    'rejection_reason' => null,
+                ]);
+                $this->recordHistory($task, $actor, 'assignee_approved', $from, TaskStatus::Registered);
+            } elseif ($task->submission_type === TaskSubmissionType::Request) {
+                $task->update(['status' => TaskStatus::InProgress, 'rejection_reason' => null]);
+                $this->recordHistory($task, $actor, 'approved', $from, TaskStatus::InProgress);
+            } else {
+                throw new HttpException(409, 'نوع گردش کار تسک معتبر نیست.');
+            }
 
             return $this->loadTask($task);
         });
@@ -207,7 +223,7 @@ class TaskService
         return DB::transaction(function () use ($task, $actor, $reason): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
 
-            if ($task->submission_type !== TaskSubmissionType::Request || $task->status !== TaskStatus::PendingApproval) {
+            if ($task->status !== TaskStatus::PendingApproval) {
                 throw new HttpException(409, 'فقط درخواست در انتظار تأیید قابل اصلاح است.');
             }
 
@@ -216,7 +232,10 @@ class TaskService
                 'status' => TaskStatus::RevisionRequested,
                 'rejection_reason' => $reason,
             ]);
-            $this->recordHistory($task, $actor, 'revision_requested', $from, TaskStatus::RevisionRequested, reason: $reason);
+            $action = $task->submission_type === TaskSubmissionType::Assignment
+                ? 'assignee_revision'
+                : 'revision_requested';
+            $this->recordHistory($task, $actor, $action, $from, TaskStatus::RevisionRequested, reason: $reason);
 
             return $this->loadTask($task);
         });
@@ -241,7 +260,7 @@ class TaskService
                 'assignment_targets' => $all,
                 'request_targets' => $all,
                 'participants' => $all,
-            ], $submissionType);
+            ], $submissionType, $actor);
         }
 
         $ancestorIds = $this->ancestorPositionIds($actor);
@@ -257,12 +276,14 @@ class TaskService
             'assignment_targets' => $load($descendantIds),
             'request_targets' => $load($ancestorIds),
             'participants' => $load($positionIds),
-        ], $submissionType);
+        ], $submissionType, $actor);
     }
 
-    private function filterEligibleGroups(array $groups, ?TaskSubmissionType $submissionType): array
+    private function filterEligibleGroups(array $groups, ?TaskSubmissionType $submissionType, User $actor): array
     {
         if ($submissionType === TaskSubmissionType::Assignment) {
+            $groups['assignment_targets'] = $groups['assignment_targets']
+                ->reject(fn (User $user): bool => $user->id === $actor->id)->values();
             $groups['request_targets'] = new Collection;
         } elseif ($submissionType === TaskSubmissionType::Request) {
             $groups['assignment_targets'] = new Collection;
@@ -275,6 +296,21 @@ class TaskService
     {
         return DB::transaction(function () use ($task, $actor, $status): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            if ($task->submission_type === TaskSubmissionType::Assignment) {
+                if ($task->status !== TaskStatus::Registered || $status !== TaskStatus::InProgress) {
+                    throw new HttpException(409, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');
+                }
+
+                $from = $task->status;
+                $task->update([
+                    'status' => TaskStatus::InProgress,
+                    'started_at' => $task->started_at ?? now(),
+                ]);
+                $this->recordHistory($task, $actor, 'task_started', $from, TaskStatus::InProgress);
+
+                return $this->loadTask($task);
+            }
+
             $allowed = match ($task->status) {
                 TaskStatus::InProgress => [TaskStatus::Completed, TaskStatus::NotCompleted],
                 TaskStatus::NotCompleted => [TaskStatus::InProgress],
@@ -302,6 +338,10 @@ class TaskService
                 throw new HttpException(409, 'درصد پیشرفت فقط برای تسک در حال انجام قابل ثبت است.');
             }
 
+            if ($task->planningItems()->exists()) {
+                throw new HttpException(409, 'برای این تسک، پیشرفت باید از طریق آیتم‌های برنامه‌ریزی ثبت شود.');
+            }
+
             $oldProgress = $task->progress_percentage;
             $task->update(['progress_percentage' => $progress]);
             $this->recordHistory(
@@ -316,10 +356,127 @@ class TaskService
         });
     }
 
+    public function updatePlanningProgress(
+        Task $task,
+        TaskPlanningItem $planningItem,
+        User $actor,
+        int $progress,
+    ): Task {
+        return DB::transaction(function () use ($task, $planningItem, $actor, $progress): Task {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            $planningItem = TaskPlanningItem::query()
+                ->where('task_id', $task->id)
+                ->lockForUpdate()
+                ->findOrFail($planningItem->id);
+
+            if ($task->submission_type !== TaskSubmissionType::Assignment
+                || ! in_array($task->status, [TaskStatus::Registered, TaskStatus::InProgress], true)) {
+                throw new HttpException(409, 'در این مرحله امکان ثبت پیشرفت آیتم برنامه‌ریزی وجود ندارد.');
+            }
+
+            $fromStatus = $task->status;
+            if ($task->status === TaskStatus::Registered && $progress > 0) {
+                $task->update([
+                    'status' => TaskStatus::InProgress,
+                    'started_at' => $task->started_at ?? now(),
+                ]);
+                $this->recordHistory($task, $actor, 'task_started', $fromStatus, TaskStatus::InProgress);
+            }
+
+            $oldTaskProgress = $task->progress_percentage;
+            $planningItem->update(['progress_percentage' => $progress]);
+            $newTaskProgress = $this->calculatePlanningProgress($task);
+            $task->update(['progress_percentage' => $newTaskProgress]);
+            $this->recordHistory(
+                $task,
+                $actor,
+                'planning_progress',
+                oldProgress: $oldTaskProgress,
+                newProgress: $newTaskProgress,
+            );
+
+            return $this->loadTask($task);
+        });
+    }
+
+    public function requestCompletion(Task $task, User $actor): Task
+    {
+        return DB::transaction(function () use ($task, $actor): Task {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            if ($task->submission_type !== TaskSubmissionType::Assignment || $task->status !== TaskStatus::InProgress) {
+                throw new HttpException(409, 'فقط تسک در حال انجام قابل ارسال برای تأیید پایان است.');
+            }
+
+            $from = $task->status;
+            $task->update([
+                'status' => TaskStatus::PendingCompletionApproval,
+                'completion_requested_at' => now(),
+                'rejection_reason' => null,
+            ]);
+            $this->recordHistory($task, $actor, 'completion_requested', $from, TaskStatus::PendingCompletionApproval);
+
+            return $this->loadTask($task);
+        });
+    }
+
+    public function approveCompletion(Task $task, User $actor): Task
+    {
+        return DB::transaction(function () use ($task, $actor): Task {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            if ($task->submission_type !== TaskSubmissionType::Assignment
+                || $task->status !== TaskStatus::PendingCompletionApproval) {
+                throw new HttpException(409, 'این تسک در انتظار تأیید پایان نیست.');
+            }
+
+            $from = $task->status;
+            $task->update([
+                'status' => TaskStatus::Completed,
+                'completed_at' => now(),
+                'rejection_reason' => null,
+            ]);
+            $this->recordHistory($task, $actor, 'completion_approved', $from, TaskStatus::Completed);
+
+            return $this->loadTask($task);
+        });
+    }
+
+    public function rejectCompletion(Task $task, User $actor, string $reason): Task
+    {
+        return DB::transaction(function () use ($task, $actor, $reason): Task {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            if ($task->submission_type !== TaskSubmissionType::Assignment
+                || $task->status !== TaskStatus::PendingCompletionApproval) {
+                throw new HttpException(409, 'این تسک در انتظار تأیید پایان نیست.');
+            }
+
+            $from = $task->status;
+            $task->update([
+                'status' => TaskStatus::InProgress,
+                'completion_requested_at' => null,
+                'rejection_reason' => $reason,
+            ]);
+            $this->recordHistory($task, $actor, 'completion_rejected', $from, TaskStatus::InProgress, reason: $reason);
+
+            return $this->loadTask($task);
+        });
+    }
+
     private function submit(Task $task, User $actor): void
     {
-        if ($task->status !== TaskStatus::Draft) {
+        $fromStatus = $task->status;
+        $allowedStatuses = $task->submission_type === TaskSubmissionType::Assignment
+            ? [TaskStatus::Draft, TaskStatus::RevisionRequested]
+            : [TaskStatus::Draft];
+        if (! in_array($task->status, $allowedStatuses, true)) {
             throw new HttpException(409, 'فقط پیش‌نویس قابل ارسال است.');
+        }
+
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            $this->ensureAssignmentOwner($task, $actor);
+            $this->ensureAssignmentAssignee(
+                $task->participantRecords()->where('role', TaskParticipantRole::Assignee->value)->pluck('user_id')->all(),
+                $actor,
+            );
         }
 
         $participantIds = $task->participantRecords()->pluck('user_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
@@ -348,15 +505,13 @@ class TaskService
 
         $submissionType = $this->resolveSubmissionType($task, $actor, $assigneeIds);
         $this->validateCompleteSubmission($task, $submissionType);
-        $newStatus = $submissionType === TaskSubmissionType::Request
-            ? TaskStatus::PendingApproval
-            : TaskStatus::InProgress;
+        $newStatus = TaskStatus::PendingApproval;
 
         $task->update([
             'submission_type' => $submissionType,
             'status' => $newStatus,
         ]);
-        $this->recordHistory($task, $actor, 'submitted', TaskStatus::Draft, $newStatus);
+        $this->recordHistory($task, $actor, 'submitted', $fromStatus, $newStatus);
     }
 
     private function resolveSubmissionType(Task $task, User $actor, array $assigneeIds): TaskSubmissionType
@@ -496,6 +651,81 @@ class TaskService
     {
         if (! $actor->isSuperAdmin() && $requesterId !== $actor->id) {
             throw new HttpException(403, 'ثبت تسک به درخواست کاربر دیگر مجاز نیست.');
+        }
+    }
+
+    private function prepareAssignmentData(array $data, User $actor, ?Task $task = null): array
+    {
+        if (($data['submission_type'] ?? $task?->submission_type?->value) !== TaskSubmissionType::Assignment->value) {
+            return $data;
+        }
+
+        if ($task !== null) {
+            $this->ensureAssignmentOwner($task, $actor);
+        }
+
+        if ((int) ($data['requester_id'] ?? $task?->requester_id ?? $actor->id) !== $actor->id) {
+            throw ValidationException::withMessages([
+                'requester_id' => 'درخواست‌کننده تسک عادی باید خود شما باشید.',
+            ]);
+        }
+
+        $assigneeIds = array_key_exists('assignee_ids', $data)
+            ? $data['assignee_ids']
+            : ($task?->participantRecords()
+                ->where('role', TaskParticipantRole::Assignee->value)
+                ->pluck('user_id')->all() ?? []);
+        $this->ensureAssignmentAssignee($assigneeIds, $actor);
+        $data['requester_id'] = $actor->id;
+        $data['progress_percentage'] = 0;
+
+        return $data;
+    }
+
+    private function ensureAssignmentOwner(Task $task, User $actor): void
+    {
+        if ($task->created_by !== $actor->id) {
+            throw new HttpException(403, 'تسک عادی فقط توسط ایجادکننده آن قابل ویرایش و ارسال است.');
+        }
+
+        if ($task->requester_id !== $actor->id) {
+            throw ValidationException::withMessages([
+                'requester_id' => 'درخواست‌کننده تسک عادی باید خود شما باشید.',
+            ]);
+        }
+    }
+
+    private function ensureAssignmentAssignee(mixed $assigneeIds, User $actor): void
+    {
+        if (! is_array($assigneeIds) || count($assigneeIds) !== 1) {
+            throw ValidationException::withMessages([
+                'assignee_ids' => 'برای تسک عادی دقیقاً یک مسئول انجام انتخاب کنید.',
+            ]);
+        }
+
+        $assigneeId = (int) reset($assigneeIds);
+        if ($assigneeId === $actor->id) {
+            throw ValidationException::withMessages([
+                'assignee_ids' => 'ایجادکننده و مسئول انجام تسک عادی باید دو کاربر متفاوت باشند.',
+            ]);
+        }
+
+        $assignee = User::query()->whereKey($assigneeId)->where('is_active', true)->first();
+        if (! $assignee) {
+            throw ValidationException::withMessages(['assignee_ids' => 'مسئول انجام انتخاب‌شده معتبر و فعال نیست.']);
+        }
+
+        if ($actor->isSuperAdmin()) {
+            return;
+        }
+
+        $eligible = User::query()->whereKey($assigneeId)
+            ->whereHas('orgPositions', fn ($query) => $query->whereIn(
+                'org_positions.id',
+                $this->descendantPositionIds($actor),
+            ))->exists();
+        if (! $eligible) {
+            throw new HttpException(403, 'مسئول انجام باید در محدوده سازمانی مجازِ زیرمجموعه شما باشد.');
         }
     }
 
@@ -653,7 +883,9 @@ class TaskService
             $task->planningItems()->create([
                 'title' => $item['title'],
                 'weight' => $item['weight'],
-                'progress_percentage' => $item['progress_percentage'] ?? 0,
+                'progress_percentage' => $task->submission_type === TaskSubmissionType::Assignment
+                    ? 0
+                    : ($item['progress_percentage'] ?? 0),
                 'sort_order' => $item['sort_order'] ?? $index,
             ]);
         }
@@ -677,6 +909,25 @@ class TaskService
                 'assignee_ids' => 'همه مسئولان تسک مصوبه باید از اعضای همان جلسه باشند.',
             ]);
         }
+    }
+
+    private function calculatePlanningProgress(Task $task): int
+    {
+        $items = $task->planningItems()->get(['weight', 'progress_percentage']);
+        if ($items->isEmpty()) {
+            return $task->progress_percentage;
+        }
+
+        $totalWeight = (float) $items->sum(fn (TaskPlanningItem $item): float => (float) $item->weight);
+        if ($totalWeight <= 0) {
+            return (int) round((float) $items->avg('progress_percentage'));
+        }
+
+        $weighted = $items->sum(
+            fn (TaskPlanningItem $item): float => (float) $item->weight * $item->progress_percentage,
+        );
+
+        return max(0, min(100, (int) round($weighted / $totalWeight)));
     }
 
     private function taskAttributes(array $data): array

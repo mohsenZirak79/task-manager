@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Enums\TaskStatus;
+use App\Enums\TaskSubmissionType;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskVisibilityService;
@@ -31,12 +32,21 @@ class TaskPolicy
 
     public function update(User $user, Task $task): bool
     {
-        return $user->hasPermission(Permissions::TASKS_UPDATE)
-            && in_array($task->status, [
-                TaskStatus::Draft,
-                TaskStatus::RevisionRequested,
-                TaskStatus::Rejected,
-            ], true)
+        if (! $user->hasPermission(Permissions::TASKS_UPDATE)) {
+            return false;
+        }
+
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            return in_array($task->status, [TaskStatus::Draft, TaskStatus::RevisionRequested], true)
+                && $task->created_by === $user->id
+                && $task->requester_id === $user->id;
+        }
+
+        return in_array($task->status, [
+            TaskStatus::Draft,
+            TaskStatus::RevisionRequested,
+            TaskStatus::Rejected,
+        ], true)
             && ($this->visibility->canManageAll($user) || $this->isOwner($task, $user));
     }
 
@@ -49,11 +59,20 @@ class TaskPolicy
 
     public function submit(User $user, Task $task): bool
     {
-        return $task->status === TaskStatus::Draft && $this->update($user, $task);
+        $allowedStatuses = $task->submission_type === TaskSubmissionType::Assignment
+            ? [TaskStatus::Draft, TaskStatus::RevisionRequested]
+            : [TaskStatus::Draft];
+
+        return in_array($task->status, $allowedStatuses, true) && $this->update($user, $task);
     }
 
     public function approve(User $user, Task $task): bool
     {
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            return $user->hasPermission(Permissions::TASKS_APPROVE)
+                && $this->visibility->isAssignmentAssignee($user, $task);
+        }
+
         return $this->visibility->canReviewRequest($user, $task, Permissions::TASKS_APPROVE);
     }
 
@@ -64,17 +83,60 @@ class TaskPolicy
 
     public function requestRevision(User $user, Task $task): bool
     {
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            return $user->hasPermission(Permissions::TASKS_REJECT)
+                && $this->visibility->isAssignmentAssignee($user, $task);
+        }
+
         return $this->visibility->canReviewRequest($user, $task, Permissions::TASKS_REJECT);
     }
 
     public function changeStatus(User $user, Task $task): bool
     {
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            return $user->hasPermission(Permissions::TASKS_UPDATE_STATUS)
+                && $this->visibility->isAssignmentAssignee($user, $task);
+        }
+
         return $this->visibility->canChangeStatus($user, $task);
     }
 
     public function updateProgress(User $user, Task $task): bool
     {
+        if ($task->submission_type === TaskSubmissionType::Assignment) {
+            return $user->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)
+                && $this->visibility->isAssignmentAssignee($user, $task);
+        }
+
         return $this->visibility->canUpdateProgress($user, $task);
+    }
+
+    public function updatePlanningProgress(User $user, Task $task): bool
+    {
+        return $task->submission_type === TaskSubmissionType::Assignment
+            && $user->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)
+            && $this->visibility->isAssignmentAssignee($user, $task);
+    }
+
+    public function requestCompletion(User $user, Task $task): bool
+    {
+        return $task->submission_type === TaskSubmissionType::Assignment
+            && $user->hasPermission(Permissions::TASKS_UPDATE_STATUS)
+            && $this->visibility->isAssignmentAssignee($user, $task);
+    }
+
+    public function approveCompletion(User $user, Task $task): bool
+    {
+        return $task->submission_type === TaskSubmissionType::Assignment
+            && $user->hasPermission(Permissions::TASKS_APPROVE)
+            && $task->created_by === $user->id;
+    }
+
+    public function rejectCompletion(User $user, Task $task): bool
+    {
+        return $task->submission_type === TaskSubmissionType::Assignment
+            && $user->hasPermission(Permissions::TASKS_REJECT)
+            && $task->created_by === $user->id;
     }
 
     public function comment(User $user, Task $task): bool

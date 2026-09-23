@@ -1,10 +1,10 @@
 {
   "document": {
     "title": "قرارداد API فرانت‌اند Task Manager",
-    "version": "1.4.2",
+    "version": "1.4.1",
     "generated_from": "Laravel routes, FormRequests, Resources, Policies and Enums",
     "base_path": "/api/v1",
-    "generated_at": "2026-09-24",
+    "generated_at": "2026-09-22",
     "response_envelope": {
       "success": {
         "success": true,
@@ -32,7 +32,7 @@
         "created_by_me": "created_by=current user OR requester_id=current user",
         "assigned_to_me": "current user is an assignee participant only",
         "involved": "creator, requester, any participant, financial provider or equipment provider",
-        "action_required": "Request behavior is unchanged. For Assignment: B sees pending_approval, registered and in_progress tasks; A sees pending_completion_approval tasks.",
+        "action_required": "at least one current Policy action: approve, reject, request_revision, change_status or update_progress",
         "all": "SuperAdmin or tasks:view_all only"
       },
       "defaults": {
@@ -47,24 +47,12 @@
       ]
     },
     "release_status": "local working tree; not yet deployed",
-    "assignment_workflow": {
+    "assignment_self_task": {
       "scope": "submission_type=assignment only",
-      "actors": "A is created_by/requester; B is exactly one distinct eligible assignee.",
-      "assignee_ids": "Exactly one active B is required. Non-admin A may select only an existing descendant allowed by assignment_down_levels. SuperAdmin may select any active user except self.",
-      "requester_id": "For assignment, requester_id and created_by remain A.",
-      "initial_review": "draft -> pending_approval -> registered, or pending_approval -> revision_requested -> pending_approval.",
-      "execution": "B starts registered manually or by first planning item progress above zero. Planning progress is weighted; 100 percent does not auto-complete.",
-      "completion": "B requests completion, then A approves to completed or rejects back to in_progress with a required reason.",
-      "timestamps": ["registered_at", "started_at", "completion_requested_at", "completed_at"],
-      "allowed_actions": [
-        "approve_assignment",
-        "request_assignment_revision",
-        "start",
-        "update_planning_progress",
-        "request_completion",
-        "approve_completion",
-        "reject_completion"
-      ],
+      "assignee_ids": "On create, omission defaults to the authenticated user. If supplied, the array must contain exactly the authenticated user ID. The same restriction applies to draft update and submit, including super admins.",
+      "requester_id": "For assignment, requester and creator remain the authenticated creator.",
+      "invalid_assignee": "HTTP 422 with errors.assignee_ids and a clear Persian validation message.",
+      "submit_status": "in_progress without approval",
       "type_change": "submission_type cannot change after draft",
       "request_workflow": "submission_type=request is unchanged"
     }
@@ -74,9 +62,7 @@
       "draft",
       "pending_approval",
       "revision_requested",
-      "registered",
       "in_progress",
-      "pending_completion_approval",
       "completed",
       "not_completed",
       "rejected"
@@ -2919,14 +2905,7 @@
                   "request_revision": true,
                   "change_status": false,
                   "update_progress": false,
-                  "comment": true,
-                  "approve_assignment": false,
-                  "request_assignment_revision": false,
-                  "start": false,
-                  "update_planning_progress": false,
-                  "request_completion": false,
-                  "approve_completion": false,
-                  "reject_completion": false
+                  "comment": true
                 }
               }
             ],
@@ -3081,7 +3060,7 @@
           }
         }
       },
-      "assignment_behavior_fa": "با submission_type=assignment، assignment_targets شامل کاربران فعالِ زیرمجموعه مجاز بر اساس assignment_down_levels است و خود A حذف می‌شود؛ SuperAdmin همه کاربران فعال به‌جز خودش را می‌بیند. request_targets و منطق request تغییر نکرده‌اند."
+      "assignment_behavior_fa": "با submission_type=assignment، assignment_targets فقط شامل کاربر لاگین‌شده است؛ search در صورت عدم تطابق آرایه خالی می‌دهد؛ create/edit و ساختار response ثابت است. request_targets و منطق request تغییر نکرده‌اند."
     },
     {
       "name": "Create request draft or submit request",
@@ -3143,7 +3122,7 @@
             "nullable": true,
             "rules": "active existing user",
             "example": 8,
-            "assignment_rule_fa": "برای assignment، requester_id همیشه A (ایجادکننده) است."
+            "assignment_rule_fa": "برای assignment فقط شناسه کاربر لاگین‌شده؛ در صورت حذف، خود کاربر ثبت می‌شود."
           },
           "assignee_ids": {
             "type": "array<integer>",
@@ -3153,7 +3132,7 @@
             "example": [
               12
             ],
-            "assignment_rule_fa": "برای assignment دقیقاً یک B فعال، متفاوت از A و مجاز در جهت سازمانی assignment لازم است."
+            "assignment_rule_fa": "برای assignment اختیاری است؛ اگر ارسال نشود خود کاربر ثبت می‌شود، و اگر ارسال شود فقط [شناسه کاربر لاگین‌شده] مجاز است."
           },
           "follower_ids": {
             "type": "array<integer>",
@@ -3453,10 +3432,10 @@
         "assignment_422_example": {
           "status": 422,
           "body": {
-            "message": "برای تسک عادی دقیقاً یک مسئول انجام مجاز انتخاب کنید.",
+            "message": "مسئول انجام تسک عادی فقط خود شما می‌توانید باشید.",
             "errors": {
               "assignee_ids": [
-                "برای تسک عادی دقیقاً یک مسئول انجام مجاز انتخاب کنید."
+                "مسئول انجام تسک عادی فقط خود شما می‌توانید باشید."
               ]
             }
           }
@@ -3697,7 +3676,7 @@
             "example": [
               12
             ],
-            "assignment_rule_fa": "برای assignment دقیقاً یک B فعال و مجاز لازم است؛ حذف فیلد در ویرایش، مسئول فعلی را حفظ می‌کند."
+            "assignment_rule_fa": "برای assignment فقط [شناسه کاربر لاگین‌شده] مجاز است؛ حذف فیلد مسئول فعلیِ معتبر را حفظ می‌کند و پیش‌نویس بدون مسئول را به خود کاربر اختصاص می‌دهد."
           },
           "follower_ids": {
             "type": "array<integer>",
@@ -4014,10 +3993,10 @@
         "assignment_422_example": {
           "status": 422,
           "body": {
-            "message": "برای تسک عادی دقیقاً یک مسئول انجام مجاز انتخاب کنید.",
+            "message": "مسئول انجام تسک عادی فقط خود شما می‌توانید باشید.",
             "errors": {
               "assignee_ids": [
-                "برای تسک عادی دقیقاً یک مسئول انجام مجاز انتخاب کنید."
+                "مسئول انجام تسک عادی فقط خود شما می‌توانید باشید."
               ]
             }
           }
@@ -4073,12 +4052,12 @@
       }
     },
     {
-      "name": "Approve request or assignment initial review",
+      "name": "Approve request task",
       "method": "POST",
       "path": "/api/v1/tasks/{task}/approve",
       "authentication": true,
       "permission": "tasks:approve",
-      "description_fa": "برای request رفتار قبلی بدون تغییر است. برای assignment فقط B می‌تواند pending_approval را تأیید کند و نتیجه registered است.",
+      "description_fa": "تأیید درخواست pending_approval توسط مسئول مجاز فقط برای request در وضعیت pending_approval؛ نوع درخواست در transition حفظ می‌شود.",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4329,7 +4308,7 @@
       "path": "/api/v1/tasks/{task}/request-revision",
       "authentication": true,
       "permission": "tasks:reject",
-      "description_fa": "برای request رفتار قبلی بدون تغییر است. برای assignment فقط B با reason اجباری pending_approval را به revision_requested بازمی‌گرداند.",
+      "description_fa": "درخواست اصلاح برای تسک pending_approval فقط برای request در وضعیت pending_approval؛ نوع درخواست در transition حفظ می‌شود.",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4469,7 +4448,7 @@
       "path": "/api/v1/tasks/{task}/status",
       "authentication": true,
       "permission": "tasks:update_status",
-      "description_fa": "برای assignment فقط B می‌تواند registered را دستی به in_progress ببرد. transitionهای قبلی request/legacy بدون تغییر باقی می‌مانند.",
+      "description_fa": "تغییر وضعیت مجاز در گردش کار",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4487,7 +4466,7 @@
             "required": true,
             "nullable": false,
             "rules": "allowed: in_progress, completed, not_completed",
-            "example": "in_progress"
+            "example": "completed"
           }
         },
         "required_fields": [
@@ -4495,7 +4474,7 @@
         ],
         "optional_fields": [],
         "example": {
-          "status": "in_progress"
+          "status": "completed"
         },
         "notes_fa": []
       },
@@ -4737,80 +4716,6 @@
           }
         }
       }
-    },
-    {
-      "name": "Update assignment planning item progress",
-      "method": "PATCH",
-      "path": "/api/v1/tasks/{task}/planning-items/{planningItem}",
-      "authentication": true,
-      "permission": "tasks:update_progress",
-      "description_fa": "فقط B می‌تواند در registered یا in_progress درصد پیشرفت آیتم متعلق به همان تسک را تغییر دهد. اولین مقدار بیشتر از صفر، registered را به in_progress می‌برد. پیشرفت کل به‌صورت وزنی محاسبه می‌شود و ۱۰۰ درصد تسک را خودکار completed نمی‌کند.",
-      "path_parameters": {
-        "task": {"type": "integer", "required": true},
-        "planningItem": {"type": "integer", "required": true, "rules": "must belong to task"}
-      },
-      "query_parameters": {},
-      "request_body": {
-        "content_type": "application/json",
-        "fields": {
-          "progress_percentage": {"type": "integer", "required": true, "rules": "between:0,100", "example": 40}
-        },
-        "required_fields": ["progress_percentage"],
-        "optional_fields": [],
-        "example": {"progress_percentage": 40}
-      },
-      "success_response": {"status": 200, "body": {"success": true, "message": "پیشرفت آیتم برنامه‌ریزی ثبت شد.", "data": {"task": {"status": "in_progress", "progress_percentage": 40}}}},
-      "error_responses": {
-        "403": {"body": {"message": "این عملیات مجاز نیست."}},
-        "404": {"body": {"message": "رکورد موردنظر یافت نشد."}},
-        "409": {"body": {"message": "در این مرحله امکان ثبت پیشرفت آیتم برنامه‌ریزی وجود ندارد."}},
-        "422": {"body": {"message": "اطلاعات ارسال‌شده معتبر نیست."}}
-      }
-    },
-    {
-      "name": "Request assignment completion",
-      "method": "POST",
-      "path": "/api/v1/tasks/{task}/completion/request",
-      "authentication": true,
-      "permission": "tasks:update_status",
-      "description_fa": "فقط B می‌تواند assignment در حال انجام را برای تأیید پایان به A ارسال کند: in_progress -> pending_completion_approval.",
-      "path_parameters": {"task": {"type": "integer", "required": true}},
-      "query_parameters": {},
-      "request_body": {},
-      "success_response": {"status": 200, "body": {"success": true, "message": "درخواست تأیید پایان تسک ثبت شد.", "data": {"task": {"status": "pending_completion_approval"}}}},
-      "error_responses": {"403": {"body": {"message": "این عملیات مجاز نیست."}}, "409": {"body": {"message": "فقط تسک در حال انجام قابل ارسال برای تأیید پایان است."}}}
-    },
-    {
-      "name": "Approve assignment completion",
-      "method": "POST",
-      "path": "/api/v1/tasks/{task}/completion/approve",
-      "authentication": true,
-      "permission": "tasks:approve",
-      "description_fa": "فقط A پایان assignment را تأیید می‌کند: pending_completion_approval -> completed.",
-      "path_parameters": {"task": {"type": "integer", "required": true}},
-      "query_parameters": {},
-      "request_body": {},
-      "success_response": {"status": 200, "body": {"success": true, "message": "پایان تسک تأیید شد.", "data": {"task": {"status": "completed"}}}},
-      "error_responses": {"403": {"body": {"message": "این عملیات مجاز نیست."}}, "409": {"body": {"message": "این تسک در انتظار تأیید پایان نیست."}}}
-    },
-    {
-      "name": "Reject assignment completion",
-      "method": "POST",
-      "path": "/api/v1/tasks/{task}/completion/reject",
-      "authentication": true,
-      "permission": "tasks:reject",
-      "description_fa": "فقط A با دلیل اجباری پایان assignment را رد می‌کند: pending_completion_approval -> in_progress.",
-      "path_parameters": {"task": {"type": "integer", "required": true}},
-      "query_parameters": {},
-      "request_body": {
-        "content_type": "application/json",
-        "fields": {"reason": {"type": "string", "required": true, "rules": "max:1000", "example": "نیاز به تکمیل دارد."}},
-        "required_fields": ["reason"],
-        "optional_fields": [],
-        "example": {"reason": "نیاز به تکمیل دارد."}
-      },
-      "success_response": {"status": 200, "body": {"success": true, "message": "پایان تسک رد و برای ادامه اجرا بازگردانده شد.", "data": {"task": {"status": "in_progress"}}}},
-      "error_responses": {"403": {"body": {"message": "این عملیات مجاز نیست."}}, "409": {"body": {"message": "این تسک در انتظار تأیید پایان نیست."}}, "422": {"body": {"message": "اطلاعات ارسال‌شده معتبر نیست."}}}
     },
     {
       "name": "List task tags",

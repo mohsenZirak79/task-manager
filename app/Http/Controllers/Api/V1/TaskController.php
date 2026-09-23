@@ -8,14 +8,17 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ChangeTaskStatusRequest;
 use App\Http\Requests\EligibleTaskUsersRequest;
 use App\Http\Requests\IndexTaskRequest;
+use App\Http\Requests\RejectTaskCompletionRequest;
 use App\Http\Requests\RejectTaskRequest;
 use App\Http\Requests\RequestTaskRevisionRequest;
 use App\Http\Requests\StoreTaskRequest;
+use App\Http\Requests\UpdateTaskPlanningProgressRequest;
 use App\Http\Requests\UpdateTaskProgressRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
 use App\Http\Resources\UserSummaryResource;
 use App\Models\Task;
+use App\Models\TaskPlanningItem;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -156,6 +159,58 @@ class TaskController extends Controller
         );
 
         return $this->success('درصد پیشرفت ثبت شد.', [
+            'task' => new TaskResource($task),
+        ]);
+    }
+
+    public function updatePlanningProgress(
+        UpdateTaskPlanningProgressRequest $request,
+        Task $task,
+        TaskPlanningItem $planningItem,
+    ): JsonResponse {
+        Gate::authorize('updatePlanningProgress', $task);
+        $task = $this->taskService->updatePlanningProgress(
+            $task,
+            $planningItem,
+            $request->user(),
+            (int) $request->validated('progress_percentage'),
+        );
+
+        return $this->success('پیشرفت آیتم برنامه‌ریزی ثبت شد.', [
+            'task' => new TaskResource($task),
+        ]);
+    }
+
+    public function requestCompletion(Request $request, Task $task): JsonResponse
+    {
+        Gate::authorize('requestCompletion', $task);
+        $task = $this->taskService->requestCompletion($task, $request->user());
+
+        return $this->success('درخواست تأیید پایان تسک ثبت شد.', [
+            'task' => new TaskResource($task),
+        ]);
+    }
+
+    public function approveCompletion(Request $request, Task $task): JsonResponse
+    {
+        Gate::authorize('approveCompletion', $task);
+        $task = $this->taskService->approveCompletion($task, $request->user());
+
+        return $this->success('پایان تسک تأیید شد.', [
+            'task' => new TaskResource($task),
+        ]);
+    }
+
+    public function rejectCompletion(RejectTaskCompletionRequest $request, Task $task): JsonResponse
+    {
+        Gate::authorize('rejectCompletion', $task);
+        $task = $this->taskService->rejectCompletion(
+            $task,
+            $request->user(),
+            $request->validated('reason'),
+        );
+
+        return $this->success('پایان تسک رد و برای ادامه اجرا بازگردانده شد.', [
             'task' => new TaskResource($task),
         ]);
     }

@@ -24,6 +24,7 @@ class StoreTaskRequest extends FormRequest
     {
         return [
             function (Validator $validator): void {
+                $this->addAssignmentValidationErrors($validator);
                 $this->addSubmitValidationErrors($validator);
             },
         ];

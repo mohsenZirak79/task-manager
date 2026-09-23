@@ -79,15 +79,17 @@ trait HasTaskPayloadRules
             $validator->errors()->add('due_date', 'تاریخ اتمام هنگام ارسال اجباری است.');
         }
 
-        $hasAssigneeInput = array_key_exists('assignee_ids', $this->all());
-        $hasExistingAssignee = $existing?->participantRecords()
-            ->where('role', 'assignee')->exists() ?? false;
-        if (($hasAssigneeInput && count((array) $this->input('assignee_ids', [])) === 0)
-            || (! $hasAssigneeInput && ! $hasExistingAssignee)) {
-            $validator->errors()->add('assignee_ids', 'برای ارسال تسک حداقل یک مسئول انجام لازم است.');
+        $submissionType = $this->input('submission_type', $existing?->submission_type?->value);
+        if ($submissionType !== TaskSubmissionType::Assignment->value) {
+            $hasAssigneeInput = array_key_exists('assignee_ids', $this->all());
+            $hasExistingAssignee = $existing?->participantRecords()
+                ->where('role', 'assignee')->exists() ?? false;
+            if (($hasAssigneeInput && count((array) $this->input('assignee_ids', [])) === 0)
+                || (! $hasAssigneeInput && ! $hasExistingAssignee)) {
+                $validator->errors()->add('assignee_ids', 'برای ارسال تسک حداقل یک مسئول انجام لازم است.');
+            }
         }
 
-        $submissionType = $this->input('submission_type', $existing?->submission_type?->value);
         if ($submissionType !== TaskSubmissionType::Request->value) {
             return;
         }
@@ -95,6 +97,28 @@ trait HasTaskPayloadRules
         $this->requireCollectionForSubmit($validator, 'tags', $existing, 'tags', 'برای ارسال درخواست حداقل یک تگ لازم است.');
         $this->requireCollectionForSubmit($validator, 'follower_ids', $existing, 'followers', 'برای ارسال درخواست حداقل یک پیرو لازم است.');
         $this->requireCollectionForSubmit($validator, 'supervisor_ids', $existing, 'supervisors', 'برای ارسال درخواست حداقل یک ناظر لازم است.');
+    }
+
+    protected function addAssignmentValidationErrors(Validator $validator, mixed $existing = null): void
+    {
+        if ($this->input('submission_type', $existing?->submission_type?->value) !== TaskSubmissionType::Assignment->value) {
+            return;
+        }
+
+        $actorId = $this->user()->id;
+        $ids = $this->exists('assignee_ids')
+            ? $this->input('assignee_ids')
+            : $existing?->participantRecords()->where('role', 'assignee')->pluck('user_id')->all();
+
+        if (! is_array($ids) || count($ids) !== 1) {
+            $validator->errors()->add('assignee_ids', 'برای تسک عادی دقیقاً یک مسئول انجام انتخاب کنید.');
+        } elseif ((int) reset($ids) === $actorId) {
+            $validator->errors()->add('assignee_ids', 'ایجادکننده و مسئول انجام تسک عادی باید دو کاربر متفاوت باشند.');
+        }
+
+        if ($this->filled('requester_id') && (int) $this->input('requester_id') !== $actorId) {
+            $validator->errors()->add('requester_id', 'درخواست‌کننده تسک عادی باید خود شما باشید.');
+        }
     }
 
     private function requireCollectionForSubmit(

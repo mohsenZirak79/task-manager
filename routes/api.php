@@ -56,6 +56,10 @@ Route::prefix('v1')->group(function (): void {
             Route::post('tasks/{task}/request-revision', [TaskController::class, 'requestRevision'])->middleware('permission:'.Permissions::TASKS_REJECT);
             Route::post('tasks/{task}/status', [TaskController::class, 'changeStatus'])->middleware('permission:'.Permissions::TASKS_UPDATE_STATUS);
             Route::post('tasks/{task}/progress', [TaskController::class, 'updateProgress'])->middleware('permission:'.Permissions::TASKS_UPDATE_PROGRESS);
+            Route::patch('tasks/{task}/planning-items/{planningItem}', [TaskController::class, 'updatePlanningProgress'])->middleware('permission:'.Permissions::TASKS_UPDATE_PROGRESS)->whereNumber(['task', 'planningItem']);
+            Route::post('tasks/{task}/completion/request', [TaskController::class, 'requestCompletion'])->middleware('permission:'.Permissions::TASKS_UPDATE_STATUS)->whereNumber('task');
+            Route::post('tasks/{task}/completion/approve', [TaskController::class, 'approveCompletion'])->middleware('permission:'.Permissions::TASKS_APPROVE)->whereNumber('task');
+            Route::post('tasks/{task}/completion/reject', [TaskController::class, 'rejectCompletion'])->middleware('permission:'.Permissions::TASKS_REJECT)->whereNumber('task');
             Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index']);
             Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store']);
             Route::patch('tasks/{task}/comments/{comment}', [TaskCommentController::class, 'update'])->whereNumber(['task', 'comment']);
