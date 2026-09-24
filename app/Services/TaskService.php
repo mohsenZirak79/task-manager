@@ -283,7 +283,7 @@ class TaskService
     {
         if ($submissionType === TaskSubmissionType::Assignment) {
             $groups['assignment_targets'] = $groups['assignment_targets']
-                ->reject(fn (User $user): bool => $user->id === $actor->id)->values();
+                ->filter(fn (User $user): bool => $user->id === $actor->id)->values();
             $groups['request_targets'] = new Collection;
         } elseif ($submissionType === TaskSubmissionType::Request) {
             $groups['assignment_targets'] = new Collection;
@@ -675,6 +675,12 @@ class TaskService
             : ($task?->participantRecords()
                 ->where('role', TaskParticipantRole::Assignee->value)
                 ->pluck('user_id')->all() ?? []);
+
+        if ($assigneeIds === []) {
+            $assigneeIds = [$actor->id];
+            $data['assignee_ids'] = $assigneeIds;
+        }
+
         $this->ensureAssignmentAssignee($assigneeIds, $actor);
         $data['requester_id'] = $actor->id;
         $data['progress_percentage'] = 0;
@@ -697,35 +703,10 @@ class TaskService
 
     private function ensureAssignmentAssignee(mixed $assigneeIds, User $actor): void
     {
-        if (! is_array($assigneeIds) || count($assigneeIds) !== 1) {
+        if (! is_array($assigneeIds) || count($assigneeIds) !== 1 || (int) reset($assigneeIds) !== $actor->id) {
             throw ValidationException::withMessages([
-                'assignee_ids' => 'برای تسک عادی دقیقاً یک مسئول انجام انتخاب کنید.',
+                'assignee_ids' => 'مسئول انجام تسک عادی فقط خود شما می‌توانید باشید.',
             ]);
-        }
-
-        $assigneeId = (int) reset($assigneeIds);
-        if ($assigneeId === $actor->id) {
-            throw ValidationException::withMessages([
-                'assignee_ids' => 'ایجادکننده و مسئول انجام تسک عادی باید دو کاربر متفاوت باشند.',
-            ]);
-        }
-
-        $assignee = User::query()->whereKey($assigneeId)->where('is_active', true)->first();
-        if (! $assignee) {
-            throw ValidationException::withMessages(['assignee_ids' => 'مسئول انجام انتخاب‌شده معتبر و فعال نیست.']);
-        }
-
-        if ($actor->isSuperAdmin()) {
-            return;
-        }
-
-        $eligible = User::query()->whereKey($assigneeId)
-            ->whereHas('orgPositions', fn ($query) => $query->whereIn(
-                'org_positions.id',
-                $this->descendantPositionIds($actor),
-            ))->exists();
-        if (! $eligible) {
-            throw new HttpException(403, 'مسئول انجام باید در محدوده سازمانی مجازِ زیرمجموعه شما باشد.');
         }
     }
 

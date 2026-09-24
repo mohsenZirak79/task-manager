@@ -30,7 +30,7 @@ class TaskVisibilityService
         }
 
         return match ($submissionType) {
-            TaskSubmissionType::Request->value => self::CREATED_BY_ME,
+            TaskSubmissionType::Request->value => self::INVOLVED,
             TaskSubmissionType::Assignment->value => self::ASSIGNED_TO_ME,
             default => self::INVOLVED,
         };
@@ -81,8 +81,7 @@ class TaskVisibilityService
     {
         return $actor->hasPermission($permission)
             && $task->submission_type === TaskSubmissionType::Request
-            && ($this->canManageAll($actor)
-                || $this->hasParticipantRole($task, $actor, TaskParticipantRole::Assignee));
+            && $this->hasParticipantRole($task, $actor, TaskParticipantRole::Assignee);
     }
 
     public function isAssignmentAssignee(User $actor, Task $task): bool
@@ -103,8 +102,7 @@ class TaskVisibilityService
     public function canUpdateProgress(User $actor, Task $task): bool
     {
         return $actor->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)
-            && ($this->canManageAll($actor)
-                || $this->hasParticipantRole($task, $actor, TaskParticipantRole::Assignee));
+            && $this->hasParticipantRole($task, $actor, TaskParticipantRole::Assignee);
     }
 
     private function applyInvolved(Builder $query, User $actor): Builder
@@ -151,10 +149,10 @@ class TaskVisibilityService
 
             if ($actor->hasPermission(Permissions::TASKS_APPROVE) || $actor->hasPermission(Permissions::TASKS_REJECT)) {
                 $method = $hasAction ? 'orWhere' : 'where';
-                $actions->{$method}(function (Builder $query) use ($actor, $manageAll): void {
+                $actions->{$method}(function (Builder $query) use ($actor): void {
                     $query->where('submission_type', TaskSubmissionType::Request->value)
                         ->where('status', TaskStatus::PendingApproval->value)
-                        ->when(! $manageAll, fn (Builder $query) => $this->whereParticipant(
+                        ->where(fn (Builder $query) => $this->whereParticipant(
                             $query,
                             $actor,
                             [TaskParticipantRole::Assignee],
@@ -188,12 +186,12 @@ class TaskVisibilityService
 
             if ($actor->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)) {
                 $method = $hasAction ? 'orWhere' : 'where';
-                $actions->{$method}(function (Builder $query) use ($actor, $manageAll): void {
+                $actions->{$method}(function (Builder $query) use ($actor): void {
                     $query->where(function (Builder $query): void {
                         $query->whereNull('submission_type')
                             ->orWhere('submission_type', '!=', TaskSubmissionType::Assignment->value);
                     })->where('status', TaskStatus::InProgress->value)
-                        ->when(! $manageAll, fn (Builder $query) => $this->whereParticipant(
+                        ->where(fn (Builder $query) => $this->whereParticipant(
                             $query,
                             $actor,
                             [TaskParticipantRole::Assignee],

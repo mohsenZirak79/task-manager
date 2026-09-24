@@ -82,6 +82,13 @@ class LocalDemoDataSeeder extends Seeder
                 ],
             );
             $user->accessRoles()->sync([$userRoleId]);
+            $user->specialDates()->updateOrCreate(
+                ['title' => 'سالگرد همکاری'],
+                [
+                    'date' => now()->addDays($index * 9)->toDateString(),
+                    'description' => 'رویداد آزمایشی برای تقویم و پروفایل کاربر',
+                ],
+            );
             $users[$index] = $user;
         }
 
@@ -117,42 +124,55 @@ class LocalDemoDataSeeder extends Seeder
      */
     private function seedOrganization(User $admin, array $users): array
     {
+        // Keep the local demo chart deterministic when this seeder is rerun.
+        DB::table('org_position_user')->delete();
+        OrgPosition::query()->update(['parent_id' => null]);
+        OrgPosition::query()->delete();
+
         $definitions = [
             1 => ['مدیرعامل', null, $admin],
-            2 => ['معاونت عملیات', 1, $users[1]],
-            3 => ['معاونت محصول و فناوری', 1, $users[2]],
-            4 => ['معاونت پشتیبانی', 1, $users[3]],
-            5 => ['مدیریت فروش', 2, $users[4]],
-            6 => ['مدیریت منابع انسانی', 2, $users[5]],
-            7 => ['مدیریت مالی', 2, $users[6]],
-            8 => ['مدیریت تدارکات', 2, $users[7]],
-            9 => ['مدیریت محصول', 3, $users[8]],
-            10 => ['مدیریت مهندسی', 3, $users[9]],
-            11 => ['مدیریت داده', 3, $users[10]],
-            12 => ['مدیریت تضمین کیفیت', 3, $users[11]],
-            13 => ['مدیریت پشتیبانی مشتریان', 4, $users[12]],
-            14 => ['مدیریت آموزش', 4, $users[13]],
-            15 => ['مدیریت حقوقی', 4, $users[14]],
-            16 => ['مدیریت روابط عمومی', 4, $users[15]],
-            17 => ['تیم فروش سازمانی', 5, $users[16]],
-            18 => ['تیم توسعه بک‌اند', 10, $users[17]],
-            19 => ['تیم توسعه فرانت‌اند', 10, $users[18]],
-            20 => ['تیم پاسخ‌گویی ویژه', 13, $users[19]],
+            2 => ['دفتر مدیرعامل', 1, $users[1]],
+            3 => ['معاونت عملیات', 1, $users[2]],
+            4 => ['معاونت محصول و فناوری', 1, $users[3]],
+            5 => ['معاونت بازرگانی', 1, $users[4]],
+            6 => ['مدیریت منابع انسانی', 3, $users[5]],
+            7 => ['مدیریت مالی', 3, $users[6]],
+            8 => ['مدیریت اداری و پشتیبانی', 3, $users[7]],
+            9 => ['مدیریت محصول', 4, $users[8]],
+            10 => ['مدیریت مهندسی نرم‌افزار', 4, $users[9]],
+            11 => ['مدیریت داده و تحلیل', 4, $users[10]],
+            12 => ['مدیریت زیرساخت', 4, $users[11]],
+            13 => ['مدیریت فروش', 5, $users[12]],
+            14 => ['مدیریت بازاریابی', 5, $users[13]],
+            15 => ['مدیریت ارتباط با مشتریان', 5, $users[14]],
+            16 => ['تیم توسعه بک‌اند', 10, $users[15]],
+            17 => ['تیم توسعه فرانت‌اند', 10, $users[16]],
+            18 => ['تیم تضمین کیفیت', 10, $users[17]],
+            19 => ['تیم هوش تجاری', 11, $users[18]],
+            20 => ['تیم دواپس', 12, $users[19]],
+            21 => ['فروش سازمانی', 13, $users[20]],
+            22 => ['فروش منطقه‌ای', 13, $users[21]],
+            23 => ['بازاریابی دیجیتال', 14, $users[22]],
+            24 => ['موفقیت مشتری', 15, $users[23]],
+            25 => ['مرکز تماس', 15, $users[24]],
         ];
         $positions = [];
+        $depths = [];
 
         foreach ($definitions as $key => [$title, $parentKey, $user]) {
+            $depth = $parentKey ? $depths[$parentKey] + 1 : 0;
             $position = OrgPosition::query()->updateOrCreate(
                 ['title' => $title],
                 [
                     'parent_id' => $parentKey ? $positions[$parentKey]->id : null,
                     'sort_order' => $key,
-                    'request_up_levels' => null,
-                    'assignment_down_levels' => null,
+                    'request_up_levels' => $depth,
+                    'assignment_down_levels' => max(0, 3 - $depth),
                 ],
             );
             $position->users()->sync([$user->id]);
             $positions[$key] = $position;
+            $depths[$key] = $depth;
         }
 
         return $positions;
@@ -180,8 +200,8 @@ class LocalDemoDataSeeder extends Seeder
                 $index % 6 === 0 => TaskStatus::Completed,
                 default => TaskStatus::InProgress,
             };
-            $creator = $isRequest ? $users[8 + ($index % 12)] : $admin;
-            $assignee = $isRequest ? $admin : $users[1 + ($index % 19)];
+            $creator = $isRequest ? $users[8 + ($index % 12)] : $users[1 + ($index % 19)];
+            $assignee = $isRequest ? $admin : $creator;
             $number = str_pad((string) $index, 2, '0', STR_PAD_LEFT);
             $task = Task::query()->updateOrCreate(
                 ['title' => "LOCAL-DEMO-TASK-{$number} | ".$subjects[($index - 1) % count($subjects)]],
@@ -206,6 +226,36 @@ class LocalDemoDataSeeder extends Seeder
             $task->tags()->sync([
                 $tags->get($isRequest ? 'فوری' : 'فنی')->id,
                 $tags->get($index % 2 === 0 ? 'مالی' : 'فروش')->id,
+            ]);
+            $task->planningItems()->delete();
+            foreach ([
+                ['title' => 'بررسی و جمع‌آوری اطلاعات', 'weight' => 30],
+                ['title' => 'اجرای اقدام اصلی', 'weight' => 40],
+                ['title' => 'کنترل نهایی و تحویل', 'weight' => 30],
+            ] as $sortOrder => $planningItem) {
+                $task->planningItems()->create([
+                    ...$planningItem,
+                    'progress_percentage' => max(0, min(100, $task->progress_percentage + (20 - ($sortOrder * 20)))),
+                    'sort_order' => $sortOrder + 1,
+                ]);
+            }
+
+            $commentIds = DB::table('task_comments')->where('task_id', $task->id)->pluck('id');
+            DB::table('task_comment_reactions')->whereIn('task_comment_id', $commentIds)->delete();
+            DB::table('task_comments')->where('task_id', $task->id)->update(['parent_id' => null]);
+            DB::table('task_comments')->where('task_id', $task->id)->delete();
+            $comment = $task->comments()->create([
+                'user_id' => $creator->id,
+                'body' => 'لطفاً وضعیت این مورد را بررسی کنید و نتیجه را در همین گفتگو بنویسید.',
+            ]);
+            $task->comments()->create([
+                'user_id' => $assignee->id,
+                'parent_id' => $comment->id,
+                'body' => 'بررسی شد؛ پیشرفت کار طبق برنامه در حال ثبت است.',
+            ]);
+            $comment->reactions()->create([
+                'user_id' => $users[20 + ($index % 4)]->id,
+                'reaction' => 'like',
             ]);
             $task->workflowHistory()->delete();
             if (! $isDraft) {

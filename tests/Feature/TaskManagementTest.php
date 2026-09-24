@@ -18,39 +18,34 @@ class TaskManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_assignment_requires_one_distinct_eligible_assignee(): void
+    public function test_assignment_defaults_to_creator_and_rejects_every_other_assignee(): void
     {
-        [$creator, $assignee] = $this->organization();
+        [$creator, $other] = $this->organization();
         $unrelated = User::factory()->create();
         $this->position('شاخه نامرتبط', $unrelated);
         Sanctum::actingAs($creator);
 
         $this->postJson('/api/v1/tasks', [
             ...$this->validPayload(),
-            'assignee_ids' => [$assignee->id],
         ])->assertCreated()
             ->assertJsonPath('data.task.status', TaskStatus::Draft->value)
             ->assertJsonPath('data.task.creator.id', $creator->id)
             ->assertJsonPath('data.task.requester.id', $creator->id)
-            ->assertJsonPath('data.task.assignees.0.id', $assignee->id);
+            ->assertJsonPath('data.task.assignees.0.id', $creator->id);
 
-        foreach ([[], [$creator->id], [$assignee->id, $unrelated->id]] as $ids) {
+        foreach ([[], [$other->id], [$creator->id, $other->id], [$unrelated->id]] as $ids) {
             $this->postJson('/api/v1/tasks', [
                 ...$this->validPayload(),
                 'assignee_ids' => $ids,
             ])->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
         }
 
-        $this->postJson('/api/v1/tasks', [
-            ...$this->validPayload(),
-            'assignee_ids' => [$unrelated->id],
-        ])->assertForbidden();
-
         $targets = $this->getJson('/api/v1/tasks/eligible-users?submission_type=assignment')
             ->assertOk()->json('data.assignment_targets');
         $targetIds = collect($targets)->pluck('id');
-        $this->assertTrue($targetIds->contains($assignee->id));
-        $this->assertFalse($targetIds->contains($creator->id));
+        $this->assertCount(1, $targetIds);
+        $this->assertTrue($targetIds->contains($creator->id));
+        $this->assertFalse($targetIds->contains($other->id));
         $this->assertFalse($targetIds->contains($unrelated->id));
     }
 
@@ -290,6 +285,103 @@ class TaskManagementTest extends TestCase
             'action' => 'rejected',
             'reason' => 'اطلاعات درخواست کافی نیست.',
         ]);
+    }
+
+    public function test_request_is_visible_to_but_actionable_only_by_the_selected_reviewer(): void
+    {
+        [$reviewer, $requester, $other] = $this->organization();
+        $request = $this->submitRequest($requester, $reviewer);
+
+        Sanctum::actingAs($requester);
+        $this->getJson('/api/v1/tasks?submission_type=request')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.id', $request->id)
+            ->assertJsonPath('data.items.0.allowed_actions.approve', false)
+            ->assertJsonPath('data.items.0.allowed_actions.reject', false)
+            ->assertJsonPath('data.items.0.allowed_actions.request_revision', false)
+            ->assertJsonPath('data.items.0.allowed_actions.edit', false);
+        $this->postJson("/api/v1/tasks/{$request->id}/approve")->assertForbidden();
+        $this->postJson("/api/v1/tasks/{$request->id}/reject", ['reason' => 'رد'])->assertForbidden();
+        $this->postJson("/api/v1/tasks/{$request->id}/request-revision", ['reason' => 'اصلاح'])->assertForbidden();
+
+        Sanctum::actingAs($reviewer);
+        $this->getJson('/api/v1/tasks?submission_type=request')
+            ->assertOk()
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.id', $request->id)
+            ->assertJsonPath('data.items.0.allowed_actions.approve', true)
+            ->assertJsonPath('data.items.0.allowed_actions.reject', true)
+            ->assertJsonPath('data.items.0.allowed_actions.request_revision', true)
+            ->assertJsonPath('data.items.0.allowed_actions.edit', false);
+
+        Sanctum::actingAs($other);
+        $this->getJson("/api/v1/tasks/{$request->id}")->assertForbidden();
+
+        $observer = User::factory()->admin()->create();
+        Sanctum::actingAs($observer);
+        $this->getJson("/api/v1/tasks/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.approve', false)
+            ->assertJsonPath('data.task.allowed_actions.reject', false)
+            ->assertJsonPath('data.task.allowed_actions.request_revision', false)
+            ->assertJsonPath('data.task.allowed_actions.edit', false);
+        $this->postJson("/api/v1/tasks/{$request->id}/approve")->assertForbidden();
+
+        Sanctum::actingAs($reviewer);
+        $this->postJson("/api/v1/tasks/{$request->id}/request-revision", [
+            'reason' => 'شرح درخواست نیاز به اصلاح دارد.',
+        ])->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::RevisionRequested->value)
+            ->assertJsonPath('data.task.allowed_actions.approve', false)
+            ->assertJsonPath('data.task.allowed_actions.reject', false)
+            ->assertJsonPath('data.task.allowed_actions.request_revision', false);
+
+        Sanctum::actingAs($requester);
+        $this->getJson("/api/v1/tasks/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.edit', true)
+            ->assertJsonPath('data.task.allowed_actions.approve', false)
+            ->assertJsonPath('data.task.allowed_actions.reject', false)
+            ->assertJsonPath('data.task.allowed_actions.request_revision', false);
+    }
+
+    public function test_only_request_assignee_can_see_and_submit_progress_after_approval(): void
+    {
+        [$assignee, $requester] = $this->organization();
+        $request = $this->submitRequest($requester, $assignee);
+
+        Sanctum::actingAs($assignee);
+        $this->postJson("/api/v1/tasks/{$request->id}/approve")
+            ->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value)
+            ->assertJsonPath('data.task.allowed_actions.update_progress', true);
+
+        Sanctum::actingAs($requester);
+        $this->getJson("/api/v1/tasks/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.update_progress', false);
+        $this->postJson("/api/v1/tasks/{$request->id}/progress", [
+            'progress_percentage' => 25,
+        ])->assertForbidden();
+
+        $observer = User::factory()->admin()->create();
+        Sanctum::actingAs($observer);
+        $this->getJson("/api/v1/tasks/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.update_progress', false);
+        $this->postJson("/api/v1/tasks/{$request->id}/progress", [
+            'progress_percentage' => 25,
+        ])->assertForbidden();
+
+        Sanctum::actingAs($assignee);
+        $this->getJson("/api/v1/tasks/{$request->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.update_progress', true);
+        $this->postJson("/api/v1/tasks/{$request->id}/progress", [
+            'progress_percentage' => 40,
+        ])->assertOk()
+            ->assertJsonPath('data.task.progress_percentage', 40);
     }
 
     public function test_assignee_can_record_progress_and_status_changes_are_logged(): void
@@ -763,7 +855,8 @@ class TaskManagementTest extends TestCase
         $this->getJson('/api/v1/tasks?submission_type=request&scope=created_by_me')
             ->assertOk()->assertJsonPath('data.meta.total', 0);
         $this->getJson('/api/v1/tasks?submission_type=request')
-            ->assertOk()->assertJsonPath('data.meta.total', 0);
+            ->assertOk()->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.id', $request->id);
         $this->getJson('/api/v1/tasks?submission_type=request&scope=action_required')
             ->assertOk()->assertJsonPath('data.meta.total', 1)
             ->assertJsonPath('data.items.0.id', $request->id);
@@ -777,18 +870,18 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($manager);
         $assignmentId = $this->postJson('/api/v1/tasks', [
             ...$this->validPayload(),
-            'assignee_ids' => [$worker->id],
+            'assignee_ids' => [$manager->id],
             'follower_ids' => [$peer->id],
             'submit' => true,
         ])->assertCreated()->json('data.task.id');
         Sanctum::actingAs($worker);
         $this->getJson('/api/v1/tasks?submission_type=assignment')
-            ->assertOk()->assertJsonPath('data.meta.total', 1)
-            ->assertJsonPath('data.items.0.id', $assignmentId);
+            ->assertOk()->assertJsonPath('data.meta.total', 0);
 
         Sanctum::actingAs($manager);
         $this->getJson('/api/v1/tasks?submission_type=assignment')
-            ->assertOk()->assertJsonPath('data.meta.total', 0);
+            ->assertOk()->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.id', $assignmentId);
 
         Sanctum::actingAs($peer);
         $this->getJson('/api/v1/tasks?submission_type=assignment&scope=assigned_to_me')

@@ -106,14 +106,11 @@ trait HasTaskPayloadRules
         }
 
         $actorId = $this->user()->id;
-        $ids = $this->exists('assignee_ids')
-            ? $this->input('assignee_ids')
-            : $existing?->participantRecords()->where('role', 'assignee')->pluck('user_id')->all();
-
-        if (! is_array($ids) || count($ids) !== 1) {
-            $validator->errors()->add('assignee_ids', 'برای تسک عادی دقیقاً یک مسئول انجام انتخاب کنید.');
-        } elseif ((int) reset($ids) === $actorId) {
-            $validator->errors()->add('assignee_ids', 'ایجادکننده و مسئول انجام تسک عادی باید دو کاربر متفاوت باشند.');
+        if ($this->exists('assignee_ids')) {
+            $ids = $this->input('assignee_ids');
+            if (! is_array($ids) || count($ids) !== 1 || (int) reset($ids) !== $actorId) {
+                $validator->errors()->add('assignee_ids', 'مسئول انجام تسک عادی فقط خود شما می‌توانید باشید.');
+            }
         }
 
         if ($this->filled('requester_id') && (int) $this->input('requester_id') !== $actorId) {

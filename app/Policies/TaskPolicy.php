@@ -47,7 +47,7 @@ class TaskPolicy
             TaskStatus::RevisionRequested,
             TaskStatus::Rejected,
         ], true)
-            && ($this->visibility->canManageAll($user) || $this->isOwner($task, $user));
+            && $this->isOwner($task, $user);
     }
 
     public function delete(User $user, Task $task): bool
