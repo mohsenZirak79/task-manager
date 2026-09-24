@@ -92,8 +92,8 @@ class TaskResource extends JsonResource
             'reject' => $pendingRequest && $gate->allows('reject', $this->resource),
             'request_revision' => $pendingRequest && $gate->allows('requestRevision', $this->resource),
             'change_status' => ($assignment
-                ? $this->status === TaskStatus::Registered
-                : in_array($this->status, [TaskStatus::InProgress, TaskStatus::NotCompleted], true))
+                ? $this->status === TaskStatus::ReadyToStart
+                : in_array($this->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress, TaskStatus::NotCompleted], true))
                 && $gate->allows('changeStatus', $this->resource),
             'update_progress' => $this->status === TaskStatus::InProgress
                 && (! $assignment || ! $hasPlanningItems)
@@ -102,11 +102,11 @@ class TaskResource extends JsonResource
             'approve_assignment' => $pendingAssignment && $gate->allows('approve', $this->resource),
             'request_assignment_revision' => $pendingAssignment
                 && $gate->allows('requestRevision', $this->resource),
-            'start' => $assignment && $this->status === TaskStatus::Registered
+            'start' => $this->status === TaskStatus::ReadyToStart
                 && $gate->allows('changeStatus', $this->resource),
             'update_planning_progress' => $assignment
                 && $hasPlanningItems
-                && in_array($this->status, [TaskStatus::Registered, TaskStatus::InProgress], true)
+                && in_array($this->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)
                 && $gate->allows('updatePlanningProgress', $this->resource),
             'request_completion' => $assignment && $this->status === TaskStatus::InProgress
                 && $gate->allows('requestCompletion', $this->resource),

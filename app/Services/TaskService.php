@@ -185,14 +185,18 @@ class TaskService
             $from = $task->status;
             if ($task->submission_type === TaskSubmissionType::Assignment) {
                 $task->update([
-                    'status' => TaskStatus::Registered,
+                    'status' => TaskStatus::ReadyToStart,
                     'registered_at' => now(),
                     'rejection_reason' => null,
                 ]);
-                $this->recordHistory($task, $actor, 'assignee_approved', $from, TaskStatus::Registered);
+                $this->recordHistory($task, $actor, 'assignee_approved', $from, TaskStatus::ReadyToStart);
             } elseif ($task->submission_type === TaskSubmissionType::Request) {
-                $task->update(['status' => TaskStatus::InProgress, 'rejection_reason' => null]);
-                $this->recordHistory($task, $actor, 'approved', $from, TaskStatus::InProgress);
+                $task->update([
+                    'status' => TaskStatus::ReadyToStart,
+                    'registered_at' => now(),
+                    'rejection_reason' => null,
+                ]);
+                $this->recordHistory($task, $actor, 'approved', $from, TaskStatus::ReadyToStart);
             } else {
                 throw new HttpException(409, 'نوع گردش کار تسک معتبر نیست.');
             }
@@ -297,7 +301,7 @@ class TaskService
         return DB::transaction(function () use ($task, $actor, $status): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
             if ($task->submission_type === TaskSubmissionType::Assignment) {
-                if ($task->status !== TaskStatus::Registered || $status !== TaskStatus::InProgress) {
+                if ($task->status !== TaskStatus::ReadyToStart || $status !== TaskStatus::InProgress) {
                     throw new HttpException(409, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');
                 }
 
@@ -312,6 +316,7 @@ class TaskService
             }
 
             $allowed = match ($task->status) {
+                TaskStatus::ReadyToStart => [TaskStatus::InProgress],
                 TaskStatus::InProgress => [TaskStatus::Completed, TaskStatus::NotCompleted],
                 TaskStatus::NotCompleted => [TaskStatus::InProgress],
                 default => [],
@@ -322,7 +327,11 @@ class TaskService
             }
 
             $from = $task->status;
-            $task->update(['status' => $status]);
+            $attributes = ['status' => $status];
+            if ($status === TaskStatus::InProgress) {
+                $attributes['started_at'] = $task->started_at ?? now();
+            }
+            $task->update($attributes);
             $this->recordHistory($task, $actor, 'status_changed', $from, $status);
 
             return $this->loadTask($task);
@@ -370,12 +379,12 @@ class TaskService
                 ->findOrFail($planningItem->id);
 
             if ($task->submission_type !== TaskSubmissionType::Assignment
-                || ! in_array($task->status, [TaskStatus::Registered, TaskStatus::InProgress], true)) {
+                || ! in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)) {
                 throw new HttpException(409, 'در این مرحله امکان ثبت پیشرفت آیتم برنامه‌ریزی وجود ندارد.');
             }
 
             $fromStatus = $task->status;
-            if ($task->status === TaskStatus::Registered && $progress > 0) {
+            if ($task->status === TaskStatus::ReadyToStart && $progress > 0) {
                 $task->update([
                     'status' => TaskStatus::InProgress,
                     'started_at' => $task->started_at ?? now(),

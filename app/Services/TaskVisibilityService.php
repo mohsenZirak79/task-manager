@@ -133,7 +133,7 @@ class TaskVisibilityService
                             $query->where(function (Builder $query) use ($actor): void {
                                 $query->whereIn('status', [
                                     TaskStatus::PendingApproval->value,
-                                    TaskStatus::Registered->value,
+                                    TaskStatus::ReadyToStart->value,
                                     TaskStatus::InProgress->value,
                                 ])->whereHas('participantRecords', fn (Builder $query) => $query
                                     ->where('user_id', $actor->id)
@@ -167,7 +167,11 @@ class TaskVisibilityService
                     $query->where(function (Builder $query): void {
                         $query->whereNull('submission_type')
                             ->orWhere('submission_type', '!=', TaskSubmissionType::Assignment->value);
-                    })->whereIn('status', [TaskStatus::InProgress->value, TaskStatus::NotCompleted->value]);
+                    })->whereIn('status', [
+                        TaskStatus::ReadyToStart->value,
+                        TaskStatus::InProgress->value,
+                        TaskStatus::NotCompleted->value,
+                    ]);
                     if (! $manageAll) {
                         $query->where(function (Builder $query) use ($actor): void {
                             $query->where('created_by', $actor->id)

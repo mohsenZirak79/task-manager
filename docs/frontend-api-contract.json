@@ -32,7 +32,7 @@
         "created_by_me": "created_by=current user OR requester_id=current user",
         "assigned_to_me": "current user is an assignee participant only",
         "involved": "creator, requester, any participant, financial provider or equipment provider",
-        "action_required": "Request behavior is unchanged. For Assignment: B sees pending_approval, registered and in_progress tasks; A sees pending_completion_approval tasks.",
+        "action_required": "For Request and Assignment, the responsible user sees pending_approval, ready_to_start and in_progress tasks; the Assignment creator also sees pending_completion_approval tasks.",
         "all": "SuperAdmin or tasks:view_all only"
       },
       "defaults": {
@@ -52,8 +52,8 @@
       "actors": "A is created_by/requester; B is exactly one distinct eligible assignee.",
       "assignee_ids": "Exactly one active B is required. Non-admin A may select only an existing descendant allowed by assignment_down_levels. SuperAdmin may select any active user except self.",
       "requester_id": "For assignment, requester_id and created_by remain A.",
-      "initial_review": "draft -> pending_approval -> registered, or pending_approval -> revision_requested -> pending_approval.",
-      "execution": "B starts registered manually or by first planning item progress above zero. Planning progress is weighted; 100 percent does not auto-complete.",
+      "initial_review": "draft -> pending_approval -> ready_to_start, or pending_approval -> revision_requested -> pending_approval (for both assignment and request).",
+      "execution": "B starts ready_to_start manually or by first planning item progress above zero. Planning progress is weighted; 100 percent does not auto-complete.",
       "completion": "B requests completion, then A approves to completed or rejects back to in_progress with a required reason.",
       "timestamps": ["registered_at", "started_at", "completion_requested_at", "completed_at"],
       "allowed_actions": [
@@ -74,7 +74,7 @@
       "draft",
       "pending_approval",
       "revision_requested",
-      "registered",
+      "ready_to_start",
       "in_progress",
       "pending_completion_approval",
       "completed",
@@ -4078,7 +4078,7 @@
       "path": "/api/v1/tasks/{task}/approve",
       "authentication": true,
       "permission": "tasks:approve",
-      "description_fa": "برای request رفتار قبلی بدون تغییر است. برای assignment فقط B می‌تواند pending_approval را تأیید کند و نتیجه registered است.",
+      "description_fa": "تأیید pending_approval برای request و assignment وضعیت را به ready_to_start می‌برد؛ شروع اجرا با تغییر وضعیت جداگانه به in_progress انجام می‌شود.",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4469,7 +4469,7 @@
       "path": "/api/v1/tasks/{task}/status",
       "authentication": true,
       "permission": "tasks:update_status",
-      "description_fa": "برای assignment فقط B می‌تواند registered را دستی به in_progress ببرد. transitionهای قبلی request/legacy بدون تغییر باقی می‌مانند.",
+      "description_fa": "مسئول مجاز می‌تواند ready_to_start را دستی به in_progress ببرد. transitionهای in_progress و not_completed نیز مطابق گردش قبلی باقی می‌مانند.",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4744,7 +4744,7 @@
       "path": "/api/v1/tasks/{task}/planning-items/{planningItem}",
       "authentication": true,
       "permission": "tasks:update_progress",
-      "description_fa": "فقط B می‌تواند در registered یا in_progress درصد پیشرفت آیتم متعلق به همان تسک را تغییر دهد. اولین مقدار بیشتر از صفر، registered را به in_progress می‌برد. پیشرفت کل به‌صورت وزنی محاسبه می‌شود و ۱۰۰ درصد تسک را خودکار completed نمی‌کند.",
+      "description_fa": "فقط B می‌تواند در ready_to_start یا in_progress درصد پیشرفت آیتم متعلق به همان تسک را تغییر دهد. اولین مقدار بیشتر از صفر، ready_to_start را به in_progress می‌برد. پیشرفت کل به‌صورت وزنی محاسبه می‌شود و ۱۰۰ درصد تسک را خودکار completed نمی‌کند.",
       "path_parameters": {
         "task": {"type": "integer", "required": true},
         "planningItem": {"type": "integer", "required": true, "rules": "must belong to task"}

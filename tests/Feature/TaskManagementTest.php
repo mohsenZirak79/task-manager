@@ -49,7 +49,7 @@ class TaskManagementTest extends TestCase
         $this->assertFalse($targetIds->contains($unrelated->id));
     }
 
-    public function test_assignment_review_revision_resubmit_and_registration_are_actor_bound(): void
+    public function test_assignment_review_revision_resubmit_and_ready_state_are_actor_bound(): void
     {
         [$creator, $assignee, $other] = $this->organization();
         $task = $this->submitAssignment($creator, $assignee);
@@ -77,7 +77,7 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($assignee);
         $this->postJson("/api/v1/tasks/{$task->id}/approve")
             ->assertOk()
-            ->assertJsonPath('data.task.status', TaskStatus::Registered->value)
+            ->assertJsonPath('data.task.status', TaskStatus::ReadyToStart->value)
             ->assertJsonPath('data.task.allowed_actions.start', true)
             ->assertJsonPath('data.task.started_at', null);
         $this->postJson("/api/v1/tasks/{$task->id}/approve")->assertStatus(409);
@@ -91,7 +91,7 @@ class TaskManagementTest extends TestCase
         ]);
     }
 
-    public function test_only_assignee_can_start_registered_assignment(): void
+    public function test_only_assignee_can_start_ready_assignment(): void
     {
         [$creator, $assignee] = $this->organization();
         $task = $this->registerAssignment($creator, $assignee);
@@ -266,7 +266,14 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($manager);
         $this->postJson("/api/v1/tasks/{$approveTask->id}/approve")
             ->assertOk()
-            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+            ->assertJsonPath('data.task.status', TaskStatus::ReadyToStart->value)
+            ->assertJsonPath('data.task.allowed_actions.start', true)
+            ->assertJsonPath('data.task.allowed_actions.update_progress', false);
+        $this->postJson("/api/v1/tasks/{$approveTask->id}/status", [
+            'status' => TaskStatus::InProgress->value,
+        ])->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value)
+            ->assertJsonPath('data.task.allowed_actions.update_progress', true);
         $this->assertDatabaseHas('task_workflow_histories', [
             'task_id' => $approveTask->id,
             'actor_id' => $manager->id,
@@ -354,6 +361,12 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($assignee);
         $this->postJson("/api/v1/tasks/{$request->id}/approve")
             ->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::ReadyToStart->value)
+            ->assertJsonPath('data.task.allowed_actions.start', true)
+            ->assertJsonPath('data.task.allowed_actions.update_progress', false);
+        $this->postJson("/api/v1/tasks/{$request->id}/status", [
+            'status' => TaskStatus::InProgress->value,
+        ])->assertOk()
             ->assertJsonPath('data.task.status', TaskStatus::InProgress->value)
             ->assertJsonPath('data.task.allowed_actions.update_progress', true);
 
@@ -405,7 +418,7 @@ class TaskManagementTest extends TestCase
         $this->assertDatabaseHas('task_workflow_histories', [
             'task_id' => $task->id,
             'action' => 'task_started',
-            'from_status' => TaskStatus::Registered->value,
+            'from_status' => TaskStatus::ReadyToStart->value,
             'to_status' => TaskStatus::InProgress->value,
         ]);
 
@@ -584,7 +597,7 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($middle);
         $this->postJson("/api/v1/tasks/{$task->id}/approve", [])
             ->assertOk()
-            ->assertJsonPath('data.task.status', TaskStatus::InProgress->value);
+            ->assertJsonPath('data.task.status', TaskStatus::ReadyToStart->value);
     }
 
     public function test_eligible_users_are_grouped_and_do_not_expose_sensitive_fields(): void
@@ -968,7 +981,7 @@ class TaskManagementTest extends TestCase
         Sanctum::actingAs($assignee);
         $this->postJson("/api/v1/tasks/{$task->id}/approve")
             ->assertOk()
-            ->assertJsonPath('data.task.status', TaskStatus::Registered->value);
+            ->assertJsonPath('data.task.status', TaskStatus::ReadyToStart->value);
 
         return Task::query()->findOrFail($task->id);
     }
