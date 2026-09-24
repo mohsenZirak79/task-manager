@@ -20,6 +20,7 @@ class ChangeTaskStatusRequest extends FormRequest
                 TaskStatus::InProgress->value,
                 TaskStatus::Completed->value,
                 TaskStatus::NotCompleted->value,
+                TaskStatus::Closed->value,
             ])],
         ];
     }

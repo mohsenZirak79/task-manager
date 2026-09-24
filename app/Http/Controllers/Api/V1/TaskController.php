@@ -137,11 +137,12 @@ class TaskController extends Controller
 
     public function changeStatus(ChangeTaskStatusRequest $request, Task $task): JsonResponse
     {
-        Gate::authorize('changeStatus', $task);
+        $status = TaskStatus::from($request->validated('status'));
+        Gate::authorize($status === TaskStatus::Closed ? 'close' : 'changeStatus', $task);
         $task = $this->taskService->changeStatus(
             $task,
             $request->user(),
-            TaskStatus::from($request->validated('status')),
+            $status,
         );
 
         return $this->success('وضعیت تسک تغییر کرد.', [

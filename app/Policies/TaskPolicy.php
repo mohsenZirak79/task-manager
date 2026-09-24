@@ -7,6 +7,7 @@ use App\Enums\TaskSubmissionType;
 use App\Models\Task;
 use App\Models\User;
 use App\Services\TaskVisibilityService;
+use App\Support\AccessRoles;
 use App\Support\Permissions;
 
 class TaskPolicy
@@ -99,6 +100,14 @@ class TaskPolicy
         }
 
         return $this->visibility->canChangeStatus($user, $task);
+    }
+
+    public function close(User $user, Task $task): bool
+    {
+        return $user->hasPermission(Permissions::TASKS_UPDATE_STATUS)
+            && ($user->isSuperAdmin() || $user->hasAccessRole(AccessRoles::ADMIN))
+            && $task->submission_type === TaskSubmissionType::Request
+            && $task->status === TaskStatus::Rejected;
     }
 
     public function updateProgress(User $user, Task $task): bool

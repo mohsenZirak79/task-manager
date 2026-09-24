@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\AccessRoles;
 use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -201,6 +202,15 @@ class TaskVisibilityService
                             [TaskParticipantRole::Assignee],
                         ));
                 });
+                $hasAction = true;
+            }
+
+            if ($actor->hasPermission(Permissions::TASKS_UPDATE_STATUS)
+                && ($actor->isSuperAdmin() || $actor->hasAccessRole(AccessRoles::ADMIN))) {
+                $method = $hasAction ? 'orWhere' : 'where';
+                $actions->{$method}(fn (Builder $query) => $query
+                    ->where('submission_type', TaskSubmissionType::Request->value)
+                    ->where('status', TaskStatus::Rejected->value));
                 $hasAction = true;
             }
 

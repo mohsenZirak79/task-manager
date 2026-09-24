@@ -13,4 +13,5 @@ enum TaskStatus: string
     case Completed = 'completed';
     case NotCompleted = 'not_completed';
     case Rejected = 'rejected';
+    case Closed = 'closed';
 }

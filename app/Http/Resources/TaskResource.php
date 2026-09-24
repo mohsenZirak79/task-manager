@@ -67,6 +67,7 @@ class TaskResource extends JsonResource
             'started_at' => $this->started_at?->toISOString(),
             'completion_requested_at' => $this->completion_requested_at?->toISOString(),
             'completed_at' => $this->completed_at?->toISOString(),
+            'closed_at' => $this->closed_at?->toISOString(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];
@@ -91,6 +92,9 @@ class TaskResource extends JsonResource
             'approve' => $pendingRequest && $gate->allows('approve', $this->resource),
             'reject' => $pendingRequest && $gate->allows('reject', $this->resource),
             'request_revision' => $pendingRequest && $gate->allows('requestRevision', $this->resource),
+            'close' => ! $assignment
+                && $this->status === TaskStatus::Rejected
+                && $gate->allows('close', $this->resource),
             'change_status' => ($assignment
                 ? $this->status === TaskStatus::ReadyToStart
                 : in_array($this->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress, TaskStatus::NotCompleted], true))

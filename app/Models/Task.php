@@ -35,6 +35,7 @@ class Task extends Model
         'started_at',
         'completion_requested_at',
         'completed_at',
+        'closed_at',
     ];
 
     public function requester(): BelongsTo
@@ -127,6 +128,7 @@ class Task extends Model
             'started_at' => 'datetime',
             'completion_requested_at' => 'datetime',
             'completed_at' => 'datetime',
+            'closed_at' => 'datetime',
         ];
     }
 }

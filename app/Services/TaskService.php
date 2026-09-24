@@ -300,6 +300,23 @@ class TaskService
     {
         return DB::transaction(function () use ($task, $actor, $status): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+
+            if ($status === TaskStatus::Closed) {
+                if ($task->submission_type !== TaskSubmissionType::Request
+                    || $task->status !== TaskStatus::Rejected) {
+                    throw new HttpException(409, 'فقط درخواست ردشده قابل بستن است.');
+                }
+
+                $from = $task->status;
+                $task->update([
+                    'status' => TaskStatus::Closed,
+                    'closed_at' => now(),
+                ]);
+                $this->recordHistory($task, $actor, 'closed', $from, TaskStatus::Closed);
+
+                return $this->loadTask($task);
+            }
+
             if ($task->submission_type === TaskSubmissionType::Assignment) {
                 if ($task->status !== TaskStatus::ReadyToStart || $status !== TaskStatus::InProgress) {
                     throw new HttpException(409, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');

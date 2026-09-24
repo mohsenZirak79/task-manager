@@ -55,7 +55,7 @@
       "initial_review": "draft -> pending_approval -> ready_to_start, or pending_approval -> revision_requested -> pending_approval (for both assignment and request).",
       "execution": "B starts ready_to_start manually or by first planning item progress above zero. Planning progress is weighted; 100 percent does not auto-complete.",
       "completion": "B requests completion, then A approves to completed or rejects back to in_progress with a required reason.",
-      "timestamps": ["registered_at", "started_at", "completion_requested_at", "completed_at"],
+      "timestamps": ["registered_at", "started_at", "completion_requested_at", "completed_at", "closed_at"],
       "allowed_actions": [
         "approve_assignment",
         "request_assignment_revision",
@@ -63,10 +63,11 @@
         "update_planning_progress",
         "request_completion",
         "approve_completion",
-        "reject_completion"
+        "reject_completion",
+        "close"
       ],
       "type_change": "submission_type cannot change after draft",
-      "request_workflow": "submission_type=request is unchanged"
+      "request_workflow": "A rejected request can be changed from rejected to closed only by Admin or Super Admin."
     }
   },
   "enums": {
@@ -79,7 +80,8 @@
       "pending_completion_approval",
       "completed",
       "not_completed",
-      "rejected"
+      "rejected",
+      "closed"
     ],
     "task_submission_type": [
       "assignment",
@@ -2710,10 +2712,13 @@
             "draft",
             "pending_approval",
             "revision_requested",
+            "ready_to_start",
             "in_progress",
+            "pending_completion_approval",
             "completed",
             "not_completed",
-            "rejected"
+            "rejected",
+            "closed"
           ]
         },
         "submission_type": {
@@ -4469,7 +4474,7 @@
       "path": "/api/v1/tasks/{task}/status",
       "authentication": true,
       "permission": "tasks:update_status",
-      "description_fa": "مسئول مجاز می‌تواند ready_to_start را دستی به in_progress ببرد. transitionهای in_progress و not_completed نیز مطابق گردش قبلی باقی می‌مانند.",
+      "description_fa": "مسئول مجاز می‌تواند ready_to_start را دستی به in_progress ببرد. Admin یا Super Admin نیز می‌تواند درخواست rejected را به closed ببرد. transitionهای in_progress و not_completed مطابق گردش قبلی باقی می‌مانند.",
       "path_parameters": {
         "task": {
           "type": "integer",
@@ -4486,7 +4491,7 @@
             "type": "string",
             "required": true,
             "nullable": false,
-            "rules": "allowed: in_progress, completed, not_completed",
+            "rules": "allowed: in_progress, completed, not_completed, closed; closed only for rejected requests and Admin/Super Admin",
             "example": "in_progress"
           }
         },

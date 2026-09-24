@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
+use App\Models\AccessRole;
 use App\Models\MediaFile;
 use App\Models\OrgPosition;
 use App\Models\Task;
 use App\Models\User;
+use App\Support\AccessRoles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -291,6 +293,49 @@ class TaskManagementTest extends TestCase
             'task_id' => $rejectTask->id,
             'action' => 'rejected',
             'reason' => 'اطلاعات درخواست کافی نیست.',
+        ]);
+    }
+
+    public function test_only_admin_can_close_a_rejected_request(): void
+    {
+        [$manager, $worker] = $this->organization();
+        $task = $this->submitRequest($worker, $manager);
+
+        Sanctum::actingAs($manager);
+        $this->postJson("/api/v1/tasks/{$task->id}/reject", [
+            'reason' => 'امکان انجام این درخواست وجود ندارد.',
+        ])->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::Rejected->value)
+            ->assertJsonPath('data.task.allowed_actions.close', false);
+
+        $this->postJson("/api/v1/tasks/{$task->id}/status", [
+            'status' => TaskStatus::Closed->value,
+        ])->assertForbidden();
+
+        $admin = User::factory()->create();
+        $adminRole = AccessRole::query()->where('slug', AccessRoles::ADMIN)->firstOrFail();
+        $admin->accessRoles()->syncWithoutDetaching([$adminRole->id]);
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/tasks?submission_type=request&scope=action_required')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.id', $task->id);
+        $this->getJson("/api/v1/tasks/{$task->id}")
+            ->assertOk()
+            ->assertJsonPath('data.task.allowed_actions.close', true);
+        $this->postJson("/api/v1/tasks/{$task->id}/status", [
+            'status' => TaskStatus::Closed->value,
+        ])->assertOk()
+            ->assertJsonPath('data.task.status', TaskStatus::Closed->value)
+            ->assertJsonPath('data.task.allowed_actions.close', false);
+
+        $this->assertNotNull(Task::query()->findOrFail($task->id)->closed_at);
+        $this->assertDatabaseHas('task_workflow_histories', [
+            'task_id' => $task->id,
+            'actor_id' => $admin->id,
+            'action' => 'closed',
+            'from_status' => TaskStatus::Rejected->value,
+            'to_status' => TaskStatus::Closed->value,
         ]);
     }
 
