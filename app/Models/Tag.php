@@ -13,4 +13,9 @@ class Tag extends Model
     {
         return $this->belongsToMany(Task::class)->withTimestamps();
     }
+
+    public function reports(): BelongsToMany
+    {
+        return $this->belongsToMany(Report::class, 'report_tag')->withTimestamps();
+    }
 }

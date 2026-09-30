@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\MeetingResolutionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MeetingResolution extends Model
 {
-    protected $fillable = ['meeting_id', 'agenda_item_id', 'title', 'description', 'task_id', 'created_by', 'sort_order'];
+    protected $fillable = ['meeting_id', 'agenda_item_id', 'title', 'description', 'resolution_type', 'task_id', 'created_by', 'sort_order'];
 
     public function meeting(): BelongsTo
     {
@@ -27,5 +29,15 @@ class MeetingResolution extends Model
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function report(): HasOne
+    {
+        return $this->hasOne(Report::class);
+    }
+
+    protected function casts(): array
+    {
+        return ['resolution_type' => MeetingResolutionType::class];
     }
 }

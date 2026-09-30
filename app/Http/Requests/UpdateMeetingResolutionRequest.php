@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\MeetingResolutionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +21,7 @@ class UpdateMeetingResolutionRequest extends FormRequest
                 'sometimes', 'nullable', 'integer', Rule::exists('tasks', 'id'),
                 Rule::unique('meeting_resolutions', 'task_id')->ignore($this->route('resolution')?->id),
             ],
+            'resolution_type' => ['sometimes', Rule::enum(MeetingResolutionType::class)],
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],

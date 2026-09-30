@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReportController;
+use App\Http\Controllers\Api\V1\ReportTagController;
 use App\Http\Controllers\Api\V1\TaskCommentController;
 use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TaskTagController;
@@ -43,6 +45,15 @@ Route::prefix('v1')->group(function (): void {
             Route::patch('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'update'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber(['meeting', 'resolution']);
             Route::delete('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'destroy'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber(['meeting', 'resolution']);
             Route::post('meetings/{meeting}/resolutions/{resolution}/create-task', [MeetingResolutionController::class, 'createTask'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::TASKS_CREATE])->whereNumber(['meeting', 'resolution']);
+            Route::get('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'showForResolution'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['meeting', 'resolution']);
+            Route::post('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'store'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::REPORTS_MANAGE])->whereNumber(['meeting', 'resolution']);
+
+            Route::get('reports', [ReportController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
+            Route::get('reports/eligible-users', [ReportController::class, 'eligibleUsers'])->middleware('permission:'.Permissions::REPORTS_MANAGE);
+            Route::get('report-tags', [ReportTagController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
+            Route::get('reports/{report}', [ReportController::class, 'show'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber('report');
+            Route::patch('reports/{report}', [ReportController::class, 'update'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
+            Route::delete('reports/{report}', [ReportController::class, 'destroy'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
 
             Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:'.Permissions::TASKS_CREATE);

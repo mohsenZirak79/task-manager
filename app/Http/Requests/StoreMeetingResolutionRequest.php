@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\MeetingResolutionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,7 @@ class StoreMeetingResolutionRequest extends FormRequest
         return [
             'agenda_item_id' => ['sometimes', 'nullable', 'integer', Rule::exists('meeting_agenda_items', 'id')],
             'task_id' => ['sometimes', 'nullable', 'integer', Rule::exists('tasks', 'id'), Rule::unique('meeting_resolutions', 'task_id')],
+            'resolution_type' => ['sometimes', Rule::enum(MeetingResolutionType::class)],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['sometimes', 'nullable', 'string'],
             'sort_order' => ['sometimes', 'integer', 'min:0'],

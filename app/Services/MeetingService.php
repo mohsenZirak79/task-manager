@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\MeetingResolutionType;
 use App\Enums\MeetingStatus;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
@@ -137,9 +138,13 @@ class MeetingService
             $this->ensureScheduled($meeting);
             $this->ensureAgendaBelongsToMeeting($meeting, $data['agenda_item_id'] ?? null);
             $this->authorizeLinkedTask($data['task_id'] ?? null, $actor);
+            $this->ensureResolutionTypeMatchesTask(
+                $data['resolution_type'] ?? MeetingResolutionType::Task->value,
+                $data['task_id'] ?? null,
+            );
 
             $resolution = $meeting->resolutions()->create([
-                ...Arr::only($data, ['agenda_item_id', 'task_id', 'title', 'description', 'sort_order']),
+                ...Arr::only($data, ['agenda_item_id', 'task_id', 'title', 'description', 'resolution_type', 'sort_order']),
                 'created_by' => $actor->id,
             ]);
 
@@ -159,7 +164,16 @@ class MeetingService
             if (array_key_exists('task_id', $data)) {
                 $this->authorizeLinkedTask($data['task_id'], $actor);
             }
-            $resolution->update(Arr::only($data, ['agenda_item_id', 'task_id', 'title', 'description', 'sort_order']));
+            $this->ensureResolutionTypeMatchesTask(
+                $data['resolution_type'] ?? $resolution->resolution_type->value,
+                array_key_exists('task_id', $data) ? $data['task_id'] : $resolution->task_id,
+            );
+            if (array_key_exists('resolution_type', $data)
+                && $resolution->resolution_type->value !== $data['resolution_type']
+                && ($resolution->task_id !== null || $resolution->report()->exists())) {
+                throw new HttpException(409, 'نوع مصوبه‌ای که به تسک یا گزارش متصل است قابل تغییر نیست.');
+            }
+            $resolution->update(Arr::only($data, ['agenda_item_id', 'task_id', 'title', 'description', 'resolution_type', 'sort_order']));
 
             return $this->loadResolution($resolution);
         });
@@ -185,6 +199,12 @@ class MeetingService
             if ($resolution->task_id !== null) {
                 throw new HttpException(409, 'برای این مصوبه قبلاً تسک ثبت شده است.');
             }
+            if ($resolution->resolution_type !== MeetingResolutionType::Task) {
+                throw new HttpException(409, 'فقط برای مصوبه‌ای با نوع تسک می‌توان تسک ثبت کرد.');
+            }
+            if ($resolution->report()->exists()) {
+                throw new HttpException(409, 'این مصوبه قبلاً به یک گزارش متصل شده است.');
+            }
 
             $this->ensureTaskAssigneesAttendMeeting($meeting, $data['assignee_ids'] ?? []);
 
@@ -209,6 +229,9 @@ class MeetingService
             $this->ensureScheduled($meeting);
             if ($resolution->task_id !== null) {
                 throw new HttpException(409, 'برای این مصوبه قبلاً تسک ثبت شده است.');
+            }
+            if ($resolution->resolution_type !== MeetingResolutionType::Task) {
+                throw new HttpException(409, 'فقط برای مصوبه‌ای با نوع تسک می‌توان تسک متصل کرد.');
             }
             Gate::forUser($actor)->authorize('view', $task);
             if (MeetingResolution::query()->where('task_id', $task->id)->exists()) {
@@ -238,6 +261,15 @@ class MeetingService
         }
         $this->validateSubmission($meeting);
         $meeting->update(['status' => MeetingStatus::Scheduled, 'submitted_at' => now()]);
+    }
+
+    private function ensureResolutionTypeMatchesTask(string $type, ?int $taskId): void
+    {
+        if ($type === MeetingResolutionType::Report->value && $taskId !== null) {
+            throw ValidationException::withMessages([
+                'task_id' => 'مصوبه با نوع گزارش نمی‌تواند به تسک متصل باشد.',
+            ]);
+        }
     }
 
     private function validateSubmission(Meeting $meeting): void
@@ -359,11 +391,12 @@ class MeetingService
         return $meeting->fresh([
             'chairman', 'secretary', 'creator', 'attendees', 'agendaItems',
             'resolutions.agendaItem', 'resolutions.creator', 'resolutions.task.assignees', 'resolutions.task.tags',
+            'resolutions.report.recipient', 'resolutions.report.ccUsers', 'resolutions.report.tags', 'resolutions.report.creator',
         ]);
     }
 
     private function loadResolution(MeetingResolution $resolution): MeetingResolution
     {
-        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.tags', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting']);
+        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.tags', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting', 'report.recipient', 'report.ccUsers', 'report.tags', 'report.creator']);
     }
 }

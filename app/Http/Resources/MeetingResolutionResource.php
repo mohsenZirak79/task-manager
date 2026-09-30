@@ -16,8 +16,10 @@ class MeetingResolutionResource extends JsonResource
             'agenda_item_id' => $this->agenda_item_id,
             'title' => $this->title,
             'description' => $this->description,
+            'resolution_type' => $this->resolution_type->value,
             'sort_order' => $this->sort_order,
             'task' => $this->task ? new MeetingTaskSummaryResource($this->task) : null,
+            'report' => $this->report ? new ReportResource($this->report) : null,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
         ];

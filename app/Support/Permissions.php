@@ -60,6 +60,10 @@ final class Permissions
 
     public const MEETINGS_MANAGE_RESOLUTIONS = 'meetings:manage_resolutions';
 
+    public const REPORTS_VIEW = 'reports:view';
+
+    public const REPORTS_MANAGE = 'reports:manage';
+
     public const SYSTEM_ACCESS_ADMIN_SECTIONS = 'system:access_admin_sections';
 
     /** @return array<string, string> */
@@ -94,6 +98,8 @@ final class Permissions
             self::MEETINGS_DELETE => 'Delete permitted meetings',
             self::MEETINGS_COMPLETE => 'Complete permitted meetings',
             self::MEETINGS_MANAGE_RESOLUTIONS => 'Manage meeting resolutions and tasks',
+            self::REPORTS_VIEW => 'View permitted reports',
+            self::REPORTS_MANAGE => 'Create, update, and delete permitted reports',
             self::SYSTEM_ACCESS_ADMIN_SECTIONS => 'Access administration-only settings and contact sections',
         ];
     }
@@ -117,6 +123,7 @@ final class Permissions
             self::ORG_POSITIONS_VIEW,
             self::MEETINGS_VIEW,
             self::MEETINGS_CREATE,
+            self::REPORTS_VIEW,
             self::TASKS_VIEW,
             self::TASKS_CREATE,
             self::TASKS_UPDATE,
