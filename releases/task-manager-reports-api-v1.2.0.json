@@ -1,0 +1,1064 @@
+{
+  "document": {
+    "title": "Frontend API contract - Standalone and Meeting Resolution Reports",
+    "title_fa": "قرارداد API گزارش‌های مستقل و گزارش مصوبات",
+    "version": "1.2.0",
+    "generated_at": "2026-10-05",
+    "base_path": "/api/v1",
+    "content_type": "application/json",
+    "authentication": "Bearer token (Laravel Sanctum)",
+    "scope": "Reports workflow, numbering, attachments, comments and standalone creation",
+    "notes_fa": [
+      "برای سازگاری با نسخه‌های قبلی، resolution_type در ایجاد مصوبه اختیاری است و مقدار پیش‌فرض آن task است.",
+      "گزارش مرتبط با مصوبه برای ایجاد، ویرایش و حذف به جلسه scheduled نیاز دارد؛ گزارش مستقل وابستگی به جلسه ندارد.",
+      "هر مصوبه فقط می‌تواند به یکی از task یا report متصل شود و هر مصوبه حداکثر یک گزارش دارد.",
+      "فیلد tags آرایه‌ای از عنوان تگ‌ها است؛ خروجی تگ‌ها شامل id و title است.",
+      "زمان‌ها به فرمت ISO 8601 و meeting_date به فرمت YYYY-MM-DD برگردانده می‌شوند.",
+      "گزارش‌های قبلی هنگام migration به sent با sent_at برابر created_at تبدیل می‌شوند و شماره گزارش دریافت می‌کنند.",
+      "ساختار Meeting -> Resolution -> Report و رفتار مصوبه تسک تغییری نکرده است.",
+      "POST /api/v1/reports گزارش مستقل می‌سازد؛ meeting_resolution_id، meeting و resolution در خروجی null هستند."
+    ],
+    "base_contract": "task-manager-reports-api-v1.1.0",
+    "base_backend_commit": "961dfbc83ecba71bf687c3231dab8cfb3dfbc83c"
+  },
+  "enums": {
+    "meeting_resolution_type": [
+      "task",
+      "report"
+    ],
+    "editable_meeting_status": "scheduled",
+    "report_status": [
+      "draft",
+      "sent",
+      "viewed",
+      "inactive"
+    ],
+    "creatable_report_status": [
+      "draft",
+      "sent"
+    ],
+    "inactive_note": "Reserved and accepted as a list filter; no public activation/deactivation endpoint or transition is implemented."
+  },
+  "permissions": {
+    "reports:view": "مشاهده فهرست و جزئیات گزارش‌های قابل دسترس",
+    "reports:manage": "ثبت گزارش مستقل؛ مدیریت گزارش مستقل توسط سازنده یا مدیر؛ مدیریت گزارش مصوبه با رعایت دسترسی جلسه",
+    "meetings:manage_resolutions": "برای ایجاد گزارش روی مصوبه، علاوه بر reports:manage لازم است",
+    "role_defaults": {
+      "super_admin": [
+        "reports:view",
+        "reports:manage"
+      ],
+      "admin": [
+        "reports:view",
+        "reports:manage"
+      ],
+      "user": [
+        "reports:view",
+        "reports:manage"
+      ]
+    },
+    "visibility_fa": "مدیرها همه گزارش‌ها را می‌بینند. گزارش مستقل برای سازنده، گیرنده و رونوشت قابل مشاهده است. گزارش مصوبه علاوه بر این افراد برای اعضای مجاز جلسه قابل مشاهده است.",
+    "comments": "reports:view and report visibility to list/create. Edit/delete additionally requires ownership, Super Admin, or Admin role with reports:manage. No new permissions. Active authenticated users only."
+  },
+  "response_envelopes": {
+    "success": {
+      "success": true,
+      "message": "پیام فارسی",
+      "data": {}
+    },
+    "validation_error_422": {
+      "message": "اطلاعات ارسال‌شده معتبر نیست.",
+      "errors": {
+        "field_name": [
+          "پیام اعتبارسنجی"
+        ]
+      }
+    },
+    "common_status_codes": {
+      "401": "توکن ارسال نشده یا معتبر نیست",
+      "403": "کاربر permission یا دسترسی لازم به منبع را ندارد",
+      "404": "جلسه، مصوبه یا گزارش پیدا نشد یا مصوبه متعلق به جلسه نیست",
+      "409": "وضعیت جلسه/مصوبه با عملیات سازگار نیست یا قبلاً گزارش/تسک متصل شده است",
+      "422": "ورودی معتبر نیست"
+    }
+  },
+  "schemas": {
+    "user_summary": {
+      "id": "integer",
+      "org_code": "string|null",
+      "first_name": "string",
+      "last_name": "string",
+      "full_name": "string",
+      "title": "string|null",
+      "avatar_file_id": "integer|null"
+    },
+    "tag": {
+      "id": "integer",
+      "title": "string"
+    },
+    "pagination_meta": {
+      "current_page": "integer",
+      "last_page": "integer",
+      "per_page": "integer",
+      "total": "integer"
+    },
+    "report": {
+      "id": "integer",
+      "meeting_resolution_id": "integer|null; null for standalone reports",
+      "meeting": {
+        "nullable": true,
+        "fields": {
+          "id": "integer",
+          "title": "string",
+          "meeting_date": "string|null (YYYY-MM-DD)"
+        },
+        "null_when": "standalone report"
+      },
+      "resolution": {
+        "nullable": true,
+        "fields": {
+          "id": "integer",
+          "title": "string",
+          "agenda_item_id": "integer|null",
+          "resolution_type": "report"
+        },
+        "null_when": "standalone report"
+      },
+      "title": "string",
+      "short_description": "string",
+      "description": "string",
+      "recipient": "$ref:schemas.user_summary",
+      "cc_users": "array<$ref:schemas.user_summary>",
+      "tags": "array<$ref:schemas.tag>",
+      "creator": "$ref:schemas.user_summary",
+      "created_at": "string|null (ISO 8601)",
+      "updated_at": "string|null (ISO 8601)",
+      "report_number": "string, unique, immutable, backend generated RPT- + id padded to at least 6 digits",
+      "status": "draft|sent|viewed|inactive",
+      "sent_at": "string|null (ISO 8601)",
+      "viewed_at": "string|null (ISO 8601)",
+      "attachments": "array<$ref:schemas.media_file>"
+    },
+    "report_example": {
+      "id": 18,
+      "meeting_resolution_id": 42,
+      "meeting": {
+        "id": 7,
+        "title": "جلسه بررسی عملکرد ماهانه",
+        "meeting_date": "2026-09-30"
+      },
+      "resolution": {
+        "id": 42,
+        "title": "تهیه گزارش عملکرد واحد مالی",
+        "agenda_item_id": 12,
+        "resolution_type": "report"
+      },
+      "title": "گزارش عملکرد ماهانه",
+      "short_description": "خلاصه عملکرد واحد مالی در شهریور",
+      "description": "متن کامل گزارش عملکرد واحد مالی",
+      "recipient": {
+        "id": 2,
+        "org_code": "100002",
+        "first_name": "علی",
+        "last_name": "احمدی",
+        "full_name": "علی احمدی",
+        "title": "مدیر مالی",
+        "avatar_file_id": null
+      },
+      "cc_users": [
+        {
+          "id": 3,
+          "org_code": "100003",
+          "first_name": "مریم",
+          "last_name": "رضایی",
+          "full_name": "مریم رضایی",
+          "title": "کارشناس مالی",
+          "avatar_file_id": null
+        }
+      ],
+      "tags": [
+        {
+          "id": 5,
+          "title": "ماهانه"
+        },
+        {
+          "id": 8,
+          "title": "مالی"
+        }
+      ],
+      "creator": {
+        "id": 1,
+        "org_code": "100001",
+        "first_name": "مدیر",
+        "last_name": "سیستم",
+        "full_name": "مدیر سیستم",
+        "title": "مدیر سامانه",
+        "avatar_file_id": null
+      },
+      "created_at": "2026-09-30T10:00:00.000000Z",
+      "updated_at": "2026-09-30T10:00:00.000000Z",
+      "report_number": "RPT-000018",
+      "status": "sent",
+      "sent_at": "2026-09-30T10:00:00.000000Z",
+      "viewed_at": null,
+      "attachments": [
+        {
+          "id": 12,
+          "original_name": "filename.pdf",
+          "mime_type": "application/pdf",
+          "size": 1048576,
+          "category": "attachment",
+          "url": "https://example.com/storage/task-attachments/example.pdf"
+        }
+      ]
+    },
+    "media_file": {
+      "id": "integer",
+      "original_name": "string (use as UI filename; no name alias)",
+      "mime_type": "string",
+      "size": "integer (bytes)",
+      "category": "attachment",
+      "url": "string"
+    },
+    "media_file_example": {
+      "id": 12,
+      "original_name": "filename.pdf",
+      "mime_type": "application/pdf",
+      "size": 1048576,
+      "category": "attachment",
+      "url": "https://example.com/storage/task-attachments/example.pdf"
+    },
+    "comment": {
+      "id": "integer",
+      "report_id": "integer",
+      "parent_id": "integer|null",
+      "user": "$ref:schemas.user_summary",
+      "body": "string|null (null for deleted comments)",
+      "is_deleted": "boolean",
+      "created_at": "string|null (ISO 8601)",
+      "updated_at": "string|null (ISO 8601)"
+    },
+    "comment_example": {
+      "id": 31,
+      "report_id": 18,
+      "parent_id": null,
+      "user": {
+        "id": 2,
+        "org_code": "100002",
+        "first_name": "علی",
+        "last_name": "احمدی",
+        "full_name": "علی احمدی",
+        "title": "مدیر مالی",
+        "avatar_file_id": null
+      },
+      "body": "دیدگاه درباره گزارش",
+      "is_deleted": false,
+      "created_at": "2026-10-03T10:00:00.000000Z",
+      "updated_at": "2026-10-03T10:00:00.000000Z"
+    },
+    "standalone_report_example": {
+      "id": 18,
+      "meeting_resolution_id": null,
+      "meeting": null,
+      "resolution": null,
+      "title": "گزارش مستقل عملکرد",
+      "short_description": "خلاصه عملکرد واحد مالی در شهریور",
+      "description": "متن کامل گزارش عملکرد واحد مالی",
+      "recipient": {
+        "id": 2,
+        "org_code": "100002",
+        "first_name": "علی",
+        "last_name": "احمدی",
+        "full_name": "علی احمدی",
+        "title": "مدیر مالی",
+        "avatar_file_id": null
+      },
+      "cc_users": [
+        {
+          "id": 3,
+          "org_code": "100003",
+          "first_name": "مریم",
+          "last_name": "رضایی",
+          "full_name": "مریم رضایی",
+          "title": "کارشناس مالی",
+          "avatar_file_id": null
+        }
+      ],
+      "tags": [
+        {
+          "id": 5,
+          "title": "ماهانه"
+        },
+        {
+          "id": 8,
+          "title": "مالی"
+        }
+      ],
+      "creator": {
+        "id": 1,
+        "org_code": "100001",
+        "first_name": "مدیر",
+        "last_name": "سیستم",
+        "full_name": "مدیر سیستم",
+        "title": "مدیر سامانه",
+        "avatar_file_id": null
+      },
+      "created_at": "2026-10-05T10:00:00.000000Z",
+      "updated_at": "2026-10-05T10:00:00.000000Z",
+      "report_number": "RPT-000018",
+      "status": "sent",
+      "sent_at": "2026-10-05T10:00:00.000000Z",
+      "viewed_at": null,
+      "attachments": [
+        {
+          "id": 12,
+          "original_name": "filename.pdf",
+          "mime_type": "application/pdf",
+          "size": 1048576,
+          "category": "attachment",
+          "url": "https://example.com/storage/task-attachments/example.pdf"
+        }
+      ]
+    }
+  },
+  "resolution_changes": {
+    "affected_endpoints": [
+      "POST /api/v1/meetings/{meeting}/resolutions",
+      "PATCH /api/v1/meetings/{meeting}/resolutions/{resolution}"
+    ],
+    "new_input_field": {
+      "resolution_type": {
+        "type": "string",
+        "required": false,
+        "default": "task",
+        "enum": [
+          "task",
+          "report"
+        ]
+      }
+    },
+    "input_example": {
+      "title": "تهیه گزارش عملکرد ماهانه",
+      "description": "گزارش برای مدیریت ارسال شود",
+      "resolution_type": "report",
+      "agenda_item_id": 12,
+      "sort_order": 1
+    },
+    "new_output_fields": {
+      "resolution_type": "task|report",
+      "task": "object|null",
+      "report": "object|null"
+    },
+    "constraints_fa": [
+      "مصوبه نوع report نمی‌تواند task_id داشته باشد.",
+      "پس از اتصال task یا report، تغییر resolution_type مجاز نیست."
+    ]
+  },
+  "endpoints": [
+    {
+      "name": "Create standalone report",
+      "description_fa": "ثبت و ارجاع گزارش بدون جلسه و مصوبه",
+      "method": "POST",
+      "path": "/api/v1/reports",
+      "authentication": true,
+      "permissions": [
+        "reports:manage"
+      ],
+      "request_body": {
+        "fields": {
+          "title": "string, required, max:255",
+          "short_description": "string, required, max:500",
+          "description": "string, required",
+          "recipient_user_id": "integer, required, active non-deleted user id",
+          "cc_user_ids": "array<integer>, optional, max:100, distinct active users; recipient is forbidden",
+          "tags": "array<string>, optional, max:20; each title required, distinct, max:100",
+          "status": "string, optional, draft|sent, default:sent",
+          "attachment_file_ids": "array<integer>, optional, max:20; required distinct existing media_files IDs with category=attachment. New files must belong to actor unless Super Admin; already attached files may be retained by any authorized report manager. Invalid files:422; unauthorized ownership:403."
+        },
+        "example": {
+          "title": "گزارش عملکرد ماهانه",
+          "short_description": "خلاصه عملکرد واحد مالی در شهریور",
+          "description": "متن کامل گزارش عملکرد واحد مالی",
+          "recipient_user_id": 2,
+          "cc_user_ids": [
+            3,
+            4
+          ],
+          "tags": [
+            "ماهانه",
+            "مالی"
+          ],
+          "status": "sent",
+          "attachment_file_ids": [
+            12
+          ]
+        }
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "گزارش با موفقیت ثبت شد.",
+          "data": {
+            "report": "$ref:schemas.standalone_report_example"
+          }
+        }
+      },
+      "business_rules_fa": [
+        "جلسه و مصوبه لازم نیست و ارتباطی به آن‌ها ذخیره نمی‌شود؛ شناسه جلسه یا مصوبه در بدنه ارسال نشود.",
+        "گیرنده اصلی الزامی و فعال است؛ رونوشت اختیاری و متفاوت از گیرنده است.",
+        "بدون status گزارش sent می‌شود؛ status=draft پیش‌نویس بدون sent_at می‌سازد.",
+        "سازنده و مدیرها با reports:manage می‌توانند گزارش مستقل را ویرایش، حذف و ارسال کنند.",
+        "این مسیر وضعیت ارسال را ثبت می‌کند؛ ارسال ایمیل یا اعلان جدید پیاده‌سازی نشده است."
+      ]
+    },
+    {
+      "name": "Create report for resolution",
+      "description_fa": "ایجاد گزارش برای مصوبه",
+      "method": "POST",
+      "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}/report",
+      "authentication": true,
+      "permissions": [
+        "meetings:manage_resolutions",
+        "reports:manage"
+      ],
+      "path_parameters": {
+        "meeting": "integer, required",
+        "resolution": "integer, required; must belong to meeting"
+      },
+      "request_body": {
+        "fields": {
+          "title": "string, required, max:255",
+          "short_description": "string, required, max:500",
+          "description": "string, required",
+          "recipient_user_id": "integer, required, active non-deleted user id",
+          "cc_user_ids": "array<integer>, optional, max:100, distinct active users; recipient is forbidden",
+          "tags": "array<string>, optional, max:20; each title required, distinct, max:100",
+          "status": "string, optional, draft|sent, default:sent",
+          "attachment_file_ids": "array<integer>, optional, max:20; required distinct existing media_files IDs with category=attachment. New files must belong to actor unless Super Admin; already attached files may be retained by any authorized report manager. Invalid files:422; unauthorized ownership:403."
+        },
+        "example": {
+          "title": "گزارش عملکرد ماهانه",
+          "short_description": "خلاصه عملکرد واحد مالی در شهریور",
+          "description": "متن کامل گزارش عملکرد واحد مالی",
+          "recipient_user_id": 2,
+          "cc_user_ids": [
+            3,
+            4
+          ],
+          "tags": [
+            "ماهانه",
+            "مالی"
+          ],
+          "status": "sent",
+          "attachment_file_ids": [
+            12
+          ]
+        }
+      },
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "گزارش با موفقیت ثبت شد.",
+          "data": {
+            "report": "$ref:schemas.report_example"
+          }
+        }
+      },
+      "business_rules_fa": [
+        "جلسه باید scheduled باشد.",
+        "resolution_type باید report باشد.",
+        "مصوبه نباید task داشته باشد و قبلاً برای آن گزارش ساخته نشده باشد.",
+        "draft فقط ذخیره می‌شود و sent_at ندارد؛ sent زمان ارسال را ثبت می‌کند.",
+        "شماره گزارش و زمان‌های workflow توسط سرور تولید می‌شوند؛ ارسال در این نسخه ثبت وضعیت است و اعلان یا ایمیل جدیدی ایجاد نمی‌کند."
+      ]
+    },
+    {
+      "name": "List reports",
+      "description_fa": "فهرست گزارش‌های قابل مشاهده کاربر",
+      "method": "GET",
+      "path": "/api/v1/reports",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "query_parameters": {
+        "search": "string, optional, max:255; searches report title, short_description, description and resolution title, and report_number",
+        "meeting_id": "integer, optional, existing non-deleted meeting",
+        "resolution_id": "integer, optional, existing resolution",
+        "recipient_user_id": "integer, optional, existing user",
+        "tag_id": "integer, optional, existing tag",
+        "page": "integer, optional, min:1",
+        "per_page": "integer, optional, 1..100, default:15",
+        "status": "string, optional, draft|sent|viewed|inactive",
+        "creator_user_id": "integer, optional, existing user"
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست گزارش‌ها",
+          "data": {
+            "items": [
+              "$ref:schemas.report_example"
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 15,
+              "total": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Get report by resolution",
+      "description_fa": "دریافت گزارش با شناسه جلسه و مصوبه، وقتی id گزارش در دسترس نیست",
+      "method": "GET",
+      "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}/report",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات گزارش مصوبه",
+          "data": {
+            "report": "$ref:schemas.report_example"
+          }
+        }
+      }
+    },
+    {
+      "name": "Get report by id",
+      "description_fa": "دریافت جزئیات گزارش با شناسه گزارش",
+      "method": "GET",
+      "path": "/api/v1/reports/{report}",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "جزئیات گزارش",
+          "data": {
+            "report": "$ref:schemas.report_example"
+          }
+        }
+      }
+    },
+    {
+      "name": "Update report",
+      "description_fa": "ویرایش گزارش؛ همه فیلدها اختیاری‌اند اما فیلد ارسال‌شده نمی‌تواند خالی باشد",
+      "method": "PATCH",
+      "path": "/api/v1/reports/{report}",
+      "authentication": true,
+      "permissions": [
+        "reports:manage"
+      ],
+      "request_body": {
+        "fields": {
+          "title": "string, optional, max:255",
+          "short_description": "string, optional, max:500",
+          "description": "string, optional",
+          "recipient_user_id": "integer, optional, active non-deleted user id",
+          "cc_user_ids": "array<integer>, optional, max:100, distinct active users; recipient is forbidden",
+          "tags": "array<string>, optional, max:20; each title required, distinct, max:100",
+          "attachment_file_ids": "array<integer>, optional, max:20; required distinct existing media_files IDs with category=attachment. New files must belong to actor unless Super Admin; already attached files may be retained by any authorized report manager. Invalid files:422; unauthorized ownership:403.",
+          "status": "prohibited; use /send or /view",
+          "report_number": "prohibited, immutable",
+          "sent_at": "prohibited",
+          "viewed_at": "prohibited"
+        },
+        "example": {
+          "title": "گزارش عملکرد و بودجه",
+          "cc_user_ids": [],
+          "tags": [
+            "بودجه"
+          ]
+        },
+        "replacement_behavior_fa": "برای cc_user_ids و tags و attachment_file_ids: نبودن فیلد یعنی بدون تغییر؛ [] یعنی حذف همه ارتباط‌ها؛ آرایه دارای مقدار یعنی جایگزینی کامل. حذف ارتباط پیوست فایل اصلی را حذف نمی‌کند."
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "گزارش با موفقیت بروزرسانی شد.",
+          "data": {
+            "report": "$ref:schemas.report_example"
+          }
+        }
+      },
+      "business_rules_fa": [
+        "برای گزارش مصوبه جلسه باید scheduled باشد؛ گزارش مستقل محدودیت وضعیت جلسه ندارد.",
+        "گزارش مستقل: سازنده یا مدیر با reports:manage؛ گزارش مصوبه: دسترسی مدیریت جلسه با reports:manage.",
+        "گیرنده اصلی نباید در رونوشت نهایی باشد، حتی وقتی cc_user_ids ارسال نشده است.",
+        "ویرایش گزارش sent/viewed وضعیت و زمان‌های قبلی را تغییر نمی‌دهد؛ تغییر گیرنده باعث بازنشانی مشاهده نمی‌شود."
+      ]
+    },
+    {
+      "name": "Delete report",
+      "description_fa": "حذف گزارش",
+      "method": "DELETE",
+      "path": "/api/v1/reports/{report}",
+      "authentication": true,
+      "permissions": [
+        "reports:manage"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "گزارش با موفقیت حذف شد.",
+          "data": []
+        }
+      },
+      "business_rules_fa": [
+        "برای گزارش مصوبه جلسه باید scheduled باشد؛ گزارش مستقل محدودیت وضعیت جلسه ندارد.",
+        "گزارش مستقل: سازنده یا مدیر با reports:manage؛ گزارش مصوبه: دسترسی مدیریت جلسه با reports:manage.",
+        "دیدگاه‌ها و پاسخ‌ها، ارتباط پیوست‌ها و واکنش‌های وابسته در زیرساخت مشترک پاک می‌شوند. فایل اصلی رسانه حذف نمی‌شود."
+      ]
+    },
+    {
+      "name": "Eligible report users",
+      "description_fa": "کاربران فعال برای انتخاب گیرنده و رونوشت",
+      "method": "GET",
+      "path": "/api/v1/reports/eligible-users",
+      "authentication": true,
+      "permissions": [
+        "reports:manage"
+      ],
+      "query_parameters": {
+        "search": "string, optional, max:255; searches first_name, last_name, org_code and title",
+        "page": "integer, optional, min:1",
+        "per_page": "integer, optional, 1..100, default:50"
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "کاربران مجاز گزارش",
+          "data": {
+            "items": [
+              "$ref:schemas.user_summary"
+            ],
+            "meta": "$ref:schemas.pagination_meta"
+          }
+        }
+      }
+    },
+    {
+      "name": "Report tag autocomplete",
+      "description_fa": "جست‌وجوی تگ‌های مشترک تسک و گزارش برای autocomplete",
+      "method": "GET",
+      "path": "/api/v1/report-tags",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "query_parameters": {
+        "search": "string, optional, max:100",
+        "page": "integer, optional, min:1",
+        "per_page": "integer, optional, 1..100, default:20"
+      },
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست تگ‌های گزارش",
+          "data": {
+            "items": [
+              {
+                "id": 5,
+                "title": "ماهانه"
+              }
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 20,
+              "total": 1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Send draft",
+      "method": "POST",
+      "path": "/api/v1/reports/{report}/send",
+      "authentication": true,
+      "permissions": [
+        "reports:manage"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "گزارش با موفقیت ارسال شد.",
+          "data": {
+            "report": "$ref:schemas.report_example"
+          }
+        }
+      },
+      "request_body": {
+        "fields": {},
+        "example": {}
+      },
+      "business_rules": [
+        "Standalone: creator or Admin/Super Admin with reports:manage. Resolution report: existing meeting management policy; any meeting status.",
+        "Only draft -> sent; sent_at set atomically; every other state returns 409. Repeat sends return 409."
+      ]
+    },
+    {
+      "name": "Mark viewed",
+      "method": "POST",
+      "path": "/api/v1/reports/{report}/view",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "مشاهده گزارش با موفقیت ثبت شد.",
+          "data": {
+            "report": {
+              "id": 18,
+              "meeting_resolution_id": 42,
+              "meeting": {
+                "id": 7,
+                "title": "جلسه بررسی عملکرد ماهانه",
+                "meeting_date": "2026-09-30"
+              },
+              "resolution": {
+                "id": 42,
+                "title": "تهیه گزارش عملکرد واحد مالی",
+                "agenda_item_id": 12,
+                "resolution_type": "report"
+              },
+              "title": "گزارش عملکرد ماهانه",
+              "short_description": "خلاصه عملکرد واحد مالی در شهریور",
+              "description": "متن کامل گزارش عملکرد واحد مالی",
+              "recipient": {
+                "id": 2,
+                "org_code": "100002",
+                "first_name": "علی",
+                "last_name": "احمدی",
+                "full_name": "علی احمدی",
+                "title": "مدیر مالی",
+                "avatar_file_id": null
+              },
+              "cc_users": [
+                {
+                  "id": 3,
+                  "org_code": "100003",
+                  "first_name": "مریم",
+                  "last_name": "رضایی",
+                  "full_name": "مریم رضایی",
+                  "title": "کارشناس مالی",
+                  "avatar_file_id": null
+                }
+              ],
+              "tags": [
+                {
+                  "id": 5,
+                  "title": "ماهانه"
+                },
+                {
+                  "id": 8,
+                  "title": "مالی"
+                }
+              ],
+              "creator": {
+                "id": 1,
+                "org_code": "100001",
+                "first_name": "مدیر",
+                "last_name": "سیستم",
+                "full_name": "مدیر سیستم",
+                "title": "مدیر سامانه",
+                "avatar_file_id": null
+              },
+              "created_at": "2026-09-30T10:00:00.000000Z",
+              "updated_at": "2026-09-30T10:00:00.000000Z",
+              "report_number": "RPT-000018",
+              "status": "viewed",
+              "sent_at": "2026-09-30T10:00:00.000000Z",
+              "viewed_at": "2026-10-03T10:00:00.000000Z",
+              "attachments": [
+                {
+                  "id": 12,
+                  "original_name": "filename.pdf",
+                  "mime_type": "application/pdf",
+                  "size": 1048576,
+                  "category": "attachment",
+                  "url": "https://example.com/storage/task-attachments/example.pdf"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "request_body": {
+        "fields": {},
+        "example": {}
+      },
+      "business_rules": [
+        "Requires report visibility. Only current main recipient of a sent report changes sent -> viewed.",
+        "CC, creator, meeting viewers and administrators who are not main recipient receive 200 with unchanged report.",
+        "Draft, inactive and already viewed return 200 unchanged. Repeated view does not change viewed_at or updated_at.",
+        "Allowed after meeting ends. GET detail/list never mutates workflow."
+      ]
+    },
+    {
+      "name": "List report comments",
+      "method": "GET",
+      "path": "/api/v1/reports/{report}/comments",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "لیست دیدگاه‌های گزارش",
+          "data": {
+            "items": [
+              "$ref:schemas.comment_example"
+            ],
+            "meta": {
+              "current_page": 1,
+              "last_page": 1,
+              "per_page": 15,
+              "total": 1
+            }
+          }
+        }
+      },
+      "query_parameters": {
+        "page": "integer, optional, min:1",
+        "per_page": "integer, optional, 1..100, default:15",
+        "sort": "oldest|newest, optional, default:oldest; stable order by id"
+      },
+      "business_rules": [
+        "Flat paginated list of all comments and replies. Reconstruct threading using parent_id across pages.",
+        "Includes deleted tombstones with body:null and is_deleted:true, retaining replies and user summary."
+      ]
+    },
+    {
+      "name": "Create report comment",
+      "method": "POST",
+      "path": "/api/v1/reports/{report}/comments",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "دیدگاه با موفقیت ثبت شد.",
+          "data": {
+            "comment": "$ref:schemas.comment_example"
+          }
+        }
+      },
+      "request_body": {
+        "fields": {
+          "body": "required nonblank string, max:5000",
+          "parent_id": "optional nullable integer; existing non-deleted comment belonging to same report; invalid:422"
+        },
+        "example": {
+          "body": "دیدگاه درباره گزارش",
+          "parent_id": null
+        }
+      },
+      "business_rules": [
+        "Report visibility is enough. Allowed for any report and meeting state, including draft.",
+        "Reuses existing threaded comments; nested replies supported. Cannot reply to deleted parent."
+      ]
+    },
+    {
+      "name": "Edit report comment",
+      "method": "PATCH",
+      "path": "/api/v1/reports/{report}/comments/{comment}",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "دیدگاه با موفقیت بروزرسانی شد.",
+          "data": {
+            "comment": "$ref:schemas.comment_example"
+          }
+        }
+      },
+      "request_body": {
+        "fields": {
+          "body": "required nonblank string, max:5000"
+        },
+        "example": {
+          "body": "دیدگاه ویرایش‌شده"
+        }
+      },
+      "business_rules": [
+        "Visible report plus owner or authorized administrator. No scheduled-meeting restriction.",
+        "Only body changes. parent_id is not editable. Deleted or foreign-report comment:404."
+      ]
+    },
+    {
+      "name": "Delete report comment",
+      "method": "DELETE",
+      "path": "/api/v1/reports/{report}/comments/{comment}",
+      "authentication": true,
+      "permissions": [
+        "reports:view"
+      ],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "دیدگاه با موفقیت حذف شد.",
+          "data": []
+        }
+      },
+      "business_rules": [
+        "Visible report plus owner or authorized administrator. No scheduled-meeting restriction.",
+        "Soft delete, keep replies; subsequent edit/delete:404. Foreign-report comment:404."
+      ]
+    },
+    {
+      "name": "Upload attachment (existing shared infrastructure)",
+      "method": "POST",
+      "path": "/api/v1/uploads/files",
+      "authentication": true,
+      "permissions": [],
+      "success_response": {
+        "status": 201,
+        "body": {
+          "success": true,
+          "message": "فایل با موفقیت بارگذاری شد.",
+          "data": {
+            "file": "$ref:schemas.media_file_example"
+          }
+        }
+      },
+      "content_type": "multipart/form-data",
+      "request_body": {
+        "fields": {
+          "file": "required binary file, maximum 10240 KB; pdf, doc, docx, xls, xlsx, jpg, jpeg, png, webp (config/uploads.php)"
+        },
+        "example": {
+          "file": "<binary>"
+        }
+      },
+      "business_rules": [
+        "Active authenticated user required. Save data.file.id and submit through attachment_file_ids."
+      ]
+    },
+    {
+      "name": "Delete unattached uploaded file (existing)",
+      "method": "DELETE",
+      "path": "/api/v1/uploads/files/{file}",
+      "authentication": true,
+      "permissions": [],
+      "success_response": {
+        "status": 200,
+        "body": {
+          "success": true,
+          "message": "فایل با موفقیت حذف شد.",
+          "data": []
+        }
+      },
+      "business_rules": [
+        "Only uploader; attachment category only. Attached to any task or report:409.",
+        "Detach through PATCH report attachment_file_ids first; report management requires scheduled meeting. No dedicated report-attachment delete route needed."
+      ]
+    }
+  ],
+  "frontend_flow": [
+    "ثبت مستقل از صفحه گزارش‌ها با POST /reports؛ انتخاب جلسه و مصوبه لازم نیست. بدنه مانند مسیر ثبت گزارش مصوبه است.",
+    "ایجاد مصوبه با resolution_type=report؛ پیش‌فرض مصوبه همچنان task است.",
+    "انتخاب گیرنده و رونوشت از /reports/eligible-users و تگ‌ها از /report-tags.",
+    "آپلود فایل با POST /uploads/files و ذخیره data.file.id.",
+    "دکمه پیش‌نویس: POST مسیر گزارش مصوبه با status=draft و attachment_file_ids.",
+    "دکمه ایجاد و ارسال: همان مسیر با status=sent یا بدون status.",
+    "فهرست با GET /reports؛ شماره، وضعیت، گیرنده و سازنده در همان پاسخ موجودند.",
+    "ارسال پیش‌نویس موجود: POST /reports/{report}/send؛ پاسخ 409 یعنی وضعیت دیگر اجازه ارسال نمی‌دهد.",
+    "مشاهده جزئیات با GET و سپس POST /reports/{report}/view؛ وضعیت برگشتی سرور را نمایش دهید.",
+    "دیدگاه‌ها جداگانه با GET /reports/{report}/comments و صفحه‌بندی؛ پاسخ با POST و parent_id ثبت می‌شود.",
+    "برای گزارش مصوبه ویرایش و حذف محتوا و تغییر پیوست فقط در جلسه scheduled؛ برای گزارش مستقل بدون محدودیت جلسه؛ ارسال، مشاهده و دیدگاه بعد از پایان جلسه نیز مجاز است.",
+    "برای حذف پیوست شناسه را از آرایه کامل attachment_file_ids حذف و PATCH کنید؛ فایل اصلی باقی می‌ماند.",
+    "واکنش‌ها و تغییر وضعیت inactive فعلاً در رابط کاربری فعال نشوند."
+  ],
+  "workflow": {
+    "default_on_create": "sent",
+    "transitions": [
+      {
+        "from": null,
+        "to": "draft",
+        "operation": "POST create with status=draft",
+        "sent_at": null,
+        "viewed_at": null
+      },
+      {
+        "from": null,
+        "to": "sent",
+        "operation": "POST create with omitted status or status=sent",
+        "sent_at": "now",
+        "viewed_at": null
+      },
+      {
+        "from": "draft",
+        "to": "sent",
+        "operation": "POST /reports/{report}/send",
+        "sent_at": "now"
+      },
+      {
+        "from": "sent",
+        "to": "viewed",
+        "operation": "POST /reports/{report}/view by main recipient",
+        "viewed_at": "now"
+      }
+    ],
+    "inactive": "Reserved, filterable; no public transition.",
+    "draft_visibility": "Drafts are visible to creator, recipient, CC and admins; resolution reports also follow meeting participant visibility.",
+    "send_semantics": "Status persistence only. No new mail or notification dispatch is implemented.",
+    "meeting_status_rules": {
+      "create_update_delete_attachments": "Resolution reports: scheduled only. Standalone reports: no meeting requirement.",
+      "send_view_comments": "any meeting status, existing authorization still required"
+    },
+    "legacy_backfill": "Existing records get sent status, sent_at=created_at, viewed_at=null and generated report_number.",
+    "numbering": "RPT- + database ID padded to a minimum of 6 digits. Not gapless; immutable and database-unique. No client-supplied number."
+  },
+  "reactions": {
+    "implemented_for_reports": false,
+    "decision": "Existing task comment reactions are present, but report UI reaction approval is not confirmed. No report reaction endpoints or reaction fields are exposed. Existing task reaction endpoints remain unchanged and reject report comments.",
+    "frontend": "Hide or disable reaction icons pending product approval."
+  },
+  "standalone_reports": {
+    "create_endpoint": "POST /api/v1/reports",
+    "nullable_response_fields": [
+      "meeting_resolution_id",
+      "meeting",
+      "resolution"
+    ],
+    "management": "Creator or Admin/Super Admin with reports:manage; recipient/CC cannot manage unless independently authorized.",
+    "deployment": [
+      "php artisan migrate --force",
+      "php artisan access:sync"
+    ],
+    "existing_resolution_uniqueness": "One report per resolution remains enforced; multiple standalone reports are allowed."
+  }
+}

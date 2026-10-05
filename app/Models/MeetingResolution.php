@@ -11,6 +11,13 @@ class MeetingResolution extends Model
 {
     protected $fillable = ['meeting_id', 'agenda_item_id', 'title', 'description', 'resolution_type', 'task_id', 'created_by', 'sort_order'];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (MeetingResolution $resolution): void {
+            $resolution->report?->delete();
+        });
+    }
+
     public function meeting(): BelongsTo
     {
         return $this->belongsTo(Meeting::class)->withTrashed();

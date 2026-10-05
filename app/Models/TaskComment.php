@@ -11,7 +11,12 @@ class TaskComment extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['task_id', 'user_id', 'parent_id', 'body'];
+    protected $fillable = ['task_id', 'report_id', 'user_id', 'parent_id', 'body'];
+
+    public function report(): BelongsTo
+    {
+        return $this->belongsTo(Report::class);
+    }
 
     public function task(): BelongsTo
     {

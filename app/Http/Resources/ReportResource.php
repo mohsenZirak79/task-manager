@@ -13,13 +13,18 @@ class ReportResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'report_number' => $this->report_number,
+            'status' => $this->status->value,
+            'sent_at' => $this->sent_at?->toISOString(),
+            'viewed_at' => $this->viewed_at?->toISOString(),
+            'attachments' => MediaFileResource::collection($this->whenLoaded('attachments')),
             'meeting_resolution_id' => $this->meeting_resolution_id,
-            'meeting' => $this->whenLoaded('resolution', fn () => [
+            'meeting' => $this->whenLoaded('resolution', fn () => $this->resolution === null ? null : [
                 'id' => $this->resolution->meeting->id,
                 'title' => $this->resolution->meeting->title,
                 'meeting_date' => $this->resolution->meeting->meeting_date?->format('Y-m-d'),
             ]),
-            'resolution' => $this->whenLoaded('resolution', fn () => [
+            'resolution' => $this->whenLoaded('resolution', fn () => $this->resolution === null ? null : [
                 'id' => $this->resolution->id,
                 'title' => $this->resolution->title,
                 'agenda_item_id' => $this->resolution->agenda_item_id,

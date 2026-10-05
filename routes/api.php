@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\ReportCommentController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\ReportTagController;
 use App\Http\Controllers\Api\V1\TaskCommentController;
@@ -49,8 +50,15 @@ Route::prefix('v1')->group(function (): void {
             Route::post('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'store'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::REPORTS_MANAGE])->whereNumber(['meeting', 'resolution']);
 
             Route::get('reports', [ReportController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
+            Route::post('reports', [ReportController::class, 'storeStandalone'])->middleware('permission:'.Permissions::REPORTS_MANAGE);
             Route::get('reports/eligible-users', [ReportController::class, 'eligibleUsers'])->middleware('permission:'.Permissions::REPORTS_MANAGE);
             Route::get('report-tags', [ReportTagController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
+            Route::post('reports/{report}/send', [ReportController::class, 'send'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
+            Route::post('reports/{report}/view', [ReportController::class, 'markViewed'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber('report');
+            Route::get('reports/{report}/comments', [ReportCommentController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
+            Route::post('reports/{report}/comments', [ReportCommentController::class, 'store'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
+            Route::patch('reports/{report}/comments/{comment}', [ReportCommentController::class, 'update'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
+            Route::delete('reports/{report}/comments/{comment}', [ReportCommentController::class, 'destroy'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
             Route::get('reports/{report}', [ReportController::class, 'show'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber('report');
             Route::patch('reports/{report}', [ReportController::class, 'update'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
             Route::delete('reports/{report}', [ReportController::class, 'destroy'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');

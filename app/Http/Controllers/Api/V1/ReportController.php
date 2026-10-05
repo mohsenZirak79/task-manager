@@ -14,6 +14,7 @@ use App\Models\MeetingResolution;
 use App\Models\Report;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class ReportController extends Controller
@@ -49,6 +50,14 @@ class ReportController extends Controller
         return $this->success('گزارش با موفقیت ثبت شد.', ['report' => new ReportResource($report)], 201);
     }
 
+    public function storeStandalone(StoreReportRequest $request): JsonResponse
+    {
+        Gate::authorize('create', Report::class);
+        $report = $this->reportService->createStandalone($request->validated(), $request->user());
+
+        return $this->success('گزارش با موفقیت ثبت شد.', ['report' => new ReportResource($report)], 201);
+    }
+
     public function showForResolution(Meeting $meeting, MeetingResolution $resolution): JsonResponse
     {
         if ($resolution->meeting_id !== $meeting->id) {
@@ -70,9 +79,23 @@ class ReportController extends Controller
     public function update(UpdateReportRequest $request, Report $report): JsonResponse
     {
         Gate::authorize('update', $report);
-        $report = $this->reportService->update($report, $request->validated());
+        $report = $this->reportService->update($report, $request->validated(), $request->user());
 
         return $this->success('گزارش با موفقیت بروزرسانی شد.', ['report' => new ReportResource($report)]);
+    }
+
+    public function send(Report $report): JsonResponse
+    {
+        Gate::authorize('update', $report);
+
+        return $this->success('گزارش با موفقیت ارسال شد.', ['report' => new ReportResource($this->reportService->send($report))]);
+    }
+
+    public function markViewed(Request $request, Report $report): JsonResponse
+    {
+        Gate::authorize('view', $report);
+
+        return $this->success('مشاهده گزارش با موفقیت ثبت شد.', ['report' => new ReportResource($this->reportService->markViewed($report, $request->user()))]);
     }
 
     public function destroy(Report $report): JsonResponse

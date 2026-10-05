@@ -26,6 +26,11 @@ class MediaFile extends Model
         return $this->belongsTo(User::class, 'uploaded_by');
     }
 
+    public function reports(): BelongsToMany
+    {
+        return $this->belongsToMany(Report::class)->withTimestamps();
+    }
+
     public function tasks(): BelongsToMany
     {
         return $this->belongsToMany(Task::class)->withTimestamps();

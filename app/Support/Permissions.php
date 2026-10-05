@@ -124,6 +124,7 @@ final class Permissions
             self::MEETINGS_VIEW,
             self::MEETINGS_CREATE,
             self::REPORTS_VIEW,
+            self::REPORTS_MANAGE,
             self::TASKS_VIEW,
             self::TASKS_CREATE,
             self::TASKS_UPDATE,

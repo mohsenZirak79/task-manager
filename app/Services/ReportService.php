@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\MeetingResolutionType;
 use App\Enums\MeetingStatus;
+use App\Enums\ReportStatus;
+use App\Models\MediaFile;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
 use App\Models\Report;
@@ -13,6 +15,7 @@ use App\Support\AccessRoles;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class ReportService
@@ -40,12 +43,15 @@ class ReportService
         $query->when($filters['search'] ?? null, function ($query, string $search): void {
             $query->where(function ($query) use ($search): void {
                 $query->where('title', 'like', "%{$search}%")
+                    ->orWhere('report_number', 'like', "%{$search}%")
                     ->orWhere('short_description', 'like', "%{$search}%")
                     ->orWhere('description', 'like', "%{$search}%")
                     ->orWhereHas('resolution', fn ($query) => $query->where('title', 'like', "%{$search}%"));
             });
         });
 
+        $query->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status));
+        $query->when($filters['creator_user_id'] ?? null, fn ($query, $id) => $query->where('created_by', $id));
         $query->when($filters['meeting_id'] ?? null, fn ($query, $id) => $query
             ->whereHas('resolution', fn ($query) => $query->where('meeting_id', $id)));
         $query->when($filters['resolution_id'] ?? null, fn ($query, $id) => $query->where('meeting_resolution_id', $id));
@@ -81,21 +87,43 @@ class ReportService
             $report = $resolution->report()->create([
                 ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
                 'created_by' => $actor->id,
+                'status' => $data['status'] ?? 'sent',
+                'sent_at' => ($data['status'] ?? 'sent') === 'sent' ? now() : null,
             ]);
             $this->syncRelations($report, $data, true);
+            $this->syncAttachments($report, $data, $actor);
 
             return $this->find($report);
         });
     }
 
-    public function update(Report $report, array $data): Report
+    public function createStandalone(array $data, User $actor): Report
     {
-        return DB::transaction(function () use ($report, $data): Report {
+        return DB::transaction(function () use ($data, $actor): Report {
+            $report = Report::query()->create([
+                ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
+                'created_by' => $actor->id,
+                'status' => $data['status'] ?? 'sent',
+                'sent_at' => ($data['status'] ?? 'sent') === 'sent' ? now() : null,
+            ]);
+            $this->syncRelations($report, $data, true);
+            $this->syncAttachments($report, $data, $actor);
+
+            return $this->find($report);
+        });
+    }
+
+    public function update(Report $report, array $data, User $actor): Report
+    {
+        return DB::transaction(function () use ($report, $data, $actor): Report {
             $report = Report::query()->lockForUpdate()->findOrFail($report->id);
             $report->load('resolution.meeting');
-            $this->ensureMeetingEditable($report->resolution->meeting);
+            if ($report->resolution !== null) {
+                $this->ensureMeetingEditable($report->resolution->meeting);
+            }
             $report->update(Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']));
             $this->syncRelations($report, $data);
+            $this->syncAttachments($report, $data, $actor);
 
             return $this->find($report);
         });
@@ -106,9 +134,55 @@ class ReportService
         DB::transaction(function () use ($report): void {
             $report = Report::query()->lockForUpdate()->findOrFail($report->id);
             $report->load('resolution.meeting');
-            $this->ensureMeetingEditable($report->resolution->meeting);
+            if ($report->resolution !== null) {
+                $this->ensureMeetingEditable($report->resolution->meeting);
+            }
             $report->delete();
         });
+    }
+
+    public function send(Report $report): Report
+    {
+        return DB::transaction(function () use ($report): Report {
+            $report = Report::query()->lockForUpdate()->findOrFail($report->id);
+            if ($report->status !== ReportStatus::Draft) {
+                throw new ConflictHttpException('فقط گزارش پیش‌نویس قابل ارسال است.');
+            }
+            $report->update(['status' => ReportStatus::Sent, 'sent_at' => now()]);
+
+            return $this->find($report);
+        });
+    }
+
+    public function markViewed(Report $report, User $actor): Report
+    {
+        return DB::transaction(function () use ($report, $actor): Report {
+            $report = Report::query()->lockForUpdate()->findOrFail($report->id);
+            if ($report->recipient_user_id === $actor->id && $report->status === ReportStatus::Sent) {
+                $report->update(['status' => ReportStatus::Viewed, 'viewed_at' => now()]);
+            }
+
+            return $this->find($report);
+        });
+    }
+
+    private function syncAttachments(Report $report, array $data, User $actor): void
+    {
+        if (! array_key_exists('attachment_file_ids', $data)) {
+            return;
+        }
+        $ids = $data['attachment_file_ids'];
+        $files = MediaFile::query()->whereKey($ids)->where('category', 'attachment')->lockForUpdate()->get();
+        if ($files->count() !== count($ids)) {
+            throw ValidationException::withMessages(['attachment_file_ids' => 'یکی از فایل‌های پیوست معتبر نیست.']);
+        }
+        $existingIds = $report->attachments()->pluck('media_files.id')->all();
+        foreach ($files as $file) {
+            if (! $actor->isSuperAdmin() && $file->uploaded_by !== $actor->id && ! in_array($file->id, $existingIds, true)) {
+                abort(403, 'اتصال فایل متعلق به کاربر دیگر مجاز نیست.');
+            }
+        }
+        $report->attachments()->sync($ids);
     }
 
     public function eligibleUsers(array $filters): LengthAwarePaginator
@@ -129,6 +203,10 @@ class ReportService
 
     private function syncRelations(Report $report, array $data, bool $creating = false): void
     {
+        $ccIds = $data['cc_user_ids'] ?? $report->ccUsers()->pluck('users.id')->all();
+        if (in_array($report->recipient_user_id, $ccIds)) {
+            throw ValidationException::withMessages(['cc_user_ids' => 'گیرنده اصلی نباید هم‌زمان در رونوشت باشد.']);
+        }
         if ($creating || array_key_exists('cc_user_ids', $data)) {
             $report->ccUsers()->sync(array_values(array_unique(array_map('intval', $data['cc_user_ids'] ?? []))));
         }
@@ -165,6 +243,6 @@ class ReportService
     /** @return list<string> */
     private function relations(): array
     {
-        return ['resolution.meeting', 'resolution.agendaItem', 'recipient', 'ccUsers', 'tags', 'creator'];
+        return ['resolution.meeting', 'resolution.agendaItem', 'recipient', 'ccUsers', 'tags', 'creator', 'attachments'];
     }
 }

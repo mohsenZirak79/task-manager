@@ -17,12 +17,15 @@ class StoreReportRequest extends FormRequest
         $activeUser = Rule::exists('users', 'id')->whereNull('deleted_at')->where('is_active', true);
 
         return [
+            'status' => ['sometimes', 'required', Rule::in(['draft', 'sent'])],
             'title' => ['required', 'string', 'max:255'],
             'short_description' => ['required', 'string', 'max:500'],
             'description' => ['required', 'string'],
             'recipient_user_id' => ['required', 'integer', $activeUser],
             'cc_user_ids' => ['sometimes', 'array', 'max:100'],
             'cc_user_ids.*' => ['integer', 'distinct', $activeUser, Rule::notIn([(int) $this->input('recipient_user_id')])],
+            'attachment_file_ids' => ['sometimes', 'array', 'max:20'],
+            'attachment_file_ids.*' => ['required', 'integer', 'distinct', Rule::exists('media_files', 'id')->where('category', 'attachment')],
             'tags' => ['sometimes', 'array', 'max:20'],
             'tags.*' => ['required', 'string', 'max:100', 'distinct'],
         ];

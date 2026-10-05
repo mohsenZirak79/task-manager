@@ -38,6 +38,10 @@ class MediaUploadService
             throw new HttpException(409, 'فایل متصل به تسک قابل حذف نیست.');
         }
 
+        if ($file->reports()->exists()) {
+            throw new HttpException(409, 'فایل متصل به گزارش قابل حذف نیست.');
+        }
+
         $directory = trim((string) config('uploads.files.directory'), '/');
         if (str_contains($file->path, '..') || ! str_starts_with($file->path, $directory.'/')) {
             throw new HttpException(409, 'مسیر فایل برای حذف معتبر نیست.');
