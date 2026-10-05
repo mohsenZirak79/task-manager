@@ -11,6 +11,10 @@ class MeetingPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
+        if (in_array($ability, ['update', 'submit'], true)) {
+            return null;
+        }
+
         return $user->isSuperAdmin() ? true : null;
     }
 
@@ -32,8 +36,9 @@ class MeetingPolicy
 
     public function update(User $user, Meeting $meeting): bool
     {
-        return $user->hasPermission(Permissions::MEETINGS_UPDATE)
-            && ($this->isAdmin($user) || $this->canManage($user, $meeting));
+        return $meeting->isEditableBeforeStart()
+            && $user->hasPermission(Permissions::MEETINGS_UPDATE)
+            && ($user->isSuperAdmin() || $this->isAdmin($user) || $this->canManage($user, $meeting));
     }
 
     public function submit(User $user, Meeting $meeting): bool

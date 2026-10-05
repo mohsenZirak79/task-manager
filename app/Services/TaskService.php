@@ -15,6 +15,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -117,8 +118,11 @@ class TaskService
     {
         return DB::transaction(function () use ($task, $data, $actor): Task {
             $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            Gate::forUser($actor)->authorize('update', $task);
 
-            if (array_key_exists('submission_type', $data) && $task->status !== TaskStatus::Draft) {
+            if (array_key_exists('submission_type', $data)
+                && $data['submission_type'] !== $task->submission_type?->value
+                && $task->status !== TaskStatus::Draft) {
                 throw new HttpException(409, 'نوع تسک فقط در وضعیت پیش‌نویس قابل تغییر است.');
             }
 
@@ -130,7 +134,11 @@ class TaskService
                 $data['requester_id'] = $requesterId;
             }
 
-            $this->ensureOrganizationParticipants($actor, $data);
+            $this->ensureOrganizationParticipants($actor, [
+                ...$data,
+                'submission_type' => $data['submission_type'] ?? $task->submission_type?->value,
+                'assignee_ids' => $data['assignee_ids'] ?? $task->participantRecords()->where('role', TaskParticipantRole::Assignee->value)->pluck('user_id')->all(),
+            ]);
             $this->ensureMeetingAssignees($task, $data);
 
             if ($task->submission_type !== TaskSubmissionType::Assignment
@@ -152,6 +160,40 @@ class TaskService
             if ((bool) ($data['submit'] ?? false)) {
                 $this->submit($task, $actor);
             }
+
+            return $this->loadTask($task);
+        });
+    }
+
+    public function updatePlanning(Task $task, array $data, User $actor): Task
+    {
+        return DB::transaction(function () use ($task, $data, $actor): Task {
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            Gate::forUser($actor)->authorize('updatePlanning', $task);
+            $items = $data['planning_items'] ?? [];
+            $deleteIds = $data['delete_planning_item_ids'] ?? [];
+            $updateIds = array_column($items, 'id');
+            $ids = array_values(array_unique([...$updateIds, ...$deleteIds]));
+            if ($task->planningItems()->whereKey($ids)->count() !== count($ids)) {
+                throw ValidationException::withMessages(['planning_items' => 'آیتم برنامه‌ریزی باید متعلق به همین تسک باشد.']);
+            }
+            if (array_intersect($updateIds, $deleteIds) !== []) {
+                throw ValidationException::withMessages(['delete_planning_item_ids' => 'ویرایش و حذف هم‌زمان یک آیتم مجاز نیست.']);
+            }
+            foreach ($items as $index => $item) {
+                $attributes = Arr::only($item, ['title', 'weight', 'sort_order']);
+                if (isset($item['id'])) {
+                    $task->planningItems()->whereKey($item['id'])->firstOrFail()->update($attributes);
+                } else {
+                    $task->planningItems()->create([
+                        ...$attributes,
+                        'sort_order' => $item['sort_order'] ?? $index,
+                        'progress_percentage' => 0,
+                    ]);
+                }
+            }
+            $task->planningItems()->whereKey($deleteIds)->delete();
+            $task->update(['progress_percentage' => $this->calculatePlanningProgress($task)]);
 
             return $this->loadTask($task);
         });
@@ -278,16 +320,16 @@ class TaskService
 
         return $this->filterEligibleGroups([
             'assignment_targets' => $load($descendantIds),
-            'request_targets' => $load($ancestorIds),
+            'request_targets' => $load($this->requestPositionIds($actor)),
             'participants' => $load($positionIds),
         ], $submissionType, $actor);
     }
 
     private function filterEligibleGroups(array $groups, ?TaskSubmissionType $submissionType, User $actor): array
     {
+        $groups['assignment_targets'] = $groups['assignment_targets']
+            ->filter(fn (User $user): bool => $user->id === $actor->id)->values();
         if ($submissionType === TaskSubmissionType::Assignment) {
-            $groups['assignment_targets'] = $groups['assignment_targets']
-                ->filter(fn (User $user): bool => $user->id === $actor->id)->values();
             $groups['request_targets'] = new Collection;
         } elseif ($submissionType === TaskSubmissionType::Request) {
             $groups['assignment_targets'] = new Collection;
@@ -546,55 +588,17 @@ class TaskService
             return $task->submission_type ?? TaskSubmissionType::Assignment;
         }
 
-        $actorPositions = $actor->orgPositions()->get(['org_positions.id', 'parent_id', 'request_up_levels', 'assignment_down_levels']);
-        if ($actorPositions->isEmpty()) {
+        $type = $task->submission_type ?? TaskSubmissionType::Assignment;
+        if (! $actor->orgPositions()->exists()) {
             throw new HttpException(403, 'کاربر ایجادکننده جایگاه سازمانی ندارد.');
         }
-
-        $targets = User::query()->whereKey($assigneeIds)->with('orgPositions:id,parent_id')->get();
-        if ($targets->count() !== count(array_unique($assigneeIds)) || $targets->contains(fn (User $user) => $user->orgPositions->isEmpty())) {
-            throw new HttpException(422, 'همه مسئولان انجام باید جایگاه سازمانی داشته باشند.');
+        if ($type === TaskSubmissionType::Request) {
+            $this->ensureRequestAssignees($actor, $assigneeIds);
+        } else {
+            $this->ensureAssignmentAssignee($assigneeIds, $actor);
         }
 
-        $parents = $this->positionParents();
-        $directions = $targets->map(function (User $target) use ($actorPositions, $parents): array {
-            $below = false;
-            $above = false;
-            foreach ($actorPositions as $actorPosition) {
-                foreach ($target->orgPositions as $targetPosition) {
-                    $below = $below || $this->isWithinLevelLimit(
-                        $actorPosition->id, $targetPosition->id, $parents, $actorPosition->assignment_down_levels,
-                    );
-                    $above = $above || $this->isWithinLevelLimit(
-                        $targetPosition->id, $actorPosition->id, $parents, $actorPosition->request_up_levels,
-                    );
-                }
-            }
-
-            return ['below' => $below, 'above' => $above];
-        });
-
-        $allBelow = $directions->every(fn (array $direction): bool => $direction['below']);
-        $allAbove = $directions->every(fn (array $direction): bool => $direction['above']);
-
-        $actual = match (true) {
-            $allBelow && ! $allAbove => TaskSubmissionType::Assignment,
-            $allAbove && ! $allBelow => TaskSubmissionType::Request,
-            $allBelow && $allAbove => $task->submission_type ?? TaskSubmissionType::Assignment,
-            default => null,
-        };
-
-        if ($actual === null) {
-            throw new HttpException(403, 'مسئولان باید همگی در محدوده مجازِ بالاتر یا همگی در محدوده مجازِ پایین‌تر یکی از جایگاه‌های شما باشند.');
-        }
-
-        if ($task->submission_type !== null && $task->submission_type !== $actual) {
-            throw ValidationException::withMessages([
-                'submission_type' => 'نوع انتخاب‌شده با جهت سازمانی مسئولان سازگار نیست.',
-            ]);
-        }
-
-        return $task->submission_type ?? $actual;
+        return $type;
     }
 
     private function validateCompleteSubmission(Task $task, TaskSubmissionType $submissionType): void
@@ -628,6 +632,8 @@ class TaskService
 
     private function ensureSelectedUsersRemainValid(Task $task, User $actor, array $participantIds): void
     {
+        $assigneeIds = $task->participantRecords()->where('role', TaskParticipantRole::Assignee->value)->pluck('user_id')->map(fn ($id) => (int) $id)->all();
+        $otherParticipantIds = $task->participantRecords()->where('role', '!=', TaskParticipantRole::Assignee->value)->pluck('user_id')->all();
         $selectedIds = collect($participantIds)
             ->push($task->requester_id, $task->financial_provider_user_id, $task->equipment_provider_user_id)
             ->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
@@ -638,7 +644,14 @@ class TaskService
             throw ValidationException::withMessages(['users' => 'تمام کاربران انتخاب‌شده باید فعال باشند.']);
         }
 
-        if (! $actor->isSuperAdmin() && array_diff($selectedIds, $this->allowedUserIds($actor)) !== []) {
+        if ($task->submission_type === TaskSubmissionType::Request) {
+            $this->ensureRequestAssignees($actor, $assigneeIds);
+        } else {
+            $this->ensureAssignmentAssignee($assigneeIds, $actor);
+        }
+
+        $otherIds = collect($otherParticipantIds)->push($task->requester_id, $task->financial_provider_user_id, $task->equipment_provider_user_id)->filter()->map(fn ($id) => (int) $id)->unique()->all();
+        if (! $actor->isSuperAdmin() && array_diff($otherIds, $this->allowedUserIds($actor)) !== []) {
             throw new HttpException(403, 'یکی از کاربران انتخاب‌شده خارج از محدوده سازمانی مجاز است.');
         }
     }
@@ -742,9 +755,12 @@ class TaskService
             return;
         }
 
+        if (($data['submission_type'] ?? null) === TaskSubmissionType::Request->value) {
+            $this->ensureRequestAssignees($actor, $data['assignee_ids'] ?? []);
+        }
         $allowed = $this->allowedUserIds($actor);
         $fields = [
-            'assignee_ids', 'follower_ids', 'supervisor_ids',
+            'follower_ids', 'supervisor_ids',
             'financial_provider_user_id', 'equipment_provider_user_id',
         ];
 
@@ -755,6 +771,35 @@ class TaskService
                     throw new HttpException(403, 'انتخاب کاربر خارج از شاخه سازمانی مجاز نیست.');
                 }
             }
+        }
+    }
+
+    private function requestPositionIds(User $actor): array
+    {
+        $positions = $actor->orgPositions()->get(['org_positions.id', 'parent_id']);
+        $parents = $this->positionParents();
+        $ids = $this->descendantPositionIds($actor);
+        foreach ($positions as $position) {
+            foreach ($parents as $id => $parentId) {
+                if ($id === $position->id || ($position->parent_id !== null && $parentId === $position->parent_id)) {
+                    $ids[] = (int) $id;
+                }
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    private function ensureRequestAssignees(User $actor, array $ids): void
+    {
+        if ($actor->isSuperAdmin()) {
+            return;
+        }
+        $allowed = User::query()->where('is_active', true)
+            ->whereHas('orgPositions', fn ($query) => $query->whereIn('org_positions.id', $this->requestPositionIds($actor)))
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+        if (array_diff(array_map('intval', $ids), $allowed) !== []) {
+            throw new HttpException(403, 'مخاطب درخواست باید هم‌رده یا زیرمجموعه مجاز باشد.');
         }
     }
 

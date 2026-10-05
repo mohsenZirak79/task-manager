@@ -1,10 +1,10 @@
 {
   "document": {
     "title": "قرارداد API فرانت‌اند Task Manager",
-    "version": "1.4.2",
+    "version": "1.4.3",
     "generated_from": "Laravel routes, FormRequests, Resources, Policies and Enums",
     "base_path": "/api/v1",
-    "generated_at": "2026-09-24",
+    "generated_at": "2026-10-05",
     "response_envelope": {
       "success": {
         "success": true,
@@ -36,7 +36,7 @@
         "all": "SuperAdmin or tasks:view_all only"
       },
       "defaults": {
-        "submission_type=request": "created_by_me",
+        "submission_type=request": "involved",
         "submission_type=assignment": "assigned_to_me",
         "without_submission_type": "involved"
       },
@@ -49,17 +49,18 @@
     "release_status": "local working tree; not yet deployed",
     "assignment_workflow": {
       "scope": "submission_type=assignment only",
-      "actors": "A is created_by/requester; B is exactly one distinct eligible assignee.",
-      "assignee_ids": "Exactly one active B is required. Non-admin A may select only an existing descendant allowed by assignment_down_levels. SuperAdmin may select any active user except self.",
+      "actors": "A (creator/requester) and B (sole assignment assignee) are the same user.",
+      "assignee_ids": "Exactly one active assignee: the creator/current user, including Super Admin. Omission defaults to self.",
       "requester_id": "For assignment, requester_id and created_by remain A.",
       "initial_review": "draft -> pending_approval -> ready_to_start, or pending_approval -> revision_requested -> pending_approval (for both assignment and request).",
-      "execution": "B starts ready_to_start manually or by first planning item progress above zero. Planning progress is weighted; 100 percent does not auto-complete.",
+      "execution": "Assignee starts ready_to_start manually or by planning progress above zero. PATCH /tasks/{task}/planning edits planning only in ready_to_start or in_progress, preserving IDs and progress. Weighted progress does not auto-complete.",
       "completion": "B requests completion, then A approves to completed or rejects back to in_progress with a required reason.",
       "timestamps": ["registered_at", "started_at", "completion_requested_at", "completed_at", "closed_at"],
       "allowed_actions": [
         "approve_assignment",
         "request_assignment_revision",
         "start",
+        "update_planning",
         "update_planning_progress",
         "request_completion",
         "approve_completion",
@@ -2915,6 +2916,7 @@
                   }
                 ],
                 "allowed_actions": {
+                  "update_planning": false,
                   "view": true,
                   "edit": false,
                   "delete": false,
@@ -3086,9 +3088,10 @@
           }
         }
       },
-      "assignment_behavior_fa": "با submission_type=assignment، assignment_targets شامل کاربران فعالِ زیرمجموعه مجاز بر اساس assignment_down_levels است و خود A حذف می‌شود؛ SuperAdmin همه کاربران فعال به‌جز خودش را می‌بیند. request_targets و منطق request تغییر نکرده‌اند."
+      "assignment_behavior_fa": "assignment_targets فقط خود کاربر است؛ request_targets هم‌جایگاه، جایگاه‌های دارای والد مشترک غیرتهی و زیرمجموعه‌های مجاز طبق assignment_down_levels است. استثنای Super Admin برای request حفظ می‌شود. participants برای پیگیر، ناظر و تأمین‌کننده تغییر نمی‌کند."
     },
     {
+      "save_submit_contract": {"submit_false_or_omitted": "Save only. No approval submission.", "submit_true": "Save and submit the same record atomically; submission failure rolls back all changes and history.", "edit_states": {"assignment": ["draft", "revision_requested"], "request": ["draft", "revision_requested", "rejected"]}, "type_change": "Unchanged submission_type is accepted in corrections; actual changes outside draft return 409.", "request_direction": "Same position, same non-null parent, or descendants within assignment_down_levels; Super Admin exception preserved.", "assignment": "Only creator can be its requester and sole assignee.", "details": "docs/backend-workflow-api.md"},
       "name": "Create request draft or submit request",
       "method": "POST",
       "path": "/api/v1/tasks",
@@ -3385,6 +3388,7 @@
               "attachments": [],
               "planning_items": [],
               "allowed_actions": {
+                "update_planning": false,
                 "view": true,
                 "edit": true,
                 "delete": true,
@@ -3593,6 +3597,7 @@
                 }
               ],
               "allowed_actions": {
+                "update_planning": false,
                 "view": true,
                 "edit": false,
                 "delete": false,
@@ -3627,6 +3632,7 @@
       }
     },
     {
+      "save_submit_contract": {"submit_false_or_omitted": "Save only. No approval submission.", "submit_true": "Save and submit the same record atomically; submission failure rolls back all changes and history.", "edit_states": {"assignment": ["draft", "revision_requested"], "request": ["draft", "revision_requested", "rejected"]}, "type_change": "Unchanged submission_type is accepted in corrections; actual changes outside draft return 409.", "request_direction": "Same position, same non-null parent, or descendants within assignment_down_levels; Super Admin exception preserved.", "assignment": "Only creator can be its requester and sole assignee.", "details": "docs/backend-workflow-api.md"},
       "name": "Update or submit request draft",
       "method": "PATCH",
       "path": "/api/v1/tasks/{task}",
@@ -3941,6 +3947,7 @@
               "attachments": [],
               "planning_items": [],
               "allowed_actions": {
+                "update_planning": false,
                 "view": true,
                 "edit": false,
                 "delete": false,
@@ -4889,6 +4896,39 @@
           }
         }
       }
+    },
+    {
+      "name": "Update accepted assignment planning",
+      "method": "PATCH",
+      "path": "/api/v1/tasks/{task}/planning",
+      "authentication": true,
+      "permission": "tasks:update + TaskPolicy::updatePlanning; assignment assignee only in ready_to_start/in_progress",
+      "request_body": {
+        "planning_items": "optional array (max 100); each: optional task-owned distinct id, required title (max255), weight >=0, optional sort_order >=0; progress_percentage prohibited",
+        "delete_planning_item_ids": "optional array (max100), distinct task-owned IDs; explicit deletion only"
+      },
+      "request_example": {
+        "planning_items": [
+          {
+            "id": 101,
+            "title": "Updated step",
+            "weight": 30
+          },
+          {
+            "title": "New step",
+            "weight": 70
+          }
+        ],
+        "delete_planning_item_ids": [
+          102
+        ]
+      },
+      "success_response": "Existing data.task envelope with allowed_actions.update_planning; IDs/progress retained, new progress zero, total recomputed with existing weighted formula.",
+      "error_responses": {
+        "403": "Wrong actor, status or type",
+        "422": "Invalid input, unrelated fields, foreign IDs, duplicate IDs or update/delete conflict"
+      },
+      "transaction": "Locks task; no status, workflow timestamps or history reset; omitted rows retained."
     }
   ],
   "meetings": [
@@ -5397,6 +5437,7 @@
       }
     },
     {
+      "edit_contract": {"permission": "meetings:update plus creator/chairman/secretary or authorized Admin/Super Admin; ordinary attendee is insufficient", "states": ["draft", "scheduled"], "time": "Strictly before meeting_date + start_time in config(app.timezone), currently UTC; proposed start must remain future.", "scheduled_submit": "Retains scheduled status and submitted_at; never reruns initial submission.", "relations": "Omitted attendees and agenda unchanged; update agenda by ID; reject removing agenda referenced by resolutions.", "deployment": "php artisan access:sync enables scoped meetings:update for the User role"},
       "name": "Update meeting",
       "method": "PATCH",
       "path": "/api/v1/meetings/{meeting}",

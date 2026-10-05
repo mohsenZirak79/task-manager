@@ -123,6 +123,7 @@ final class Permissions
             self::ORG_POSITIONS_VIEW,
             self::MEETINGS_VIEW,
             self::MEETINGS_CREATE,
+            self::MEETINGS_UPDATE,
             self::REPORTS_VIEW,
             self::REPORTS_MANAGE,
             self::TASKS_VIEW,

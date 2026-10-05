@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Concerns;
 
+use App\Enums\MeetingStatus;
 use App\Models\Meeting;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -36,7 +37,7 @@ trait HasMeetingPayloadRules
 
     protected function addMeetingSubmitErrors(Validator $validator, ?Meeting $meeting = null): void
     {
-        if (! $this->boolean('submit')) {
+        if (! $this->boolean('submit') && $meeting?->status !== MeetingStatus::Scheduled) {
             return;
         }
 

@@ -87,6 +87,7 @@ class TaskResource extends JsonResource
         return [
             'view' => $gate->allows('view', $this->resource),
             'edit' => $gate->allows('update', $this->resource),
+            'update_planning' => $gate->allows('updatePlanning', $this->resource),
             'delete' => $gate->allows('delete', $this->resource),
             'submit' => $gate->allows('submit', $this->resource),
             'approve' => $pendingRequest && $gate->allows('approve', $this->resource),

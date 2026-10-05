@@ -1,0 +1,519 @@
+{
+  "document": {
+    "title_fa": "قرارداد تغییرات گردش کار Task Manager برای تیم فرانت",
+    "version": "1.4.3",
+    "generated_at": "2026-10-05",
+    "base_path": "/api/v1",
+    "format": "frontend handoff JSON (not OpenAPI)",
+    "scope_fa": "APIهای مرتبط با جهت درخواست، ویرایش جلسه پیش از شروع، برنامه‌ریزی پس از پذیرش و ذخیره/ارسال اصلاحات. قرارداد عمومی کامل در docs/frontend-api-contract.json است.",
+    "implementation_fa": "تغییرات فقط بک‌اند است؛ این فایل مستندات لازم برای مصرف API را بیان می‌کند.",
+    "examples_fa": "شناسه‌ها نمونه‌اند؛ از داده واقعی API استفاده کنید. تاریخ ارسال باید در روز مصرف معتبر و امروز یا آینده باشد."
+  },
+  "transport": {
+    "authentication": "Laravel Sanctum bearer token",
+    "headers": {
+      "Authorization": "Bearer <token>",
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    },
+    "active_account_required": true,
+    "success_envelope": {
+      "success": true,
+      "message": "پیام فارسی",
+      "data": {}
+    },
+    "errors": {
+      "401": "توکن معتبر نیست یا وارد نشده‌اید.",
+      "403": "مجوز، مالکیت، نقش، مخاطب یا وضعیت اجازه عملیات نمی‌دهد.",
+      "404": "رکورد پیدا نشد.",
+      "409": "تعارض وضعیت یا تغییر غیرمجاز نوع؛ تغییر زمان جلسه به گذشته نیز تعارض است.",
+      "422": "ورودی نامعتبر یا الزامات ارسال برقرار نیست."
+    },
+    "validation_error_example": {
+      "message": "اطلاعات ارسال‌شده معتبر نیست.",
+      "errors": {
+        "planning_items.0.weight": [
+          "وزن باید عددی غیرمنفی باشد."
+        ]
+      }
+    },
+    "error_shape_note_fa": "خطای 422 ناشی از FormRequest/ValidationException شامل errors است؛ برخی اعتبارسنجی‌های سرویس مانند مهلت گذشته فقط message دارند. موفقیت را از status و success بخوانید."
+  },
+  "rules": {
+    "request_recipients": {
+      "allowed_fa": [
+        "کاربران همان جایگاه سازمانی",
+        "کاربران جایگاه‌های دارای والد مشترک غیرتهی",
+        "زیرمجموعه‌های خود کاربر در حد assignment_down_levels هر جایگاه"
+      ],
+      "forbidden_fa": [
+        "بالادست برای کاربر عادی",
+        "کاربر با عمق برابر در شاخه نامرتبط",
+        "ریشه‌های جدا فقط به دلیل نداشتن والد",
+        "زیرمجموعه خارج از حد عمق مجاز"
+      ],
+      "depth_limit": {
+        "field": "assignment_down_levels",
+        "null": "تمام زیرمجموعه‌ها",
+        "zero": "بدون سطوح پایین‌تر؛ هم‌جایگاه و هم‌والد مجازند"
+      },
+      "super_admin_fa": "همه کاربران فعال می‌توانند مخاطب request باشند.",
+      "enforced_in": [
+        "eligible-users",
+        "POST tasks",
+        "PATCH tasks",
+        "final submission"
+      ],
+      "type_fa": "ارسال به پایین‌دست نوع را از request به assignment تبدیل نمی‌کند.",
+      "unchanged_fa": "قواعد مشاهده درخواست‌های قبلی، پیگیر، ناظر و تأمین‌کنندگان تغییر نکرده است؛ هم‌رده بودن مخاطب به معنی مجاز بودن او برای نقش‌های دیگر نیست. درخواست بالادست قدیمی خواندنی است ولی برای ویرایش/ارسال باید مخاطب معتبر شود."
+    },
+    "assignment_fa": "assignment شخصی است؛ ایجادکننده، درخواست‌کننده و تنها مسئول انجام خود کاربر جاری‌اند. این محدودیت برای Super Admin هم برقرار است.",
+    "save_submit": {
+      "save_fa": "submit=false یا حذف فیلد: ذخیره بدون ارسال برای تأیید.",
+      "save_send_fa": "submit=true: ذخیره همه تغییرات و ارسال همان رکورد در یک درخواست و تراکنش. نیازی به ذخیره پیش‌نویس در درخواست جداگانه نیست.",
+      "atomic_fa": "شکست ارسال همه تغییرات همان عملیات، از جمله ارتباط‌ها و تاریخچه جدید را rollback می‌کند.",
+      "assignment_edit_states": [
+        "draft",
+        "revision_requested"
+      ],
+      "request_edit_states": [
+        "draft",
+        "revision_requested",
+        "rejected"
+      ],
+      "correction_save_fa": "ذخیره اصلاح assignment وضعیت revision_requested را نگه می‌دارد. ویرایش request اصلاحی/ردشده مطابق رفتار قبلی با ثبت revision_edit_started به draft می‌رود؛ ارسال هم‌زمان سپس pending_approval می‌شود.",
+      "unchanged_type_fa": "ارسال دوباره submission_type با مقدار قبلی در اصلاح مجاز است. تغییر واقعی خارج از draft برابر 409 است؛ ویرایش وضعیت‌های دیگر باز نشده است."
+    }
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/tasks/eligible-users",
+      "permission": "tasks:create + TaskPolicy::create; with task_id: tasks:update + TaskPolicy::update on that task",
+      "query": {
+        "search": "optional string max255",
+        "submission_type": "optional assignment|request",
+        "task_id": "optional existing integer task ID (edit context)"
+      },
+      "examples": [
+        "/api/v1/tasks/eligible-users?submission_type=request",
+        "/api/v1/tasks/eligible-users?task_id=42&submission_type=request&search=کارشناس"
+      ],
+      "response_groups": {
+        "assignment_targets": "فقط خود کاربر فعال؛ در submission_type=request خالی است. در نبود submission_type هم فقط خود کاربر است.",
+        "request_targets": "مخاطبان مجاز طبق rules.request_recipients؛ در submission_type=assignment خالی است.",
+        "participants": "منبع انتخاب پیگیر، ناظر و تأمین‌کنندگان با محدوده قبلی بالا/پایین سازمانی."
+      },
+      "success_status": 200,
+      "success_data_keys": [
+        "assignment_targets",
+        "request_targets",
+        "participants"
+      ],
+      "notes_fa": "برای انتخاب مسئول request از request_targets استفاده کنید؛ participants را با request_targets یکی نکنید."
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/tasks",
+      "permission": "tasks:create + TaskPolicy::create؛ کاربر عادی باید جایگاه سازمانی داشته باشد.",
+      "request_fields_reference": "task_write_fields",
+      "success_status": 201,
+      "success_data_path": "data.task",
+      "examples": {
+        "request_save_send": {
+          "submission_type": "request",
+          "title": "درخواست تجهیز واحد",
+          "short_description": "تأمین تجهیزات مورد نیاز",
+          "request_description": "شرح کامل درخواست",
+          "duration_minutes": 120,
+          "due_date": "2026-12-10",
+          "assignee_ids": [
+            23
+          ],
+          "follower_ids": [
+            7
+          ],
+          "supervisor_ids": [
+            7
+          ],
+          "tags": [
+            "تجهیزات"
+          ],
+          "submit": true
+        },
+        "personal_assignment_save": {
+          "submission_type": "assignment",
+          "title": "کار شخصی",
+          "short_description": "شرح کوتاه",
+          "submit": false
+        }
+      },
+      "notes_fa": "برای ذخیره draft فیلدهای ارسال الزامی نیستند؛ برای submit=true کامل و معتبر باشند. assignee_ids حذف‌شده برای assignment خودکار با خود کاربر پر می‌شود."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tasks/{task}",
+      "permission": "tasks:update + TaskPolicy::update؛ assignment فقط ایجادکننده/درخواست‌کننده، request ایجادکننده یا درخواست‌کننده.",
+      "request_fields_reference": "task_write_fields",
+      "editable_states_reference": "rules.save_submit",
+      "success_status": 200,
+      "success_data_path": "data.task",
+      "examples": {
+        "save": {
+          "submission_type": "request",
+          "title": "درخواست اصلاح‌شده",
+          "assignee_ids": [
+            23
+          ],
+          "submit": false
+        },
+        "save_and_send": {
+          "submission_type": "request",
+          "title": "درخواست اصلاح‌شده",
+          "assignee_ids": [
+            23
+          ],
+          "submit": true
+        }
+      },
+      "notes_fa": "ارسال فیلدهای تغییرکرده کافی است؛ الزامات ارسال از ترکیب رکورد و payload بررسی می‌شوند. در ready_to_start/in_progress این مسیر برای ویرایش عمومی assignment مجاز نیست."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tasks/{task}/planning",
+      "permission": "tasks:update + TaskPolicy::updatePlanning؛ فقط مسئول انجام assignment",
+      "allowed_states": [
+        "ready_to_start",
+        "in_progress"
+      ],
+      "request_fields": {
+        "planning_items": {
+          "type": "array<object>",
+          "optional": true,
+          "max_items": 100,
+          "item_fields": {
+            "id": "optional positive distinct integer؛ متعلق به همین task",
+            "title": "required string max255",
+            "weight": "required numeric >=0",
+            "sort_order": "optional integer >=0"
+          },
+          "additional_item_fields_allowed": false
+        },
+        "delete_planning_item_ids": {
+          "type": "array<positive integer>",
+          "optional": true,
+          "max_items": 100,
+          "unique": true,
+          "must_belong_to_task": true
+        }
+      },
+      "additional_top_level_fields_allowed": false,
+      "example": {
+        "planning_items": [
+          {
+            "id": 101,
+            "title": "مرحله اصلاح‌شده",
+            "weight": 30,
+            "sort_order": 0
+          },
+          {
+            "title": "مرحله جدید",
+            "weight": 70,
+            "sort_order": 1
+          }
+        ],
+        "delete_planning_item_ids": [
+          102
+        ]
+      },
+      "success_status": 200,
+      "success_data_path": "data.task",
+      "semantics_fa": [
+        "ID موجود: همان ردیف به‌روزرسانی می‌شود؛ ID و پیشرفت حفظ می‌شوند.",
+        "بدون ID: آیتم جدید با پیشرفت صفر ساخته می‌شود.",
+        "حذف فقط با delete_planning_item_ids؛ حذف‌نشدن فیلد، آیتم ارسال‌نشده یا planning_items=[] حذف ایجاد نمی‌کند.",
+        "ویرایش و حذف هم‌زمان یک ID و استفاده از ID متعلق به تسک دیگر برابر 422 است.",
+        "submit، عنوان عمومی تسک و progress_percentage آیتم در این مسیر پذیرفته نمی‌شوند.",
+        "وضعیت، تاریخچه و زمان‌های گردش کار ریست نمی‌شوند.",
+        "کل عملیات تراکنشی است؛ درصد کل با فرمول موجود دوباره محاسبه می‌شود."
+      ],
+      "progress_formula": {
+        "positive_total_weight": "round(sum(weight * progress_percentage) / sum(weight))",
+        "zero_total_weight": "round(average(progress_percentage))",
+        "no_remaining_items": "درصد کل قبلی حفظ می‌شود."
+      },
+      "error_statuses": [
+        401,
+        403,
+        404,
+        422
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/tasks/{task}/planning-items/{planningItem}",
+      "permission": "tasks:update_progress + TaskPolicy::updatePlanningProgress؛ مسئول assignment",
+      "allowed_states": [
+        "ready_to_start",
+        "in_progress"
+      ],
+      "example": {
+        "progress_percentage": 50
+      },
+      "success_status": 200,
+      "success_data_path": "data.task",
+      "notes_fa": "مسیر موجود ثبت پیشرفت آیتم است؛ افزایش پیشرفت بالاتر از صفر در ready_to_start می‌تواند شروع کار را ثبت کند. با مسیر ویرایش برنامه‌ریزی اشتباه نشود."
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/meetings/{meeting}",
+      "permission": "meetings:update + MeetingPolicy::update",
+      "allowed_actors_fa": [
+        "ایجادکننده",
+        "رئیس جلسه",
+        "دبیر جلسه",
+        "Admin یا Super Admin مجاز"
+      ],
+      "attendee_only_can_edit": false,
+      "allowed_states": [
+        "draft",
+        "scheduled"
+      ],
+      "start_time_check": {
+        "timezone_source": "config(app.timezone)",
+        "current_timezone": "UTC",
+        "format": "meeting_date (Gregorian YYYY-MM-DD) + start_time (HH:MM)",
+        "condition": "now < start؛ زمان پیشنهادی جدید هم آینده باشد.",
+        "incomplete_draft": "پیش‌نویس بدون زمان شروع کامل قابل ویرایش است.",
+        "final_states": "completed و cancelled حتی برای Super Admin قفل‌اند."
+      },
+      "request_fields": {
+        "title": "optional nullable string max255؛ برای scheduled غیرتهی",
+        "short_description": "optional nullable string max500",
+        "location": "optional nullable string max500؛ برای scheduled غیرتهی",
+        "meeting_date": "optional nullable YYYY-MM-DD؛ برای scheduled غیرتهی",
+        "start_time": "optional nullable HH:MM؛ برای scheduled غیرتهی",
+        "chairman_user_id": "optional nullable active user ID؛ برای scheduled غیرتهی",
+        "secretary_user_id": "optional nullable active user ID؛ برای scheduled غیرتهی",
+        "attendee_user_ids": "optional array of distinct active user IDs",
+        "agenda_items": "optional array؛ title required max255، sort_order required distinct integer >=0، description optional nullable string، id optional existing unique meeting-owned ID",
+        "submit": "optional boolean؛ روی draft ارسال اولیه؛ روی scheduled زمان ارسال اولیه ریست نمی‌شود."
+      },
+      "example": {
+        "title": "جلسه هماهنگی اصلاح‌شده",
+        "meeting_date": "2026-12-10",
+        "start_time": "10:30",
+        "submit": false
+      },
+      "success_status": 200,
+      "success_data_path": "data.meeting",
+      "relations_fa": "حذف فیلد حاضرین/دستورجلسه آن‌ها را حفظ می‌کند. برای حفظ ID دستورجلسه آن را ارسال کنید. حذف دستورجلسه دارای مصوبه برابر 422 است. مصوبات و submitted_at جلسه scheduled حفظ می‌شوند.",
+      "errors": {
+        "403": "مجوز/نقش نامعتبر یا جلسه غیرقابل ویرایش طبق policy",
+        "409": "تعارض وضعیت/زمان هنگام بررسی زیر قفل تراکنش؛ زمان جدید گذشته",
+        "422": "ورودی نامعتبر، پاک‌کردن اطلاعات الزامی scheduled یا حذف دستورجلسه دارای مصوبه"
+      },
+      "notes_fa": "MeetingResource فعلاً allowed_actions ندارد؛ allowed_actions زیر مربوط به TaskResource است."
+    }
+  ],
+  "task_write_fields": {
+    "submission_type": {
+      "type": "string",
+      "enum": [
+        "assignment",
+        "request"
+      ],
+      "required_on_create": true,
+      "notes_fa": "در PATCH اختیاری است. مقدار بدون تغییر در وضعیت اصلاح مجاز است؛ تغییر واقعی فقط در draft."
+    },
+    "title": {
+      "type": "string",
+      "max_length": 255,
+      "required_on_submit": true
+    },
+    "short_description": {
+      "type": "string",
+      "max_length": 100,
+      "required_on_submit": true
+    },
+    "request_description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "duration_minutes": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1,
+      "required_on_submit": true
+    },
+    "due_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "YYYY-MM-DD",
+      "not_before": "today",
+      "required_on_submit": true
+    },
+    "requester_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "notes_fa": "کاربر عادی فقط خودش. برای assignment، درخواست‌کننده و ایجادکننده همان کاربر جاری‌اند."
+    },
+    "assignee_ids": {
+      "type": "array<integer>",
+      "unique": true,
+      "active_users_only": true,
+      "notes_fa": "assignment فقط [current_user_id]؛ حذف فیلد در ایجاد assignment یعنی پیش‌فرض خود کاربر. request فقط مخاطبان مجاز request_targets."
+    },
+    "follower_ids": {
+      "type": "array<integer>",
+      "unique": true,
+      "required_on_request_submit": true,
+      "source": "participants"
+    },
+    "supervisor_ids": {
+      "type": "array<integer>",
+      "unique": true,
+      "required_on_request_submit": true,
+      "source": "participants"
+    },
+    "tags": {
+      "type": "array<string>",
+      "max_items": 20,
+      "item_max_length": 100,
+      "unique": true,
+      "required_on_request_submit": true
+    },
+    "attachment_file_ids": {
+      "type": "array<integer>",
+      "unique": true,
+      "notes_fa": "شناسه فایل پیوست بارگذاری‌شده؛ فایل جدید باید متعلق به خود کاربر یا قابل استفاده توسط Super Admin باشد."
+    },
+    "planning_items": {
+      "type": "array<object>",
+      "max_items": 100,
+      "item_fields": {
+        "title": "required string, max255",
+        "weight": "required numeric >=0",
+        "sort_order": "optional integer >=0",
+        "progress_percentage": "optional integer 0..100؛ در assignment هنگام ساخت صفر می‌شود"
+      },
+      "notes_fa": "در مسیر ایجاد/ویرایش عمومی draft، رفتار قبلی جایگزینی کل برنامه حفظ شده است. برای برنامه‌ریزی پس از قبول، فقط از endpoint اختصاصی planning استفاده کنید."
+    },
+    "financial_resources": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "financial_estimated_cost": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "financial_provider_user_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "source": "participants"
+    },
+    "equipment_resources": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "equipment_estimated_cost": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "equipment_provider_user_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "source": "participants"
+    },
+    "progress_percentage": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "notes_fa": "برای assignment در ایجاد/ویرایش عمومی صفر می‌شود؛ برای ثبت پیشرفت از مسیر progress یا planning-items استفاده کنید."
+    },
+    "submit": {
+      "type": "boolean",
+      "default": false,
+      "notes_fa": "false یا حذف فیلد: ذخیره؛ true: ذخیره و ارسال همان رکورد برای تأیید در یک تراکنش."
+    }
+  },
+  "task_allowed_actions": {
+    "source": "data.task.allowed_actions or data.items[].allowed_actions",
+    "notes_fa": "مقادیر واقعی برگشتی بک‌اند را مصرف کنید؛ فقط بر اساس status یا نام نقش مجوز نسازید.",
+    "fields": {
+      "edit": "ویرایش عمومی طبق مالکیت و وضعیت اصلاح‌پذیر؛ پس از قبول assignment برابر false.",
+      "submit": "ارسال draft یا اصلاح مجاز؛ request در revision_requested/rejected نیز می‌تواند true باشد.",
+      "update_planning": "جدید: مسئول assignment با tasks:update در ready_to_start/in_progress؛ حتی بدون آیتم برنامه‌ریزی true می‌شود.",
+      "update_planning_progress": "مسئول assignment دارای آیتم و tasks:update_progress در ready_to_start/in_progress.",
+      "update_progress": "پیشرفت کلی in_progress؛ برای assignment دارای آیتم برنامه‌ریزی false است.",
+      "approve_assignment": "پذیرش assignment در pending_approval توسط مسئول.",
+      "request_assignment_revision": "اصلاح assignment در pending_approval توسط مسئول.",
+      "start": "شروع اجرای مجاز در ready_to_start.",
+      "request_completion": "درخواست پایان assignment در in_progress.",
+      "approve_completion": "تأیید پایان assignment در pending_completion_approval توسط ایجادکننده.",
+      "reject_completion": "رد پایان assignment در pending_completion_approval توسط ایجادکننده.",
+      "approve": "تأیید request در pending_approval توسط مسئول منتخب.",
+      "reject": "رد request در pending_approval توسط مسئول منتخب.",
+      "request_revision": "درخواست اصلاح request در pending_approval توسط مسئول منتخب.",
+      "close": "بستن request ردشده توسط Admin/Super Admin مجاز.",
+      "view": "مشاهده طبق permission و ارتباط کاربر با رکورد.",
+      "delete": "حذف draft طبق policy.",
+      "change_status": "عملیات موجود تغییر وضعیت طبق وضعیت و policy.",
+      "comment": "ارسال نظر طبق permission و دسترسی مشاهده."
+    },
+    "example_personal_assignment_ready_to_start": {
+      "edit": false,
+      "submit": false,
+      "update_planning": true,
+      "start": true
+    },
+    "example_note_fa": "مثال فقط بخشی از allowed_actions را نشان می‌دهد؛ مقدار update_planning_progress به وجود آیتم و مجوز بستگی دارد."
+  },
+  "frontend_consumption_fa": [
+    "انتخاب مخاطب request را از request_targets و پیگیر/ناظر/تأمین‌کننده را از participants بگیرید.",
+    "برای ذخیره و ذخیره‌و‌ارسال همان POST/PATCH را با submit متفاوت فراخوانی کنید.",
+    "در اصلاحات، همان ID را PATCH کنید؛ رکورد تازه نسازید.",
+    "برای ویرایش برنامه‌ریزی پذیرفته‌شده از PATCH /tasks/{task}/planning و برای پیشرفت از مسیر planning-items استفاده کنید.",
+    "بعد از عملیات data.task یا data.meeting برگشتی را مبنا قرار دهید و فهرست مربوط را تازه کنید.",
+    "422 را با خطاهای فیلدی و نیز message پوشش دهید؛ 403/409 یعنی عملیات باید دوباره با داده/وضعیت معتبر ارزیابی شود."
+  ],
+  "deployment": {
+    "role_sync": "php artisan access:sync",
+    "notes_fa": "تعریف پیش‌فرض User شامل meetings:update شده است؛ policy همچنان دسترسی به هر جلسه را محدود می‌کند. این دستور روی سرور موجود پس از استقرار لازم است."
+  },
+  "validation_status": {
+    "relevant_tests": {
+      "total": 39,
+      "passed": 39
+    },
+    "full_backend_suite": {
+      "total": 87,
+      "passed": 70,
+      "failures": 9,
+      "errors": 8,
+      "notes_fa": "موارد باقی‌مانده از قبل در تست‌های احراز هویت، Role قدیمی و مدیریت کاربران وجود داشتند."
+    }
+  }
+}

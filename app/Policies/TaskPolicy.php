@@ -62,7 +62,7 @@ class TaskPolicy
     {
         $allowedStatuses = $task->submission_type === TaskSubmissionType::Assignment
             ? [TaskStatus::Draft, TaskStatus::RevisionRequested]
-            : [TaskStatus::Draft];
+            : [TaskStatus::Draft, TaskStatus::RevisionRequested, TaskStatus::Rejected];
 
         return in_array($task->status, $allowedStatuses, true) && $this->update($user, $task);
     }
@@ -118,6 +118,14 @@ class TaskPolicy
         }
 
         return $this->visibility->canUpdateProgress($user, $task);
+    }
+
+    public function updatePlanning(User $user, Task $task): bool
+    {
+        return $task->submission_type === TaskSubmissionType::Assignment
+            && in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)
+            && $user->hasPermission(Permissions::TASKS_UPDATE)
+            && $this->visibility->isAssignmentAssignee($user, $task);
     }
 
     public function updatePlanningProgress(User $user, Task $task): bool

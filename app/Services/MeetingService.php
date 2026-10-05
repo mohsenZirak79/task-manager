@@ -74,11 +74,15 @@ class MeetingService
         return DB::transaction(function () use ($meeting, $data): Meeting {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             $this->ensureEditable($meeting);
-            $meeting->update($this->meetingAttributes($data));
+            $meeting->fill($this->meetingAttributes($data));
+            $this->ensureEditable($meeting);
+            $meeting->save();
             $this->syncAttendees($meeting, $data);
             $this->syncAgendaItems($meeting, $data);
 
-            if ((bool) ($data['submit'] ?? false)) {
+            if ($meeting->status === MeetingStatus::Scheduled) {
+                $this->validateSubmission($meeting);
+            } elseif ((bool) ($data['submit'] ?? false)) {
                 $this->markSubmitted($meeting);
             }
 
@@ -330,6 +334,9 @@ class MeetingService
                 ? $meeting->agendaItems()->whereKey($item['id'])->firstOrFail()->update($attributes)
                 : $ids[] = $meeting->agendaItems()->create($attributes)->id;
         }
+        if ($meeting->resolutions()->whereNotNull('agenda_item_id')->whereNotIn('agenda_item_id', $ids)->exists()) {
+            throw ValidationException::withMessages(['agenda_items' => 'دستور جلسه مرتبط با مصوبه قابل حذف نیست.']);
+        }
         $query = $meeting->agendaItems();
         $ids === [] ? $query->delete() : $query->whereNotIn('id', $ids)->delete();
     }
@@ -352,8 +359,8 @@ class MeetingService
 
     private function ensureEditable(Meeting $meeting): void
     {
-        if (! in_array($meeting->status, [MeetingStatus::Draft, MeetingStatus::Scheduled], true)) {
-            throw new HttpException(409, 'جلسه تکمیل یا لغوشده قابل ویرایش نیست.');
+        if (! $meeting->isEditableBeforeStart()) {
+            throw new HttpException(409, 'ویرایش جلسه فقط پیش از شروع و در وضعیت پیش‌نویس یا زمان‌بندی‌شده مجاز است.');
         }
     }
 

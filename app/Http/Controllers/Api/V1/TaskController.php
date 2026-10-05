@@ -13,6 +13,7 @@ use App\Http\Requests\RejectTaskRequest;
 use App\Http\Requests\RequestTaskRevisionRequest;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskPlanningProgressRequest;
+use App\Http\Requests\UpdateTaskPlanningRequest;
 use App\Http\Requests\UpdateTaskProgressRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskResource;
@@ -162,6 +163,14 @@ class TaskController extends Controller
         return $this->success('درصد پیشرفت ثبت شد.', [
             'task' => new TaskResource($task),
         ]);
+    }
+
+    public function updatePlanning(UpdateTaskPlanningRequest $request, Task $task): JsonResponse
+    {
+        Gate::authorize('updatePlanning', $task);
+        $task = $this->taskService->updatePlanning($task, $request->validated(), $request->user());
+
+        return $this->success('برنامه‌ریزی تسک بروزرسانی شد.', ['task' => new TaskResource($task)]);
     }
 
     public function updatePlanningProgress(

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Meeting extends Model
 {
@@ -47,6 +48,22 @@ class Meeting extends Model
     public function resolutions(): HasMany
     {
         return $this->hasMany(MeetingResolution::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function isEditableBeforeStart(): bool
+    {
+        if (! in_array($this->status, [MeetingStatus::Draft, MeetingStatus::Scheduled], true)) {
+            return false;
+        }
+        if ($this->meeting_date === null || $this->start_time === null) {
+            return $this->status === MeetingStatus::Draft;
+        }
+        $start = Carbon::parse(
+            $this->meeting_date->toDateString().' '.$this->start_time->format('H:i:s'),
+            config('app.timezone'),
+        );
+
+        return now()->lt($start);
     }
 
     protected function casts(): array
