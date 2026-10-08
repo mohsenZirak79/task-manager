@@ -8,10 +8,16 @@ All endpoints require Sanctum authentication and an active account. Existing suc
 
 - `assignment_targets`: only the current active user, also when `submission_type` is omitted. With `submission_type=request`, this group is empty.
 - `request_targets`: active users in the actor's own positions, positions with the same **non-null parent**, or descendants within each actor position's `assignment_down_levels`. A null limit allows all descendants; zero allows no levels below that position. Root positions with no parent are not peers merely because both are roots. With `submission_type=assignment`, this group is empty.
-- Super Admin keeps unrestricted active request targets. Assignment remains personal even for Super Admin.
+- The current user is excluded from `request_targets`, including for Super Admin. Selecting yourself in request `assignee_ids` returns 422 on create, edit and final submission. Assignment remains personal even for Super Admin.
 - `participants`: existing ancestor/descendant scope is preserved for followers, supervisors and resource providers. A peer eligible as a request recipient is not automatically eligible for these other roles.
 
-The same recipient rule applies to POST, PATCH and final submission. Downstream requests remain `request`; their type is never inferred as assignment. Existing request visibility and review permissions remain unchanged. Historical upstream requests remain readable but must have valid recipients before editing or resubmitting.
+The same recipient rule applies to POST, PATCH and final submission. Downstream requests remain `request`; their type is never inferred as assignment. Historical upstream requests remain readable but must have valid recipients before editing or resubmitting.
+
+Personal list scopes (`assigned_to_me`, `involved`, `action_required`, including default lists) hide received tasks in `draft`, `revision_requested`, `rejected` or `closed` while the current user is an assignee and is not the creator/requester. A correction saved as a draft stays hidden; successful resubmission to `pending_approval` makes it visible again. Creator/requester lists retain the task for correction. Explicit authorized `scope=all` and detail access retain historical visibility. Filtering happens before pagination.
+
+## Shared project tags
+
+Run `php artisan db:seed --class=ProjectTagSeeder --force` after migration to add the standard project and department tags to both task and report tag lists. This seeder preserves existing tags and assignments and can be run repeatedly without duplicates. It is also included in `DatabaseSeeder`.
 
 ## Save / save and submit
 

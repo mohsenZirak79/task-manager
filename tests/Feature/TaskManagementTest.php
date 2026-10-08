@@ -655,7 +655,7 @@ class TaskManagementTest extends TestCase
         $this->assertNotContains($root->id, $assignmentIds);
         $this->assertNotContains($root->id, $requestIds);
         $this->assertNotContains($middle->id, $requestIds);
-        $this->assertContains($worker->id, $requestIds);
+        $this->assertNotContains($worker->id, $requestIds);
         $this->assertNotContains($unrelated->id, $participantIds);
     }
 

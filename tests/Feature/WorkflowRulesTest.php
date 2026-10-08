@@ -6,9 +6,11 @@ use App\Enums\TaskStatus;
 use App\Models\AccessRole;
 use App\Models\Meeting;
 use App\Models\OrgPosition;
+use App\Models\Tag;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\AccessRoles;
+use Database\Seeders\ProjectTagSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\Sanctum;
@@ -57,14 +59,14 @@ class WorkflowRulesTest extends TestCase
         Sanctum::actingAs($actor);
         foreach (['', '?submission_type=request'] as $query) {
             $data = $this->getJson('/api/v1/tasks/eligible-users'.$query)->assertOk()->json('data');
-            $this->assertEqualsCanonicalizing([$actor->id, $peer->id, $same->id, $child->id], array_column($data['request_targets'], 'id'));
+            $this->assertEqualsCanonicalizing([$peer->id, $same->id, $child->id], array_column($data['request_targets'], 'id'));
             if ($query === '') {
                 $this->assertSame([$actor->id], array_column($data['assignment_targets'], 'id'));
             }
             $this->assertContains($root->id, array_column($data['participants'], 'id'));
             $this->assertNotContains($peer->id, array_column($data['participants'], 'id'));
         }
-        foreach ([$actor, $peer, $same, $child] as $target) {
+        foreach ([$peer, $same, $child] as $target) {
             foreach ([false, true] as $submit) {
                 $this->postJson('/api/v1/tasks', [...$this->payload($actor, $target), 'submit' => $submit])
                     ->assertCreated()->assertJsonPath('data.task.submission_type', 'request');
@@ -138,6 +140,78 @@ class WorkflowRulesTest extends TestCase
         $task->participantRecords()->create(['role' => 'assignee', 'user_id' => $actor->id]);
 
         return $task;
+    }
+
+    public function test_requests_cannot_assign_the_actor_even_for_super_admin_or_existing_drafts(): void
+    {
+        [, $actor, $peer] = $this->tree();
+        $admin = User::factory()->admin()->create();
+        foreach ([$actor, $admin] as $creator) {
+            Sanctum::actingAs($creator);
+            foreach (['', '?submission_type=request'] as $query) {
+                $targets = $this->getJson('/api/v1/tasks/eligible-users'.$query)->assertOk()->json('data.request_targets');
+                $this->assertNotContains($creator->id, array_column($targets, 'id'));
+            }
+            foreach ([false, true] as $submit) {
+                $this->postJson('/api/v1/tasks', [...$this->payload($creator, $creator), 'submit' => $submit])
+                    ->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+                $this->postJson('/api/v1/tasks', [...$this->payload($creator, $peer), 'assignee_ids' => [$peer->id, $creator->id], 'submit' => $submit])
+                    ->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+            }
+            $id = $this->postJson('/api/v1/tasks', $this->payload($creator, $peer))->assertCreated()->json('data.task.id');
+            $this->patchJson("/api/v1/tasks/$id", ['assignee_ids' => [$creator->id]])
+                ->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+            $task = Task::findOrFail($id);
+            // Legacy self-assigned requests must also be rejected at final submission.
+            $task->participantRecords()->where('role', 'assignee')->update(['user_id' => $creator->id]);
+            $this->patchJson("/api/v1/tasks/$id", ['submit' => true])->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+            $this->assertSame(TaskStatus::Draft, $task->fresh()->status);
+            $this->postJson('/api/v1/tasks', [...$this->payload($creator, $creator), 'submission_type' => 'assignment', 'submit' => true])
+                ->assertCreated();
+        }
+    }
+
+    public function test_returned_tasks_disappear_from_recipient_lists_until_resubmitted(): void
+    {
+        [, $creator, $recipient] = $this->tree();
+        foreach (['request-revision', 'reject'] as $action) {
+            Sanctum::actingAs($creator);
+            $id = $this->postJson('/api/v1/tasks', [...$this->payload($creator, $recipient), 'submit' => true])
+                ->assertCreated()->json('data.task.id');
+            Sanctum::actingAs($recipient);
+            $this->getJson('/api/v1/tasks?submission_type=request')->assertOk()->assertJsonFragment(['id' => $id]);
+            $this->postJson("/api/v1/tasks/$id/$action", ['reason' => 'Please revise'])->assertOk();
+            foreach (['', '&scope=involved', '&scope=assigned_to_me', '&scope=action_required'] as $scope) {
+                $items = $this->getJson('/api/v1/tasks?submission_type=request'.$scope)->assertOk()->json('data.items');
+                $this->assertNotContains($id, array_column($items, 'id'));
+            }
+            Sanctum::actingAs($creator);
+            $this->getJson('/api/v1/tasks?submission_type=request&scope=created_by_me')->assertOk()->assertJsonFragment(['id' => $id]);
+            $this->patchJson("/api/v1/tasks/$id", ['title' => 'Fixed', 'submit' => false])
+                ->assertOk()->assertJsonPath('data.task.status', 'draft');
+            Sanctum::actingAs($recipient);
+            $items = $this->getJson('/api/v1/tasks?submission_type=request')->assertOk()->json('data.items');
+            $this->assertNotContains($id, array_column($items, 'id'));
+            Sanctum::actingAs($creator);
+            $this->patchJson("/api/v1/tasks/$id", ['submit' => true])->assertOk()->assertJsonPath('data.task.status', 'pending_approval');
+            Sanctum::actingAs($recipient);
+            foreach (['', '&scope=involved', '&scope=assigned_to_me', '&scope=action_required'] as $scope) {
+                $items = $this->getJson('/api/v1/tasks?submission_type=request'.$scope)->assertOk()->json('data.items');
+                $this->assertContains($id, array_column($items, 'id'));
+            }
+        }
+    }
+
+    public function test_project_tags_are_seeded_without_duplicates_or_removing_existing_tags(): void
+    {
+        $existing = Tag::create(['title' => 'Custom project']);
+        $this->seed(ProjectTagSeeder::class);
+        $this->seed(ProjectTagSeeder::class);
+        $this->assertDatabaseCount('tags', count(ProjectTagSeeder::TITLES) + 1);
+        $this->assertDatabaseHas('tags', ['id' => $existing->id, 'title' => 'Custom project']);
+        foreach (ProjectTagSeeder::TITLES as $title) {
+            $this->assertDatabaseHas('tags', ['title' => $title]);
+        }
     }
 
     public function test_planning_patch_preserves_ids_progress_status_and_history_and_deletes_only_explicitly(): void

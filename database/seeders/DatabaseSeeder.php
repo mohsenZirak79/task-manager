@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         Artisan::call('access:sync');
+        $this->call(ProjectTagSeeder::class);
         $config = config('auth_flow.bootstrap_admin');
 
         if (! $config['mobile'] || ! $config['password']) {

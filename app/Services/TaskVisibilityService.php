@@ -41,6 +41,22 @@ class TaskVisibilityService
     {
         $actor->loadMissing('accessRoles.permissions');
 
+        if (in_array($scope, [self::ASSIGNED_TO_ME, self::INVOLVED, self::ACTION_REQUIRED], true)) {
+            $query->where(function (Builder $query) use ($actor): void {
+                $query->where('created_by', $actor->id)
+                    ->orWhere('requester_id', $actor->id)
+                    ->orWhereNotIn('status', [
+                        TaskStatus::Draft->value,
+                        TaskStatus::RevisionRequested->value,
+                        TaskStatus::Rejected->value,
+                        TaskStatus::Closed->value,
+                    ])
+                    ->orWhereDoesntHave('participantRecords', fn (Builder $participants) => $participants
+                        ->where('user_id', $actor->id)
+                        ->where('role', TaskParticipantRole::Assignee->value));
+            });
+        }
+
         return match ($scope) {
             self::CREATED_BY_ME => $query->where(fn (Builder $query) => $query
                 ->where('created_by', $actor->id)

@@ -329,6 +329,8 @@ class TaskService
     {
         $groups['assignment_targets'] = $groups['assignment_targets']
             ->filter(fn (User $user): bool => $user->id === $actor->id)->values();
+        $groups['request_targets'] = $groups['request_targets']
+            ->reject(fn (User $user): bool => $user->id === $actor->id)->values();
         if ($submissionType === TaskSubmissionType::Assignment) {
             $groups['request_targets'] = new Collection;
         } elseif ($submissionType === TaskSubmissionType::Request) {
@@ -751,13 +753,14 @@ class TaskService
 
     private function ensureOrganizationParticipants(User $actor, array $data): void
     {
+        if (($data['submission_type'] ?? null) === TaskSubmissionType::Request->value) {
+            $this->ensureRequestAssignees($actor, $data['assignee_ids'] ?? []);
+        }
+
         if ($actor->isSuperAdmin()) {
             return;
         }
 
-        if (($data['submission_type'] ?? null) === TaskSubmissionType::Request->value) {
-            $this->ensureRequestAssignees($actor, $data['assignee_ids'] ?? []);
-        }
         $allowed = $this->allowedUserIds($actor);
         $fields = [
             'follower_ids', 'supervisor_ids',
@@ -792,6 +795,12 @@ class TaskService
 
     private function ensureRequestAssignees(User $actor, array $ids): void
     {
+        if (in_array($actor->id, array_map('intval', $ids), true)) {
+            throw ValidationException::withMessages([
+                'assignee_ids' => 'در درخواست نمی‌توانید خودتان را مسئول انجام انتخاب کنید؛ از تب تسک استفاده کنید.',
+            ]);
+        }
+
         if ($actor->isSuperAdmin()) {
             return;
         }
