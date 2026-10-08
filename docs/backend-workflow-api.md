@@ -15,6 +15,12 @@ The same recipient rule applies to POST, PATCH and final submission. Downstream 
 
 Personal list scopes (`assigned_to_me`, `involved`, `action_required`, including default lists) hide received tasks in `draft`, `revision_requested`, `rejected` or `closed` while the current user is an assignee and is not the creator/requester. A correction saved as a draft stays hidden; successful resubmission to `pending_approval` makes it visible again. Creator/requester lists retain the task for correction. Explicit authorized `scope=all` and detail access retain historical visibility. Filtering happens before pagination.
 
+## Personal task and request lists
+
+The default task list (`GET /tasks` or `scope=involved`) includes only records where the current user is an assignee, follower, supervisor or financial provider. Being only the creator, requester or equipment provider does not add a record to this list. A sender who also holds one of the listed responsibilities can appear in both lists. These rules apply to personal lists even for Super Admin; authorized `scope=all` remains available for administration.
+
+The default request list (`GET /tasks?submission_type=request`) uses `created_by_me`, matching the frontend request tab. Creator/requester records remain visible there for sending and corrections. Explicit responsibility scopes can still be queried for incoming requests. Detail authorization and editing permissions are unchanged.
+
 ## Shared project tags
 
 Run `php artisan db:seed --class=ProjectTagSeeder --force` after migration to add the standard project and department tags to both task and report tag lists. This seeder preserves existing tags and assignments and can be run repeatedly without duplicates. It is also included in `DatabaseSeeder`.

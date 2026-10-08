@@ -179,10 +179,10 @@ class WorkflowRulesTest extends TestCase
             $id = $this->postJson('/api/v1/tasks', [...$this->payload($creator, $recipient), 'submit' => true])
                 ->assertCreated()->json('data.task.id');
             Sanctum::actingAs($recipient);
-            $this->getJson('/api/v1/tasks?submission_type=request')->assertOk()->assertJsonFragment(['id' => $id]);
+            $this->getJson('/api/v1/tasks')->assertOk()->assertJsonFragment(['id' => $id]);
             $this->postJson("/api/v1/tasks/$id/$action", ['reason' => 'Please revise'])->assertOk();
-            foreach (['', '&scope=involved', '&scope=assigned_to_me', '&scope=action_required'] as $scope) {
-                $items = $this->getJson('/api/v1/tasks?submission_type=request'.$scope)->assertOk()->json('data.items');
+            foreach (['', '?scope=involved', '?scope=assigned_to_me', '?scope=action_required'] as $scope) {
+                $items = $this->getJson('/api/v1/tasks'.$scope)->assertOk()->json('data.items');
                 $this->assertNotContains($id, array_column($items, 'id'));
             }
             Sanctum::actingAs($creator);
@@ -190,13 +190,13 @@ class WorkflowRulesTest extends TestCase
             $this->patchJson("/api/v1/tasks/$id", ['title' => 'Fixed', 'submit' => false])
                 ->assertOk()->assertJsonPath('data.task.status', 'draft');
             Sanctum::actingAs($recipient);
-            $items = $this->getJson('/api/v1/tasks?submission_type=request')->assertOk()->json('data.items');
+            $items = $this->getJson('/api/v1/tasks')->assertOk()->json('data.items');
             $this->assertNotContains($id, array_column($items, 'id'));
             Sanctum::actingAs($creator);
             $this->patchJson("/api/v1/tasks/$id", ['submit' => true])->assertOk()->assertJsonPath('data.task.status', 'pending_approval');
             Sanctum::actingAs($recipient);
-            foreach (['', '&scope=involved', '&scope=assigned_to_me', '&scope=action_required'] as $scope) {
-                $items = $this->getJson('/api/v1/tasks?submission_type=request'.$scope)->assertOk()->json('data.items');
+            foreach (['', '?scope=involved', '?scope=assigned_to_me', '?scope=action_required'] as $scope) {
+                $items = $this->getJson('/api/v1/tasks'.$scope)->assertOk()->json('data.items');
                 $this->assertContains($id, array_column($items, 'id'));
             }
         }

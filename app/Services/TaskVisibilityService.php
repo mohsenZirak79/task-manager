@@ -31,7 +31,7 @@ class TaskVisibilityService
         }
 
         return match ($submissionType) {
-            TaskSubmissionType::Request->value => self::INVOLVED,
+            TaskSubmissionType::Request->value => self::CREATED_BY_ME,
             TaskSubmissionType::Assignment->value => self::ASSIGNED_TO_ME,
             default => self::INVOLVED,
         };
@@ -125,11 +125,14 @@ class TaskVisibilityService
     private function applyInvolved(Builder $query, User $actor): Builder
     {
         return $query->where(function (Builder $query) use ($actor): void {
-            $query->where('created_by', $actor->id)
-                ->orWhere('requester_id', $actor->id)
-                ->orWhere('financial_provider_user_id', $actor->id)
-                ->orWhere('equipment_provider_user_id', $actor->id)
-                ->orWhereHas('participantRecords', fn (Builder $query) => $query->where('user_id', $actor->id));
+            $query->where('financial_provider_user_id', $actor->id)
+                ->orWhereHas('participantRecords', fn (Builder $query) => $query
+                    ->where('user_id', $actor->id)
+                    ->whereIn('role', [
+                        TaskParticipantRole::Assignee->value,
+                        TaskParticipantRole::Follower->value,
+                        TaskParticipantRole::Supervisor->value,
+                    ]));
         });
     }
 

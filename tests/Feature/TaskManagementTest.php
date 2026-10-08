@@ -346,7 +346,7 @@ class TaskManagementTest extends TestCase
         $this->postJson("/api/v1/tasks/{$request->id}/request-revision", ['reason' => 'اصلاح'])->assertForbidden();
 
         Sanctum::actingAs($reviewer);
-        $this->getJson('/api/v1/tasks?submission_type=request')
+        $this->getJson('/api/v1/tasks?scope=involved')
             ->assertOk()
             ->assertJsonPath('data.meta.total', 1)
             ->assertJsonPath('data.items.0.id', $request->id)
@@ -902,6 +902,8 @@ class TaskManagementTest extends TestCase
         $this->getJson('/api/v1/tasks?submission_type=request&scope=created_by_me')
             ->assertOk()->assertJsonPath('data.meta.total', 0);
         $this->getJson('/api/v1/tasks?submission_type=request')
+            ->assertOk()->assertJsonPath('data.meta.total', 0);
+        $this->getJson('/api/v1/tasks')
             ->assertOk()->assertJsonPath('data.meta.total', 1)
             ->assertJsonPath('data.items.0.id', $request->id);
         $this->getJson('/api/v1/tasks?submission_type=request&scope=action_required')
