@@ -11,7 +11,7 @@ class MeetingPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        if (in_array($ability, ['update', 'submit'], true)) {
+        if (in_array($ability, ['update', 'submit', 'start', 'acknowledge'], true)) {
             return null;
         }
 
@@ -44,6 +44,21 @@ class MeetingPolicy
     public function submit(User $user, Meeting $meeting): bool
     {
         return $this->update($user, $meeting);
+    }
+
+    public function start(User $user, Meeting $meeting): bool
+    {
+        return $meeting->status === \App\Enums\MeetingStatus::Scheduled
+            && $meeting->started_at === null
+            && in_array($user->id, [$meeting->created_by, $meeting->secretary_user_id], true);
+    }
+
+    public function acknowledge(User $user, Meeting $meeting): bool
+    {
+        return $meeting->status === \App\Enums\MeetingStatus::Scheduled
+            && $meeting->started_at === null
+            && ! in_array($user->id, [$meeting->created_by, $meeting->secretary_user_id], true)
+            && $this->isMeetingMember($user, $meeting);
     }
 
     public function delete(User $user, Meeting $meeting): bool

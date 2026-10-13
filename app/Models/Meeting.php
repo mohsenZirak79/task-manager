@@ -17,7 +17,7 @@ class Meeting extends Model
     protected $fillable = [
         'title', 'short_description', 'location', 'meeting_date', 'start_time', 'status',
         'chairman_user_id', 'secretary_user_id', 'created_by',
-        'submitted_at', 'completed_at',
+        'submitted_at', 'completed_at', 'started_at',
     ];
 
     public function chairman(): BelongsTo
@@ -52,6 +52,9 @@ class Meeting extends Model
 
     public function isEditableBeforeStart(): bool
     {
+        if ($this->started_at !== null) {
+            return false;
+        }
         if (! in_array($this->status, [MeetingStatus::Draft, MeetingStatus::Scheduled], true)) {
             return false;
         }
@@ -74,6 +77,7 @@ class Meeting extends Model
             'status' => MeetingStatus::class,
             'submitted_at' => 'datetime',
             'completed_at' => 'datetime',
+            'started_at' => 'datetime',
         ];
     }
 }

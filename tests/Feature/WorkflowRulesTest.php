@@ -267,7 +267,7 @@ class WorkflowRulesTest extends TestCase
             $this->getJson("/api/v1/tasks/{$task->id}")->assertOk()->assertJsonPath('data.task.allowed_actions.update_planning', false);
         }
         $task->update(['status' => 'in_progress', 'submission_type' => 'request']);
-        $this->patchJson("/api/v1/tasks/{$task->id}/planning", ['planning_items' => []])->assertForbidden();
+        $this->patchJson("/api/v1/tasks/{$task->id}/planning", ['planning_items' => []])->assertOk();
     }
 
     public function test_revision_save_and_submit_are_atomic_on_same_record_and_allow_unchanged_type(): void

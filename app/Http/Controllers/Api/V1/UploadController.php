@@ -17,6 +17,13 @@ class UploadController extends Controller
 
     public function image(UploadImageRequest $request): JsonResponse
     {
+        if ($request->hasFile('files')) {
+            $files = $this->uploadService->storeAttachments($request->file('files'), $request->user(), true);
+            return response()->json([
+                'success' => true, 'message' => 'تصاویر با موفقیت بارگذاری شدند.',
+                'data' => ['files' => MediaFileResource::collection($files)],
+            ], 201);
+        }
         $file = $this->uploadService->storeImage($request->file('file'), $request->user());
 
         return response()->json([
@@ -28,6 +35,14 @@ class UploadController extends Controller
 
     public function file(UploadFileRequest $request): JsonResponse
     {
+        if ($request->hasFile('files')) {
+            $files = $this->uploadService->storeAttachments($request->file('files'), $request->user());
+            return response()->json([
+                'success' => true,
+                'message' => 'فایل‌ها با موفقیت بارگذاری شدند.',
+                'data' => ['files' => MediaFileResource::collection($files)],
+            ], 201);
+        }
         $file = $this->uploadService->storeAttachment($request->file('file'), $request->user());
 
         return response()->json([

@@ -109,8 +109,7 @@ class TaskResource extends JsonResource
                 && $gate->allows('requestRevision', $this->resource),
             'start' => $this->status === TaskStatus::ReadyToStart
                 && $gate->allows('changeStatus', $this->resource),
-            'update_planning_progress' => $assignment
-                && $hasPlanningItems
+            'update_planning_progress' => $hasPlanningItems
                 && in_array($this->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)
                 && $gate->allows('updatePlanningProgress', $this->resource),
             'request_completion' => $assignment && $this->status === TaskStatus::InProgress

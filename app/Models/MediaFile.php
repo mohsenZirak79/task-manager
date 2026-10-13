@@ -38,6 +38,9 @@ class MediaFile extends Model
 
     public function getUrlAttribute(): string
     {
+        if ($this->disk === 'public') {
+            return '/storage/'.implode('/', array_map('rawurlencode', explode('/', $this->path)));
+        }
         return Storage::disk($this->disk)->url($this->path);
     }
 

@@ -80,12 +80,17 @@ class ReportService
             if ($resolution->task_id !== null) {
                 throw new ConflictHttpException('این مصوبه قبلاً به یک تسک متصل شده است.');
             }
-            if ($resolution->report()->exists()) {
+            if ($existing = $resolution->report()->first()) {
+                if (isset($data['submission_key']) && $existing->created_by === $actor->id
+                    && $existing->submission_key === $data['submission_key']) {
+                    return $this->find($existing);
+                }
                 throw new ConflictHttpException('برای این مصوبه قبلاً گزارش ثبت شده است.');
             }
 
             $report = $resolution->report()->create([
                 ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
+                'submission_key' => $data['submission_key'] ?? null,
                 'created_by' => $actor->id,
                 'status' => $data['status'] ?? 'sent',
                 'sent_at' => ($data['status'] ?? 'sent') === 'sent' ? now() : null,
@@ -100,8 +105,17 @@ class ReportService
     public function createStandalone(array $data, User $actor): Report
     {
         return DB::transaction(function () use ($data, $actor): Report {
+            User::query()->whereKey($actor->id)->lockForUpdate()->firstOrFail();
+            if (isset($data['submission_key'])) {
+                $existing = Report::query()->where('created_by', $actor->id)
+                    ->where('submission_key', $data['submission_key'])->first();
+                if ($existing) {
+                    return $this->find($existing);
+                }
+            }
             $report = Report::query()->create([
                 ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
+                'submission_key' => $data['submission_key'] ?? null,
                 'created_by' => $actor->id,
                 'status' => $data['status'] ?? 'sent',
                 'sent_at' => ($data['status'] ?? 'sent') === 'sent' ? now() : null,

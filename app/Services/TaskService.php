@@ -439,8 +439,7 @@ class TaskService
                 ->lockForUpdate()
                 ->findOrFail($planningItem->id);
 
-            if ($task->submission_type !== TaskSubmissionType::Assignment
-                || ! in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)) {
+            if (! in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)) {
                 throw new HttpException(409, 'در این مرحله امکان ثبت پیشرفت آیتم برنامه‌ریزی وجود ندارد.');
             }
 

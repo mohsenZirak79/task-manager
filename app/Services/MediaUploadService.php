@@ -12,6 +12,24 @@ use Throwable;
 
 class MediaUploadService
 {
+    public function storeAttachments(array $uploads, User $uploader, bool $images = false): array
+    {
+        $stored = [];
+        try {
+            return \Illuminate\Support\Facades\DB::transaction(function () use ($uploads, $uploader, $images, &$stored): array {
+                foreach ($uploads as $upload) {
+                    $stored[] = $images ? $this->storeImage($upload, $uploader) : $this->storeAttachment($upload, $uploader);
+                }
+                return $stored;
+            });
+        } catch (Throwable $exception) {
+            foreach ($stored as $file) {
+                Storage::disk($file->disk)->delete($file->path);
+            }
+            throw $exception;
+        }
+    }
+
     public function storeImage(UploadedFile $file, User $uploader): MediaFile
     {
         return $this->store($file, $uploader, 'public', 'avatars', 'image');

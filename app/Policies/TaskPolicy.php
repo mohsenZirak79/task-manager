@@ -122,17 +122,14 @@ class TaskPolicy
 
     public function updatePlanning(User $user, Task $task): bool
     {
-        return $task->submission_type === TaskSubmissionType::Assignment
-            && in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)
+        return in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)
             && $user->hasPermission(Permissions::TASKS_UPDATE)
-            && $this->visibility->isAssignmentAssignee($user, $task);
+            && $this->visibility->canUpdateProgress($user, $task);
     }
 
     public function updatePlanningProgress(User $user, Task $task): bool
     {
-        return $task->submission_type === TaskSubmissionType::Assignment
-            && $user->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)
-            && $this->visibility->isAssignmentAssignee($user, $task);
+        return $this->visibility->canUpdateProgress($user, $task);
     }
 
     public function requestCompletion(User $user, Task $task): bool

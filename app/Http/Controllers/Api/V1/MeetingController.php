@@ -82,6 +82,31 @@ class MeetingController extends Controller
         return $this->success('جلسه با موفقیت تکمیل و قفل شد.', ['meeting' => new MeetingResource($meeting)]);
     }
 
+    public function start(Request $request, Meeting $meeting): JsonResponse
+    {
+        $meeting = \Illuminate\Support\Facades\DB::transaction(function () use ($meeting): Meeting {
+            $locked = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::authorize('start', $locked);
+            $locked->update(['started_at' => now()]);
+            return $locked;
+        });
+        return $this->success('جلسه شروع شد.', ['meeting' => new MeetingResource($this->meetingService->find($meeting))]);
+    }
+
+    public function acknowledge(Request $request, Meeting $meeting): JsonResponse
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $meeting): void {
+            $locked = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::authorize('acknowledge', $locked);
+            \Illuminate\Support\Facades\DB::table('meeting_acknowledgements')->insertOrIgnore([
+                'meeting_id' => $locked->id,
+                'user_id' => $request->user()->id,
+                'viewed_at' => now(),
+            ]);
+        });
+        return $this->success('مشاهده جلسه ثبت شد.', ['meeting' => new MeetingResource($this->meetingService->find($meeting))]);
+    }
+
     private function success(string $message, array $data = [], int $status = 200): JsonResponse
     {
         return response()->json(['success' => true, 'message' => $message, 'data' => $data], $status);

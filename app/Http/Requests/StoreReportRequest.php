@@ -17,6 +17,7 @@ class StoreReportRequest extends FormRequest
         $activeUser = Rule::exists('users', 'id')->whereNull('deleted_at')->where('is_active', true);
 
         return [
+            'submission_key' => ['sometimes', 'string', 'min:16', 'max:100'],
             'status' => ['sometimes', 'required', Rule::in(['draft', 'sent'])],
             'title' => ['required', 'string', 'max:255'],
             'short_description' => ['required', 'string', 'max:500'],
