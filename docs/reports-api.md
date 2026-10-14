@@ -1,6 +1,6 @@
-# Reports API — compatibility repair (pending deployment)
+# Reports API — compatibility repair
 
-The current local frontend contract is [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json). The v1.2.0 release contract is historical. This compatibility repair has not been deployed. Existing URLs, success envelopes, action_type classification and dashboard APIs are preserved.
+The current frontend contract is [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json). The v1.2.0 release contract is historical. This compatibility repair is deployed on https://taskover.ir. Existing URLs, success envelopes, action_type classification and dashboard APIs are preserved.
 
 ## Workflow
 

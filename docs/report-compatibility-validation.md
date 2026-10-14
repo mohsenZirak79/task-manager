@@ -1,4 +1,4 @@
-# Report compatibility repair — local, pending deployment
+# Report compatibility repair — deployed on taskover.ir
 
 ## Findings and changes
 
@@ -28,13 +28,15 @@ Inherited failures/errors involve ApiAuthenticationTest, CreateAdminCommandTest,
 
 `vendor/bin/pint --test --dirty` and `git diff --check` passed. The JSON contract route inventory matches all current API operations: **85 route definitions, 87 HTTP operations excluding HEAD**. Report response examples pass JSON Schema validation. Both dashboard path objects and all pre-existing shared/dashboard schemas were verified unchanged against the original JSON.
 
-**MySQL was not run for this report repair. Production/server smoke testing was not run for this report repair.** Previous dashboard deployment results in the JSON are explicitly nested under prior_deployment_verification and do not certify these local changes. Isolated MySQL config remains available in phpunit.mysql.xml; do not point tests at production.
+**Production smoke checks passed after deployment**: authenticated me/reports/detail/comments/mention lookups/dashboard/projects returned200; Report allowed_actions keys verified; missing-resource activate/deactivate returned404; invalid pagination422; public HTTPS without credentials401 on all checked report/interaction paths. Both additive migrations were applied; record counts preserved. The sampled report had no comments, so actual comment writes/reactions were not performed on production. Temporary smoke token was revoked.
+
+MySQL isolated regression execution is in progress; no MySQL success is claimed until it completes. Previous dashboard deployment results in the JSON are explicitly nested under prior_deployment_verification and do not certify these local changes. Isolated MySQL config remains available in phpunit.mysql.xml; do not point tests at production.
 
 ## Deployment and remaining work
 
-These changes have not been committed, pushed or deployed. Target domain remains https://taskover.ir; the domain is not evidence that this local revision is live.
+Application commit 4ab6dbb5cb9c4b1c313353e38bcc7bb030935942 was pushed to main and deployed on https://taskover.ir. Server has a private code/database/env backup under /var/www/task-manager/backups/report-compatibility-20261014-112757. PHP-FPM was reloaded and framework caches rebuilt. No business records were modified for smoke testing.
 
-After publishing the reviewed backend changes, run:
+Migration command used successfully:
 
 ```sh
 php artisan migrate --force

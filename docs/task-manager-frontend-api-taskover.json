@@ -3,7 +3,7 @@
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
     "version": "2026-10-14.report-compatibility-1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is LOCAL and pending deployment; server URL remains the target domain. Dashboard API is unchanged."
+    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged."
   },
   "paths": {
     "/api/v1/auth/identify": {
@@ -15474,7 +15474,7 @@
     }
   ],
   "x-deployment": {
-    "status": "local_changes_pending_deployment",
+    "status": "deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "branch": "main",
     "base_commit": "f4555dd9cbabfb375c25cae671f70dc63ba6dbe9",
@@ -15493,7 +15493,9 @@
     "route_fingerprint_sha256": "948fde2cbfa628c8ef5284649846b10a2c8e32e246df80365aae067512db9c4a",
     "route_fingerprint_algorithm": "sha256 of sorted METHOD /uri lines joined by newline",
     "generated_at": "2026-10-14T11:15:16.987032+00:00",
-    "source": "Current local Laravel route table and reviewed Report/Task comment FormRequests/resources. Deployment not performed."
+    "source": "Deployed Laravel main route table and reviewed Report/Task comment FormRequests/resources; verified against server.",
+    "application_commit": "4ab6dbb5cb9c4b1c313353e38bcc7bb030935942",
+    "deployed_at": "2026-10-14T11:40:46.736309+00:00"
   },
   "x-frontend-integration": {
     "headers": {
@@ -15565,7 +15567,7 @@
       "activation": "Deactivation preserves exact previous status and timestamps. Inactive reports allow reads and authorized report deletion, but no edits/send/view marking/comment mutations/reactions/mention lookup. Activation needs a stored known previous state; legacy unknown state returns409. Linked report edit/delete still requires scheduled meeting; send/activation/comments retain existing meeting-state rules."
     },
     "verification": {
-      "status": "local_changes_pending_deployment",
+      "status": "deployed",
       "prior_deployment_verification": {
         "local_sqlite": {
           "passed": 108,
@@ -15607,7 +15609,7 @@
         "assertions": 1130
       },
       "mysql_report_repair_executed": false,
-      "production_report_repair_tested": false,
+      "production_report_repair_tested": true,
       "local_sqlite_full_suite": {
         "tests": 160,
         "passed": 141,
@@ -15624,6 +15626,40 @@
         "errors": 8,
         "skipped_mysql_only": 2,
         "assertions": 1872
+      },
+      "production_report_repair_smoke": {
+        "application_commit": "4ab6dbb5cb9c4b1c313353e38bcc7bb030935942",
+        "via": "Nginx loopback with Host taskover.ir, authenticated temporary token revoked after checks",
+        "status": "passed",
+        "read_only_business_data": true,
+        "authenticated_http_200": [
+          "/me",
+          "/reports?per_page=5",
+          "/reports/1",
+          "/reports/1/comments",
+          "/reports/1/comments/mention-users",
+          "/tasks/1/comments/mention-users",
+          "/dashboard",
+          "/dashboard/projects?page=1&per_page=1"
+        ],
+        "report_allowed_action_keys_verified": true,
+        "report_comment_items": "No report comments available on sampled report; live comment mutation was not exercised. Isolated automated tests cover comment payloads/permissions.",
+        "missing_report_activate_deactivate": 404,
+        "invalid_report_pagination": 422,
+        "schema_previous_status_and_mentions": "present",
+        "record_counts_preserved": true,
+        "migrations_applied": [
+          "2026_10_14_000002_add_previous_status_to_reports",
+          "2026_10_14_000003_create_task_comment_mentions_table"
+        ],
+        "public_https_unauthenticated_checks": {
+          "reports": 401,
+          "activate": 401,
+          "deactivate": 401,
+          "reaction": 401,
+          "report_mention_users": 401
+        },
+        "destructive_tests_executed": false
       }
     },
     "mentions": {
