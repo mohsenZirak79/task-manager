@@ -1,0 +1,8 @@
+{
+ "completed_total": 3,
+ "stored_progress_below_100_count": 0,
+ "planning_progress_below_100_count": 0,
+ "inconsistent_completed_count": 0,
+ "fallback_completed_at_count": 0,
+ "missing_completion_time_count": 3
+}

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
@@ -30,6 +31,8 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 
         Route::middleware('active')->group(function (): void {
+            Route::get('dashboard', DashboardController::class);
+            Route::get('dashboard/projects', [DashboardController::class, 'projects'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('me', [ProfileController::class, 'show']);
             Route::post('uploads/images', [UploadController::class, 'image']);
             Route::post('uploads/files', [UploadController::class, 'file']);

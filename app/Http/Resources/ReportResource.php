@@ -15,6 +15,7 @@ class ReportResource extends JsonResource
             'id' => $this->id,
             'report_number' => $this->report_number,
             'status' => $this->status->value,
+            'action_type' => $this->action_type,
             'sent_at' => $this->sent_at?->toISOString(),
             'viewed_at' => $this->viewed_at?->toISOString(),
             'attachments' => MediaFileResource::collection($this->whenLoaded('attachments')),

@@ -12,7 +12,7 @@ class Report extends Model
 {
     protected $fillable = [
         'meeting_resolution_id', 'title', 'short_description', 'description',
-        'recipient_user_id', 'created_by', 'status', 'sent_at', 'viewed_at', 'submission_key',
+        'action_type', 'recipient_user_id', 'created_by', 'status', 'sent_at', 'viewed_at', 'submission_key',
     ];
 
     protected function casts(): array

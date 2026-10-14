@@ -1,0 +1,343 @@
+{
+  "fixture": {
+    "tasks": 2000,
+    "tags": 20,
+    "participants": 500,
+    "visible_tasks": 500,
+    "visible_assignments": 334
+  },
+  "mysql_version": "8.4.11",
+  "mysql_engine": "InnoDB",
+  "mysql_session_isolation": "READ-COMMITTED",
+  "project_query_estimated_cost": {
+    "before_redundant_subquery_removal": "1738.90",
+    "after": "1038.90",
+    "note": "Optimizer estimates on the same test fixture, not measured latency or a production benchmark."
+  },
+  "index_decision": "No new index added. Existing submission_type/status/task-participant/task-tag indexes are used. The general visibility OR predicate still scans tasks; no measured evidence for a necessary additional index was established by this fixture.",
+  "plans": {
+    "sqlite": {
+      "driver": "sqlite",
+      "fixture_tasks": 2000,
+      "plans": {
+        "visibility": {
+          "sql": "select \"tasks\".\"id\" from \"tasks\" where (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?))",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "plan": [
+            {
+              "id": 2,
+              "parent": 0,
+              "notused": 0,
+              "detail": "SCAN tasks"
+            },
+            {
+              "id": 13,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 1"
+            },
+            {
+              "id": 18,
+              "parent": 13,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            }
+          ]
+        },
+        "statuses": {
+          "sql": "select status, COUNT(*) AS aggregate from \"tasks\" where (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?)) and \"submission_type\" = ? group by \"status\"",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment"
+          ],
+          "plan": [
+            {
+              "id": 7,
+              "parent": 0,
+              "notused": 0,
+              "detail": "SEARCH tasks USING INDEX tasks_submission_type_index (submission_type=?)"
+            },
+            {
+              "id": 23,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 1"
+            },
+            {
+              "id": 28,
+              "parent": 23,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            },
+            {
+              "id": 41,
+              "parent": 0,
+              "notused": 0,
+              "detail": "USE TEMP B-TREE FOR GROUP BY"
+            }
+          ]
+        },
+        "projects": {
+          "sql": "select \"tags\".*, (select count(*) from \"tasks\" inner join \"tag_task\" on \"tasks\".\"id\" = \"tag_task\".\"task_id\" where \"tags\".\"id\" = \"tag_task\".\"tag_id\" and (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?)) and \"submission_type\" = ?) as \"tasks_count\", (select count(*) from \"tasks\" inner join \"tag_task\" on \"tasks\".\"id\" = \"tag_task\".\"task_id\" where \"tags\".\"id\" = \"tag_task\".\"tag_id\" and (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?)) and \"submission_type\" = ? and \"status\" = ?) as \"completed_count\", (select COALESCE(AVG(CASE WHEN status = ? THEN 100 ELSE COALESCE(progress_percentage, 0) END), 0) from \"tasks\" where (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?)) and \"submission_type\" = ? and \"status\" in (?, ?, ?, ?, ?, ?) and \"tasks\".\"id\" in (select \"task_id\" from \"tag_task\" where \"tag_id\" = \"tags\".\"id\")) as \"progress_average\" from \"tags\" where exists (select * from \"tasks\" inner join \"tag_task\" on \"tasks\".\"id\" = \"tag_task\".\"task_id\" where \"tags\".\"id\" = \"tag_task\".\"tag_id\" and (\"created_by\" = ? or \"requester_id\" = ? or \"financial_provider_user_id\" = ? or \"equipment_provider_user_id\" = ? or exists (select * from \"task_participants\" where \"tasks\".\"id\" = \"task_participants\".\"task_id\" and \"user_id\" = ?)) and \"submission_type\" = ?) order by \"tags\".\"id\" asc limit 15",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            "completed",
+            "completed",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            "pending_approval",
+            "revision_requested",
+            "ready_to_start",
+            "in_progress",
+            "pending_completion_approval",
+            "completed",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment"
+          ],
+          "plan": [
+            {
+              "id": 4,
+              "parent": 0,
+              "notused": 0,
+              "detail": "SCAN tags"
+            },
+            {
+              "id": 7,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 9"
+            },
+            {
+              "id": 13,
+              "parent": 7,
+              "notused": 0,
+              "detail": "SEARCH tag_task USING INDEX tag_task_tag_id_task_id_unique (tag_id=?)"
+            },
+            {
+              "id": 18,
+              "parent": 7,
+              "notused": 0,
+              "detail": "SEARCH tasks USING INTEGER PRIMARY KEY (rowid=?)"
+            },
+            {
+              "id": 32,
+              "parent": 7,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 8"
+            },
+            {
+              "id": 37,
+              "parent": 32,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            },
+            {
+              "id": 60,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 2"
+            },
+            {
+              "id": 66,
+              "parent": 60,
+              "notused": 0,
+              "detail": "SEARCH tag_task USING COVERING INDEX tag_task_tag_id_task_id_unique (tag_id=?)"
+            },
+            {
+              "id": 70,
+              "parent": 60,
+              "notused": 0,
+              "detail": "SEARCH tasks USING INTEGER PRIMARY KEY (rowid=?)"
+            },
+            {
+              "id": 84,
+              "parent": 60,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 1"
+            },
+            {
+              "id": 89,
+              "parent": 84,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            },
+            {
+              "id": 110,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 4"
+            },
+            {
+              "id": 116,
+              "parent": 110,
+              "notused": 0,
+              "detail": "SEARCH tag_task USING COVERING INDEX tag_task_tag_id_task_id_unique (tag_id=?)"
+            },
+            {
+              "id": 120,
+              "parent": 110,
+              "notused": 0,
+              "detail": "SEARCH tasks USING INTEGER PRIMARY KEY (rowid=?)"
+            },
+            {
+              "id": 136,
+              "parent": 110,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 3"
+            },
+            {
+              "id": 141,
+              "parent": 136,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            },
+            {
+              "id": 162,
+              "parent": 0,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 7"
+            },
+            {
+              "id": 168,
+              "parent": 162,
+              "notused": 0,
+              "detail": "SEARCH tasks USING INDEX tasks_submission_type_index (submission_type=? AND rowid=?)"
+            },
+            {
+              "id": 172,
+              "parent": 162,
+              "notused": 0,
+              "detail": "CORRELATED LIST SUBQUERY 6"
+            },
+            {
+              "id": 174,
+              "parent": 172,
+              "notused": 0,
+              "detail": "SEARCH tag_task USING COVERING INDEX tag_task_tag_id_task_id_unique (tag_id=?)"
+            },
+            {
+              "id": 226,
+              "parent": 162,
+              "notused": 0,
+              "detail": "CORRELATED SCALAR SUBQUERY 5"
+            },
+            {
+              "id": 231,
+              "parent": 226,
+              "notused": 0,
+              "detail": "SEARCH task_participants USING INDEX task_participants_task_id_user_id_role_unique (task_id=? AND user_id=?)"
+            }
+          ]
+        }
+      }
+    },
+    "mysql": {
+      "driver": "mysql",
+      "fixture_tasks": 2000,
+      "plans": {
+        "visibility": {
+          "sql": "select `tasks`.`id` from `tasks` where (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?))",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "plan": [
+            {
+              "EXPLAIN": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"200.25\"\n    },\n    \"table\": {\n      \"table_name\": \"tasks\",\n      \"access_type\": \"ALL\",\n      \"possible_keys\": [\n        \"tasks_financial_provider_user_id_foreign\",\n        \"tasks_equipment_provider_user_id_foreign\",\n        \"tasks_requester_id_created_at_index\",\n        \"tasks_created_by_created_at_index\"\n      ],\n      \"rows_examined_per_scan\": 2000,\n      \"rows_produced_per_join\": 2000,\n      \"filtered\": \"100.00\",\n      \"cost_info\": {\n        \"read_cost\": \"0.25\",\n        \"eval_cost\": \"200.00\",\n        \"prefix_cost\": \"200.25\",\n        \"data_read_per_join\": \"3M\"\n      },\n      \"used_columns\": [\n        \"id\",\n        \"requester_id\",\n        \"created_by\",\n        \"financial_provider_user_id\",\n        \"equipment_provider_user_id\"\n      ],\n      \"attached_condition\": \"((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#2 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`))))\",\n      \"attached_subqueries\": [\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"select_id\": 2,\n            \"cost_info\": {\n              \"query_cost\": \"0.35\"\n            },\n            \"table\": {\n              \"table_name\": \"task_participants\",\n              \"access_type\": \"ref\",\n              \"possible_keys\": [\n                \"task_participants_task_id_user_id_role_unique\",\n                \"task_participants_user_id_role_index\"\n              ],\n              \"key\": \"task_participants_task_id_user_id_role_unique\",\n              \"used_key_parts\": [\n                \"task_id\",\n                \"user_id\"\n              ],\n              \"key_length\": \"16\",\n              \"ref\": [\n                \"task_manager_dashboard_test.tasks.id\",\n                \"const\"\n              ],\n              \"rows_examined_per_scan\": 1,\n              \"rows_produced_per_join\": 1,\n              \"filtered\": \"100.00\",\n              \"using_index\": true,\n              \"cost_info\": {\n                \"read_cost\": \"0.25\",\n                \"eval_cost\": \"0.10\",\n                \"prefix_cost\": \"0.35\",\n                \"data_read_per_join\": \"120\"\n              },\n              \"used_columns\": [\n                \"task_id\",\n                \"user_id\"\n              ]\n            }\n          }\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        },
+        "statuses": {
+          "sql": "select status, COUNT(*) AS aggregate from `tasks` where (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?)) and `submission_type` = ? group by `status`",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment"
+          ],
+          "plan": [
+            {
+              "EXPLAIN": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"134.15\"\n    },\n    \"grouping_operation\": {\n      \"using_temporary_table\": true,\n      \"using_filesort\": false,\n      \"table\": {\n        \"table_name\": \"tasks\",\n        \"access_type\": \"ref\",\n        \"possible_keys\": [\n          \"tasks_financial_provider_user_id_foreign\",\n          \"tasks_equipment_provider_user_id_foreign\",\n          \"tasks_created_at_status_index\",\n          \"tasks_requester_id_created_at_index\",\n          \"tasks_created_by_created_at_index\",\n          \"tasks_status_index\",\n          \"tasks_submission_type_index\"\n        ],\n        \"key\": \"tasks_submission_type_index\",\n        \"used_key_parts\": [\n          \"submission_type\"\n        ],\n        \"key_length\": \"83\",\n        \"ref\": [\n          \"const\"\n        ],\n        \"rows_examined_per_scan\": 1334,\n        \"rows_produced_per_join\": 1334,\n        \"filtered\": \"100.00\",\n        \"cost_info\": {\n          \"read_cost\": \"0.75\",\n          \"eval_cost\": \"133.40\",\n          \"prefix_cost\": \"134.15\",\n          \"data_read_per_join\": \"2M\"\n        },\n        \"used_columns\": [\n          \"id\",\n          \"status\",\n          \"submission_type\",\n          \"requester_id\",\n          \"created_by\",\n          \"financial_provider_user_id\",\n          \"equipment_provider_user_id\"\n        ],\n        \"attached_condition\": \"((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#2 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`))))\",\n        \"attached_subqueries\": [\n          {\n            \"dependent\": true,\n            \"cacheable\": false,\n            \"query_block\": {\n              \"select_id\": 2,\n              \"cost_info\": {\n                \"query_cost\": \"0.35\"\n              },\n              \"table\": {\n                \"table_name\": \"task_participants\",\n                \"access_type\": \"ref\",\n                \"possible_keys\": [\n                  \"task_participants_task_id_user_id_role_unique\",\n                  \"task_participants_user_id_role_index\"\n                ],\n                \"key\": \"task_participants_task_id_user_id_role_unique\",\n                \"used_key_parts\": [\n                  \"task_id\",\n                  \"user_id\"\n                ],\n                \"key_length\": \"16\",\n                \"ref\": [\n                  \"task_manager_dashboard_test.tasks.id\",\n                  \"const\"\n                ],\n                \"rows_examined_per_scan\": 1,\n                \"rows_produced_per_join\": 1,\n                \"filtered\": \"100.00\",\n                \"using_index\": true,\n                \"cost_info\": {\n                  \"read_cost\": \"0.25\",\n                  \"eval_cost\": \"0.10\",\n                  \"prefix_cost\": \"0.35\",\n                  \"data_read_per_join\": \"120\"\n                },\n                \"used_columns\": [\n                  \"task_id\",\n                  \"user_id\"\n                ]\n              }\n            }\n          }\n        ]\n      }\n    }\n  }\n}"
+            }
+          ]
+        },
+        "projects": {
+          "sql": "select `tags`.*, (select count(*) from `tasks` inner join `tag_task` on `tasks`.`id` = `tag_task`.`task_id` where `tags`.`id` = `tag_task`.`tag_id` and (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?)) and `submission_type` = ?) as `tasks_count`, (select count(*) from `tasks` inner join `tag_task` on `tasks`.`id` = `tag_task`.`task_id` where `tags`.`id` = `tag_task`.`tag_id` and (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?)) and `submission_type` = ? and `status` = ?) as `completed_count`, (select COALESCE(AVG(CASE WHEN status = ? THEN 100 ELSE COALESCE(progress_percentage, 0) END), 0) from `tasks` where (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?)) and `submission_type` = ? and `status` in (?, ?, ?, ?, ?, ?) and `tasks`.`id` in (select `task_id` from `tag_task` where `tag_id` = `tags`.`id`)) as `progress_average` from `tags` where exists (select * from `tasks` inner join `tag_task` on `tasks`.`id` = `tag_task`.`task_id` where `tags`.`id` = `tag_task`.`tag_id` and (`created_by` = ? or `requester_id` = ? or `financial_provider_user_id` = ? or `equipment_provider_user_id` = ? or exists (select * from `task_participants` where `tasks`.`id` = `task_participants`.`task_id` and `user_id` = ?)) and `submission_type` = ?) order by `tags`.`id` asc limit 15",
+          "bindings": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            "completed",
+            "completed",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment",
+            "pending_approval",
+            "revision_requested",
+            "ready_to_start",
+            "in_progress",
+            "pending_completion_approval",
+            "completed",
+            1,
+            1,
+            1,
+            1,
+            1,
+            "assignment"
+          ],
+          "plan": [
+            {
+              "EXPLAIN": "{\n  \"query_block\": {\n    \"select_id\": 1,\n    \"cost_info\": {\n      \"query_cost\": \"1038.90\"\n    },\n    \"ordering_operation\": {\n      \"using_filesort\": false,\n      \"nested_loop\": [\n        {\n          \"table\": {\n            \"table_name\": \"tags\",\n            \"access_type\": \"index\",\n            \"possible_keys\": [\n              \"PRIMARY\"\n            ],\n            \"key\": \"PRIMARY\",\n            \"used_key_parts\": [\n              \"id\"\n            ],\n            \"key_length\": \"8\",\n            \"rows_examined_per_scan\": 15,\n            \"rows_produced_per_join\": 20,\n            \"filtered\": \"100.00\",\n            \"cost_info\": {\n              \"read_cost\": \"0.25\",\n              \"eval_cost\": \"2.00\",\n              \"prefix_cost\": \"2.25\",\n              \"data_read_per_join\": \"8K\"\n            },\n            \"used_columns\": [\n              \"id\",\n              \"title\",\n              \"created_at\",\n              \"updated_at\"\n            ],\n            \"attached_condition\": \"(`task_manager_dashboard_test`.`tags`.`id` is not null)\"\n          }\n        },\n        {\n          \"table\": {\n            \"table_name\": \"<subquery9>\",\n            \"access_type\": \"eq_ref\",\n            \"key\": \"<auto_distinct_key>\",\n            \"key_length\": \"8\",\n            \"ref\": [\n              \"task_manager_dashboard_test.tags.id\"\n            ],\n            \"rows_examined_per_scan\": 1,\n            \"materialized_from_subquery\": {\n              \"using_temporary_table\": true,\n              \"query_block\": {\n                \"nested_loop\": [\n                  {\n                    \"table\": {\n                      \"table_name\": \"tag_task\",\n                      \"access_type\": \"index\",\n                      \"possible_keys\": [\n                        \"tag_task_tag_id_task_id_unique\",\n                        \"tag_task_task_id_index\"\n                      ],\n                      \"key\": \"tag_task_task_id_index\",\n                      \"used_key_parts\": [\n                        \"task_id\"\n                      ],\n                      \"key_length\": \"8\",\n                      \"rows_examined_per_scan\": 2000,\n                      \"rows_produced_per_join\": 2000,\n                      \"filtered\": \"100.00\",\n                      \"using_index\": true,\n                      \"cost_info\": {\n                        \"read_cost\": \"0.25\",\n                        \"eval_cost\": \"200.00\",\n                        \"prefix_cost\": \"200.25\",\n                        \"data_read_per_join\": \"62K\"\n                      },\n                      \"used_columns\": [\n                        \"tag_id\",\n                        \"task_id\"\n                      ]\n                    }\n                  },\n                  {\n                    \"table\": {\n                      \"table_name\": \"tasks\",\n                      \"access_type\": \"eq_ref\",\n                      \"possible_keys\": [\n                        \"PRIMARY\",\n                        \"tasks_financial_provider_user_id_foreign\",\n                        \"tasks_equipment_provider_user_id_foreign\",\n                        \"tasks_requester_id_created_at_index\",\n                        \"tasks_created_by_created_at_index\",\n                        \"tasks_submission_type_index\"\n                      ],\n                      \"key\": \"PRIMARY\",\n                      \"used_key_parts\": [\n                        \"id\"\n                      ],\n                      \"key_length\": \"8\",\n                      \"ref\": [\n                        \"task_manager_dashboard_test.tag_task.task_id\"\n                      ],\n                      \"rows_examined_per_scan\": 1,\n                      \"rows_produced_per_join\": 1333,\n                      \"filtered\": \"66.70\",\n                      \"cost_info\": {\n                        \"read_cost\": \"500.00\",\n                        \"eval_cost\": \"133.40\",\n                        \"prefix_cost\": \"900.25\",\n                        \"data_read_per_join\": \"2M\"\n                      },\n                      \"used_columns\": [\n                        \"id\",\n                        \"submission_type\",\n                        \"requester_id\",\n                        \"created_by\",\n                        \"financial_provider_user_id\",\n                        \"equipment_provider_user_id\"\n                      ],\n                      \"attached_condition\": \"(((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#10 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)))) and (`task_manager_dashboard_test`.`tasks`.`submission_type` = 'assignment'))\",\n                      \"attached_subqueries\": [\n                        {\n                          \"dependent\": true,\n                          \"cacheable\": false,\n                          \"query_block\": {\n                            \"select_id\": 10,\n                            \"cost_info\": {\n                              \"query_cost\": \"50.75\"\n                            },\n                            \"table\": {\n                              \"table_name\": \"task_participants\",\n                              \"access_type\": \"ref\",\n                              \"possible_keys\": [\n                                \"task_participants_task_id_user_id_role_unique\",\n                                \"task_participants_user_id_role_index\"\n                              ],\n                              \"key\": \"task_participants_user_id_role_index\",\n                              \"used_key_parts\": [\n                                \"user_id\"\n                              ],\n                              \"key_length\": \"8\",\n                              \"ref\": [\n                                \"const\"\n                              ],\n                              \"rows_examined_per_scan\": 500,\n                              \"rows_produced_per_join\": 50,\n                              \"filtered\": \"10.00\",\n                              \"cost_info\": {\n                                \"read_cost\": \"0.75\",\n                                \"eval_cost\": \"5.00\",\n                                \"prefix_cost\": \"50.75\",\n                                \"data_read_per_join\": \"5K\"\n                              },\n                              \"used_columns\": [\n                                \"task_id\",\n                                \"user_id\"\n                              ],\n                              \"attached_condition\": \"(`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)\"\n                            }\n                          }\n                        }\n                      ]\n                    }\n                  }\n                ]\n              }\n            }\n          }\n        }\n      ],\n      \"select_list_subqueries\": [\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"select_id\": 6,\n            \"cost_info\": {\n              \"query_cost\": \"601.05\"\n            },\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"tasks\",\n                  \"access_type\": \"ref\",\n                  \"possible_keys\": [\n                    \"PRIMARY\",\n                    \"tasks_financial_provider_user_id_foreign\",\n                    \"tasks_equipment_provider_user_id_foreign\",\n                    \"tasks_requester_id_created_at_index\",\n                    \"tasks_created_by_created_at_index\",\n                    \"tasks_status_index\",\n                    \"tasks_submission_type_index\"\n                  ],\n                  \"key\": \"tasks_submission_type_index\",\n                  \"used_key_parts\": [\n                    \"submission_type\"\n                  ],\n                  \"key_length\": \"83\",\n                  \"ref\": [\n                    \"const\"\n                  ],\n                  \"rows_examined_per_scan\": 1334,\n                  \"rows_produced_per_join\": 1334,\n                  \"filtered\": \"100.00\",\n                  \"cost_info\": {\n                    \"read_cost\": \"0.75\",\n                    \"eval_cost\": \"133.40\",\n                    \"prefix_cost\": \"134.15\",\n                    \"data_read_per_join\": \"2M\"\n                  },\n                  \"used_columns\": [\n                    \"id\",\n                    \"progress_percentage\",\n                    \"status\",\n                    \"submission_type\",\n                    \"requester_id\",\n                    \"created_by\",\n                    \"financial_provider_user_id\",\n                    \"equipment_provider_user_id\"\n                  ],\n                  \"attached_condition\": \"(((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#7 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)))) and (`task_manager_dashboard_test`.`tasks`.`status` in ('pending_approval','revision_requested','ready_to_start','in_progress','pending_completion_approval','completed')))\",\n                  \"attached_subqueries\": [\n                    {\n                      \"dependent\": true,\n                      \"cacheable\": false,\n                      \"query_block\": {\n                        \"select_id\": 7,\n                        \"cost_info\": {\n                          \"query_cost\": \"50.75\"\n                        },\n                        \"table\": {\n                          \"table_name\": \"task_participants\",\n                          \"access_type\": \"ref\",\n                          \"possible_keys\": [\n                            \"task_participants_task_id_user_id_role_unique\",\n                            \"task_participants_user_id_role_index\"\n                          ],\n                          \"key\": \"task_participants_user_id_role_index\",\n                          \"used_key_parts\": [\n                            \"user_id\"\n                          ],\n                          \"key_length\": \"8\",\n                          \"ref\": [\n                            \"const\"\n                          ],\n                          \"rows_examined_per_scan\": 500,\n                          \"rows_produced_per_join\": 50,\n                          \"filtered\": \"10.00\",\n                          \"cost_info\": {\n                            \"read_cost\": \"0.75\",\n                            \"eval_cost\": \"5.00\",\n                            \"prefix_cost\": \"50.75\",\n                            \"data_read_per_join\": \"5K\"\n                          },\n                          \"used_columns\": [\n                            \"task_id\",\n                            \"user_id\"\n                          ],\n                          \"attached_condition\": \"(`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)\"\n                        }\n                      }\n                    }\n                  ]\n                }\n              },\n              {\n                \"table\": {\n                  \"table_name\": \"tag_task\",\n                  \"access_type\": \"eq_ref\",\n                  \"possible_keys\": [\n                    \"tag_task_tag_id_task_id_unique\",\n                    \"tag_task_task_id_index\"\n                  ],\n                  \"key\": \"tag_task_tag_id_task_id_unique\",\n                  \"used_key_parts\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ],\n                  \"key_length\": \"16\",\n                  \"ref\": [\n                    \"task_manager_dashboard_test.tags.id\",\n                    \"task_manager_dashboard_test.tasks.id\"\n                  ],\n                  \"rows_examined_per_scan\": 1,\n                  \"rows_produced_per_join\": 1334,\n                  \"filtered\": \"100.00\",\n                  \"using_index\": true,\n                  \"cost_info\": {\n                    \"read_cost\": \"333.50\",\n                    \"eval_cost\": \"133.40\",\n                    \"prefix_cost\": \"601.05\",\n                    \"data_read_per_join\": \"41K\"\n                  },\n                  \"used_columns\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ]\n                }\n              }\n            ]\n          }\n        },\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"select_id\": 4,\n            \"cost_info\": {\n              \"query_cost\": \"134.13\"\n            },\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"tasks\",\n                  \"access_type\": \"ref\",\n                  \"possible_keys\": [\n                    \"PRIMARY\",\n                    \"tasks_financial_provider_user_id_foreign\",\n                    \"tasks_equipment_provider_user_id_foreign\",\n                    \"tasks_requester_id_created_at_index\",\n                    \"tasks_created_by_created_at_index\",\n                    \"tasks_status_index\",\n                    \"tasks_submission_type_index\"\n                  ],\n                  \"key\": \"tasks_status_index\",\n                  \"used_key_parts\": [\n                    \"status\"\n                  ],\n                  \"key_length\": \"122\",\n                  \"ref\": [\n                    \"const\"\n                  ],\n                  \"rows_examined_per_scan\": 400,\n                  \"rows_produced_per_join\": 266,\n                  \"filtered\": \"66.70\",\n                  \"cost_info\": {\n                    \"read_cost\": \"0.75\",\n                    \"eval_cost\": \"26.68\",\n                    \"prefix_cost\": \"40.75\",\n                    \"data_read_per_join\": \"460K\"\n                  },\n                  \"used_columns\": [\n                    \"id\",\n                    \"status\",\n                    \"submission_type\",\n                    \"requester_id\",\n                    \"created_by\",\n                    \"financial_provider_user_id\",\n                    \"equipment_provider_user_id\"\n                  ],\n                  \"attached_condition\": \"(((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#5 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)))) and (`task_manager_dashboard_test`.`tasks`.`submission_type` = 'assignment'))\",\n                  \"attached_subqueries\": [\n                    {\n                      \"dependent\": true,\n                      \"cacheable\": false,\n                      \"query_block\": {\n                        \"select_id\": 5,\n                        \"cost_info\": {\n                          \"query_cost\": \"50.75\"\n                        },\n                        \"table\": {\n                          \"table_name\": \"task_participants\",\n                          \"access_type\": \"ref\",\n                          \"possible_keys\": [\n                            \"task_participants_task_id_user_id_role_unique\",\n                            \"task_participants_user_id_role_index\"\n                          ],\n                          \"key\": \"task_participants_user_id_role_index\",\n                          \"used_key_parts\": [\n                            \"user_id\"\n                          ],\n                          \"key_length\": \"8\",\n                          \"ref\": [\n                            \"const\"\n                          ],\n                          \"rows_examined_per_scan\": 500,\n                          \"rows_produced_per_join\": 50,\n                          \"filtered\": \"10.00\",\n                          \"cost_info\": {\n                            \"read_cost\": \"0.75\",\n                            \"eval_cost\": \"5.00\",\n                            \"prefix_cost\": \"50.75\",\n                            \"data_read_per_join\": \"5K\"\n                          },\n                          \"used_columns\": [\n                            \"task_id\",\n                            \"user_id\"\n                          ],\n                          \"attached_condition\": \"(`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)\"\n                        }\n                      }\n                    }\n                  ]\n                }\n              },\n              {\n                \"table\": {\n                  \"table_name\": \"tag_task\",\n                  \"access_type\": \"eq_ref\",\n                  \"possible_keys\": [\n                    \"tag_task_tag_id_task_id_unique\",\n                    \"tag_task_task_id_index\"\n                  ],\n                  \"key\": \"tag_task_tag_id_task_id_unique\",\n                  \"used_key_parts\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ],\n                  \"key_length\": \"16\",\n                  \"ref\": [\n                    \"task_manager_dashboard_test.tags.id\",\n                    \"task_manager_dashboard_test.tasks.id\"\n                  ],\n                  \"rows_examined_per_scan\": 1,\n                  \"rows_produced_per_join\": 266,\n                  \"filtered\": \"100.00\",\n                  \"using_index\": true,\n                  \"cost_info\": {\n                    \"read_cost\": \"66.70\",\n                    \"eval_cost\": \"26.68\",\n                    \"prefix_cost\": \"134.13\",\n                    \"data_read_per_join\": \"8K\"\n                  },\n                  \"used_columns\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ]\n                }\n              }\n            ]\n          }\n        },\n        {\n          \"dependent\": true,\n          \"cacheable\": false,\n          \"query_block\": {\n            \"select_id\": 2,\n            \"cost_info\": {\n              \"query_cost\": \"601.05\"\n            },\n            \"nested_loop\": [\n              {\n                \"table\": {\n                  \"table_name\": \"tasks\",\n                  \"access_type\": \"ref\",\n                  \"possible_keys\": [\n                    \"PRIMARY\",\n                    \"tasks_financial_provider_user_id_foreign\",\n                    \"tasks_equipment_provider_user_id_foreign\",\n                    \"tasks_requester_id_created_at_index\",\n                    \"tasks_created_by_created_at_index\",\n                    \"tasks_submission_type_index\"\n                  ],\n                  \"key\": \"tasks_submission_type_index\",\n                  \"used_key_parts\": [\n                    \"submission_type\"\n                  ],\n                  \"key_length\": \"83\",\n                  \"ref\": [\n                    \"const\"\n                  ],\n                  \"rows_examined_per_scan\": 1334,\n                  \"rows_produced_per_join\": 1334,\n                  \"filtered\": \"100.00\",\n                  \"cost_info\": {\n                    \"read_cost\": \"0.75\",\n                    \"eval_cost\": \"133.40\",\n                    \"prefix_cost\": \"134.15\",\n                    \"data_read_per_join\": \"2M\"\n                  },\n                  \"used_columns\": [\n                    \"id\",\n                    \"submission_type\",\n                    \"requester_id\",\n                    \"created_by\",\n                    \"financial_provider_user_id\",\n                    \"equipment_provider_user_id\"\n                  ],\n                  \"attached_condition\": \"((`task_manager_dashboard_test`.`tasks`.`created_by` = 1) or (`task_manager_dashboard_test`.`tasks`.`requester_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`financial_provider_user_id` = 1) or (`task_manager_dashboard_test`.`tasks`.`equipment_provider_user_id` = 1) or exists(/* select#3 */ select 1 from `task_manager_dashboard_test`.`task_participants` where ((`task_manager_dashboard_test`.`task_participants`.`user_id` = 1) and (`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`))))\",\n                  \"attached_subqueries\": [\n                    {\n                      \"dependent\": true,\n                      \"cacheable\": false,\n                      \"query_block\": {\n                        \"select_id\": 3,\n                        \"cost_info\": {\n                          \"query_cost\": \"50.75\"\n                        },\n                        \"table\": {\n                          \"table_name\": \"task_participants\",\n                          \"access_type\": \"ref\",\n                          \"possible_keys\": [\n                            \"task_participants_task_id_user_id_role_unique\",\n                            \"task_participants_user_id_role_index\"\n                          ],\n                          \"key\": \"task_participants_user_id_role_index\",\n                          \"used_key_parts\": [\n                            \"user_id\"\n                          ],\n                          \"key_length\": \"8\",\n                          \"ref\": [\n                            \"const\"\n                          ],\n                          \"rows_examined_per_scan\": 500,\n                          \"rows_produced_per_join\": 50,\n                          \"filtered\": \"10.00\",\n                          \"cost_info\": {\n                            \"read_cost\": \"0.75\",\n                            \"eval_cost\": \"5.00\",\n                            \"prefix_cost\": \"50.75\",\n                            \"data_read_per_join\": \"5K\"\n                          },\n                          \"used_columns\": [\n                            \"task_id\",\n                            \"user_id\"\n                          ],\n                          \"attached_condition\": \"(`task_manager_dashboard_test`.`tasks`.`id` = `task_manager_dashboard_test`.`task_participants`.`task_id`)\"\n                        }\n                      }\n                    }\n                  ]\n                }\n              },\n              {\n                \"table\": {\n                  \"table_name\": \"tag_task\",\n                  \"access_type\": \"eq_ref\",\n                  \"possible_keys\": [\n                    \"tag_task_tag_id_task_id_unique\",\n                    \"tag_task_task_id_index\"\n                  ],\n                  \"key\": \"tag_task_tag_id_task_id_unique\",\n                  \"used_key_parts\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ],\n                  \"key_length\": \"16\",\n                  \"ref\": [\n                    \"task_manager_dashboard_test.tags.id\",\n                    \"task_manager_dashboard_test.tasks.id\"\n                  ],\n                  \"rows_examined_per_scan\": 1,\n                  \"rows_produced_per_join\": 1334,\n                  \"filtered\": \"100.00\",\n                  \"using_index\": true,\n                  \"cost_info\": {\n                    \"read_cost\": \"333.50\",\n                    \"eval_cost\": \"133.40\",\n                    \"prefix_cost\": \"601.05\",\n                    \"data_read_per_join\": \"41K\"\n                  },\n                  \"used_columns\": [\n                    \"tag_id\",\n                    \"task_id\"\n                  ]\n                }\n              }\n            ]\n          }\n        }\n      ]\n    }\n  }\n}"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

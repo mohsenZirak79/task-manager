@@ -1,0 +1,173 @@
+{
+  "success": true,
+  "message": "آمار داشبورد",
+  "data": {
+    "generated_at": "2026-10-14T12:00:00+03:30",
+    "timezone": "Asia/Tehran",
+    "percentage_denominators": {
+      "task_statuses": "task_statuses.total",
+      "task_schedule": "task_schedule.total",
+      "reports": "reports.classified_total"
+    },
+    "cards": {
+      "active_tasks": {
+        "available": true,
+        "count": 3
+      },
+      "active_requests": {
+        "available": true,
+        "count": 5
+      },
+      "registered_reports": {
+        "available": true,
+        "count": 4
+      },
+      "meetings": {
+        "available": true,
+        "count": 2
+      }
+    },
+    "task_statuses": {
+      "available": true,
+      "total": 10,
+      "items": [
+        {
+          "key": "draft",
+          "label": "پیش‌نویس",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "pending_approval",
+          "label": "در انتظار تأیید",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "revision_requested",
+          "label": "نیازمند اصلاح",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "ready_to_start",
+          "label": "آماده شروع",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "in_progress",
+          "label": "در حال انجام",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "pending_completion_approval",
+          "label": "در انتظار تأیید اتمام",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "completed",
+          "label": "تکمیل‌شده",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "not_completed",
+          "label": "انجام‌نشده",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "rejected",
+          "label": "ردشده",
+          "count": 1,
+          "percentage": 10.0
+        },
+        {
+          "key": "closed",
+          "label": "بسته‌شده",
+          "count": 1,
+          "percentage": 10.0
+        }
+      ]
+    },
+    "task_schedule": {
+      "available": true,
+      "examined_total": 10,
+      "total": 6,
+      "excluded_total": 4,
+      "excluded_counts": {
+        "excluded_status": 4,
+        "missing_due_date": 0,
+        "missing_completed_at": 0
+      },
+      "items": [
+        {
+          "key": "on_schedule",
+          "label": "طبق برنامه",
+          "count": 2,
+          "percentage": 33.33
+        },
+        {
+          "key": "critical",
+          "label": "بحرانی",
+          "count": 2,
+          "percentage": 33.33
+        },
+        {
+          "key": "overdue",
+          "label": "عقب‌افتاده",
+          "count": 2,
+          "percentage": 33.33
+        }
+      ],
+      "fallback_completed_at_count": 0
+    },
+    "projects": {
+      "available": true,
+      "items": [
+        {
+          "tag_id": 1,
+          "title": "پروژه نمونه",
+          "tasks_count": 10,
+          "completed_count": 1,
+          "progress_percentage": 41.67
+        }
+      ],
+      "meta": {
+        "current_page": 1,
+        "last_page": 1,
+        "per_page": 15,
+        "total": 1
+      }
+    },
+    "reports": {
+      "available": true,
+      "total": 4,
+      "classified_total": 3,
+      "unclassified_count": 1,
+      "items": [
+        {
+          "key": "needs_action",
+          "label": "نیازمند اقدام",
+          "count": 1,
+          "percentage": 33.33
+        },
+        {
+          "key": "needs_review",
+          "label": "نیازمند بررسی",
+          "count": 1,
+          "percentage": 33.33
+        },
+        {
+          "key": "needs_instruction",
+          "label": "نیازمند دستور",
+          "count": 1,
+          "percentage": 33.33
+        }
+      ]
+    }
+  }
+}

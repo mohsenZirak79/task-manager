@@ -10,7 +10,7 @@ class TaskWorkflowHistory extends Model
 {
     protected $fillable = [
         'task_id', 'actor_id', 'action', 'from_status', 'to_status',
-        'old_progress', 'new_progress', 'reason',
+        'old_progress', 'new_progress', 'reason', 'context',
     ];
 
     public function task(): BelongsTo
@@ -26,6 +26,7 @@ class TaskWorkflowHistory extends Model
     protected function casts(): array
     {
         return [
+            'context' => 'array',
             'from_status' => TaskStatus::class,
             'to_status' => TaskStatus::class,
             'old_progress' => 'integer',

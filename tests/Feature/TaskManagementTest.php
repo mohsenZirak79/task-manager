@@ -174,6 +174,7 @@ class TaskManagementTest extends TestCase
         $task = $this->registerAssignment($creator, $assignee);
         Sanctum::actingAs($assignee);
         $this->postJson("/api/v1/tasks/{$task->id}/status", ['status' => 'in_progress'])->assertOk();
+        $this->postJson("/api/v1/tasks/{$task->id}/progress", ['progress_percentage' => 100])->assertOk();
         $this->postJson("/api/v1/tasks/{$task->id}/completion/request")
             ->assertOk()->assertJsonPath('data.task.status', TaskStatus::PendingCompletionApproval->value);
         $this->postJson("/api/v1/tasks/{$task->id}/completion/request")->assertStatus(409);

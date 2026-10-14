@@ -69,6 +69,23 @@ class TaskVisibilityService
         };
     }
 
+    /** Query equivalent of canView; deliberately independent of list/filter scopes. */
+    public function visibleQuery(User $actor): Builder
+    {
+        $query = Task::query();
+        if ($this->canManageAll($actor)) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $query) use ($actor): void {
+            $query->where('created_by', $actor->id)
+                ->orWhere('requester_id', $actor->id)
+                ->orWhere('financial_provider_user_id', $actor->id)
+                ->orWhere('equipment_provider_user_id', $actor->id)
+                ->orWhereHas('participantRecords', fn (Builder $query) => $query->where('user_id', $actor->id));
+        });
+    }
+
     public function canView(User $actor, Task $task): bool
     {
         if ($this->canManageAll($actor)) {

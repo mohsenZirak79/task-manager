@@ -29,7 +29,7 @@ class TaskService
         $sort = $filters['sort'] ?? 'newest';
 
         $scope = $this->visibility->resolveScope($filters['scope'] ?? null, $filters['submission_type'] ?? null);
-        $query = $this->visibility->apply(Task::query()->with($this->summaryRelations()), $actor, $scope)
+        $query = $this->visibility->apply($this->visibility->visibleQuery($actor)->with($this->summaryRelations()), $actor, $scope)
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('title', 'like', "%{$search}%")
@@ -73,12 +73,12 @@ class TaskService
             ->when($filters['created_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date));
 
         match ($sort) {
-            'oldest' => $query->oldest(),
+            'oldest' => $query->oldest()->oldest('id'),
             'longest_duration' => $query->orderByDesc('duration_minutes')->latest('id'),
             'shortest_duration' => $query->orderBy('duration_minutes')->latest('id'),
             'highest_progress' => $query->orderByDesc('progress_percentage')->latest('id'),
             'lowest_progress' => $query->orderBy('progress_percentage')->latest('id'),
-            default => $query->latest(),
+            default => $query->latest()->latest('id'),
         };
 
         return $query->paginate($perPage);
@@ -151,7 +151,13 @@ class TaskService
                 $this->recordHistory($task, $actor, 'revision_edit_started', $from, TaskStatus::Draft);
             }
 
+            $oldDueDate = $task->due_date?->toDateString();
             $task->update($this->taskAttributes($data));
+            if ($task->wasChanged('due_date')) {
+                $this->recordHistory($task, $actor, 'deadline_updated', context: [
+                    'old_due_date' => $oldDueDate, 'new_due_date' => $task->due_date?->toDateString(),
+                ]);
+            }
             $this->syncParticipants($task, $data);
             $this->syncTags($task, $data);
             $this->syncAttachments($task, $data, $actor);
@@ -476,6 +482,8 @@ class TaskService
                 throw new HttpException(409, 'فقط تسک در حال انجام قابل ارسال برای تأیید پایان است.');
             }
 
+            $this->ensureCompletionProgress($task);
+
             $from = $task->status;
             $task->update([
                 'status' => TaskStatus::PendingCompletionApproval,
@@ -496,6 +504,8 @@ class TaskService
                 || $task->status !== TaskStatus::PendingCompletionApproval) {
                 throw new HttpException(409, 'این تسک در انتظار تأیید پایان نیست.');
             }
+
+            $this->ensureCompletionProgress($task);
 
             $from = $task->status;
             $task->update([
@@ -519,12 +529,13 @@ class TaskService
             }
 
             $from = $task->status;
+            $context = $this->completionContext($task);
             $task->update([
                 'status' => TaskStatus::InProgress,
                 'completion_requested_at' => null,
                 'rejection_reason' => $reason,
             ]);
-            $this->recordHistory($task, $actor, 'completion_rejected', $from, TaskStatus::InProgress, reason: $reason);
+            $this->recordHistory($task, $actor, 'completion_rejected', $from, TaskStatus::InProgress, reason: $reason, context: $context);
 
             return $this->loadTask($task);
         });
@@ -998,6 +1009,24 @@ class TaskService
         ]);
     }
 
+    private function ensureCompletionProgress(Task $task): void
+    {
+        if ($task->progress_percentage < 100 || $this->calculatePlanningProgress($task) < 100) {
+            throw ValidationException::withMessages([
+                'progress_percentage' => 'برای درخواست یا تأیید پایان، پیشرفت تسک باید ۱۰۰ درصد باشد.',
+            ]);
+        }
+    }
+
+    private function completionContext(Task $task): array
+    {
+        return [
+            'completion_requested_at' => $task->completion_requested_at?->toISOString(),
+            'completed_at' => $task->completed_at?->toISOString(),
+            'due_date' => $task->due_date?->toDateString(),
+        ];
+    }
+
     private function recordHistory(
         Task $task,
         User $actor,
@@ -1007,6 +1036,7 @@ class TaskService
         ?int $oldProgress = null,
         ?int $newProgress = null,
         ?string $reason = null,
+        ?array $context = null,
     ): void {
         $task->workflowHistory()->create([
             'actor_id' => $actor->id,
@@ -1016,6 +1046,7 @@ class TaskService
             'old_progress' => $oldProgress,
             'new_progress' => $newProgress,
             'reason' => $reason,
+            'context' => $context ?? (in_array($action, ['completion_requested', 'completion_approved'], true) ? $this->completionContext($task) : null),
         ]);
     }
 

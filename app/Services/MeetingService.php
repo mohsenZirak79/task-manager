@@ -10,6 +10,7 @@ use App\Models\Task;
 use App\Models\User;
 use App\Support\AccessRoles;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -21,11 +22,9 @@ class MeetingService
 {
     public function __construct(private readonly TaskService $taskService) {}
 
-    public function paginate(array $filters, User $actor): LengthAwarePaginator
+    public function visibleQuery(User $actor): Builder
     {
         return Meeting::query()
-            ->with(['chairman', 'secretary', 'creator'])
-            ->withCount(['attendees', 'agendaItems', 'resolutions'])
             ->when(! $this->hasAdministrativeAccess($actor), function ($query) use ($actor): void {
                 $query->where(function ($query) use ($actor): void {
                     $query->where('created_by', $actor->id)
@@ -33,7 +32,14 @@ class MeetingService
                         ->orWhere('secretary_user_id', $actor->id)
                         ->orWhereHas('attendees', fn ($query) => $query->whereKey($actor->id));
                 });
-            })
+            });
+    }
+
+    public function paginate(array $filters, User $actor): LengthAwarePaginator
+    {
+        return $this->visibleQuery($actor)
+            ->with(['chairman', 'secretary', 'creator'])
+            ->withCount(['attendees', 'agendaItems', 'resolutions'])
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
             ->when($filters['from_date'] ?? null, fn ($query, string $date) => $query->whereDate('meeting_date', '>=', $date))
             ->when($filters['to_date'] ?? null, fn ($query, string $date) => $query->whereDate('meeting_date', '<=', $date))

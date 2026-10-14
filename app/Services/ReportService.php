@@ -13,6 +13,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Support\AccessRoles;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,12 +21,9 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class ReportService
 {
-    public function paginate(array $filters, User $actor): LengthAwarePaginator
+    public function visibleQuery(User $actor): Builder
     {
-        $query = Report::query()
-            ->with($this->relations())
-            ->latest('reports.id');
-
+        $query = Report::query();
         if (! $actor->isSuperAdmin() && ! $actor->hasAccessRole(AccessRoles::ADMIN)) {
             $query->where(function ($query) use ($actor): void {
                 $query->where('reports.created_by', $actor->id)
@@ -39,6 +37,15 @@ class ReportService
                     });
             });
         }
+
+        return $query;
+    }
+
+    public function paginate(array $filters, User $actor): LengthAwarePaginator
+    {
+        $query = $this->visibleQuery($actor)
+            ->with($this->relations())
+            ->latest('reports.id');
 
         $query->when($filters['search'] ?? null, function ($query, string $search): void {
             $query->where(function ($query) use ($search): void {
@@ -89,7 +96,7 @@ class ReportService
             }
 
             $report = $resolution->report()->create([
-                ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
+                ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id', 'action_type']),
                 'submission_key' => $data['submission_key'] ?? null,
                 'created_by' => $actor->id,
                 'status' => $data['status'] ?? 'sent',
@@ -114,7 +121,7 @@ class ReportService
                 }
             }
             $report = Report::query()->create([
-                ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']),
+                ...Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id', 'action_type']),
                 'submission_key' => $data['submission_key'] ?? null,
                 'created_by' => $actor->id,
                 'status' => $data['status'] ?? 'sent',
@@ -135,7 +142,7 @@ class ReportService
             if ($report->resolution !== null) {
                 $this->ensureMeetingEditable($report->resolution->meeting);
             }
-            $report->update(Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id']));
+            $report->update(Arr::only($data, ['title', 'short_description', 'description', 'recipient_user_id', 'action_type']));
             $this->syncRelations($report, $data);
             $this->syncAttachments($report, $data, $actor);
 

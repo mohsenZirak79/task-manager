@@ -1,0 +1,963 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Task Manager Dashboard API",
+    "version": "1.1.0",
+    "description": "Task Manager dashboard 1.1; backwards-compatible dashboard and pagination. Completed timing uses the accepted completion_requested_at, with explicitly counted completed_at fallback. See dashboard-api.md for snapshots, workflow validation, history and database test instructions."
+  },
+  "paths": {
+    "/api/v1/dashboard": {
+      "get": {
+        "operationId": "getDashboard",
+        "summary": "آمار مجاز داشبورد",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projects_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "projects_per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Only authorized data; modules without view permission are explicitly unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardResponse"
+                },
+                "examples": {
+                  "available": {
+                    "value": {
+                      "success": true,
+                      "message": "آمار داشبورد",
+                      "data": {
+                        "generated_at": "2026-10-14T12:00:00+03:30",
+                        "timezone": "Asia/Tehran",
+                        "percentage_denominators": {
+                          "task_statuses": "task_statuses.total",
+                          "task_schedule": "task_schedule.total",
+                          "reports": "reports.classified_total"
+                        },
+                        "cards": {
+                          "active_tasks": {
+                            "available": true,
+                            "count": 3
+                          },
+                          "active_requests": {
+                            "available": true,
+                            "count": 5
+                          },
+                          "registered_reports": {
+                            "available": true,
+                            "count": 4
+                          },
+                          "meetings": {
+                            "available": true,
+                            "count": 2
+                          }
+                        },
+                        "task_statuses": {
+                          "available": true,
+                          "total": 10,
+                          "items": [
+                            {
+                              "key": "draft",
+                              "label": "پیش‌نویس",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "pending_approval",
+                              "label": "در انتظار تأیید",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "revision_requested",
+                              "label": "نیازمند اصلاح",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "ready_to_start",
+                              "label": "آماده شروع",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "in_progress",
+                              "label": "در حال انجام",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "pending_completion_approval",
+                              "label": "در انتظار تأیید اتمام",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "completed",
+                              "label": "تکمیل‌شده",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "not_completed",
+                              "label": "انجام‌نشده",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "rejected",
+                              "label": "ردشده",
+                              "count": 1,
+                              "percentage": 10.0
+                            },
+                            {
+                              "key": "closed",
+                              "label": "بسته‌شده",
+                              "count": 1,
+                              "percentage": 10.0
+                            }
+                          ]
+                        },
+                        "task_schedule": {
+                          "available": true,
+                          "examined_total": 10,
+                          "total": 6,
+                          "excluded_total": 4,
+                          "excluded_counts": {
+                            "excluded_status": 4,
+                            "missing_due_date": 0,
+                            "missing_completed_at": 0
+                          },
+                          "items": [
+                            {
+                              "key": "on_schedule",
+                              "label": "طبق برنامه",
+                              "count": 2,
+                              "percentage": 33.33
+                            },
+                            {
+                              "key": "critical",
+                              "label": "بحرانی",
+                              "count": 2,
+                              "percentage": 33.33
+                            },
+                            {
+                              "key": "overdue",
+                              "label": "عقب‌افتاده",
+                              "count": 2,
+                              "percentage": 33.33
+                            }
+                          ],
+                          "fallback_completed_at_count": 0
+                        },
+                        "projects": {
+                          "available": true,
+                          "items": [
+                            {
+                              "tag_id": 1,
+                              "title": "پروژه نمونه",
+                              "tasks_count": 10,
+                              "completed_count": 1,
+                              "progress_percentage": 41.67
+                            }
+                          ],
+                          "meta": {
+                            "current_page": 1,
+                            "last_page": 1,
+                            "per_page": 15,
+                            "total": 1
+                          }
+                        },
+                        "reports": {
+                          "available": true,
+                          "total": 4,
+                          "classified_total": 3,
+                          "unclassified_count": 1,
+                          "items": [
+                            {
+                              "key": "needs_action",
+                              "label": "نیازمند اقدام",
+                              "count": 1,
+                              "percentage": 33.33
+                            },
+                            {
+                              "key": "needs_review",
+                              "label": "نیازمند بررسی",
+                              "count": 1,
+                              "percentage": 33.33
+                            },
+                            {
+                              "key": "needs_instruction",
+                              "label": "نیازمند دستور",
+                              "count": 1,
+                              "percentage": 33.33
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "no_module_permissions": {
+                    "value": {
+                      "success": true,
+                      "message": "آمار داشبورد",
+                      "data": {
+                        "generated_at": "2026-10-14T12:00:00+03:30",
+                        "timezone": "Asia/Tehran",
+                        "percentage_denominators": {
+                          "task_statuses": "task_statuses.total",
+                          "task_schedule": "task_schedule.total",
+                          "reports": "reports.classified_total"
+                        },
+                        "cards": {
+                          "active_tasks": {
+                            "available": false,
+                            "reason": "missing_module_permission"
+                          },
+                          "active_requests": {
+                            "available": false,
+                            "reason": "missing_module_permission"
+                          },
+                          "registered_reports": {
+                            "available": false,
+                            "reason": "missing_module_permission"
+                          },
+                          "meetings": {
+                            "available": false,
+                            "reason": "missing_module_permission"
+                          }
+                        },
+                        "task_statuses": {
+                          "available": false,
+                          "reason": "missing_module_permission"
+                        },
+                        "task_schedule": {
+                          "available": false,
+                          "reason": "missing_module_permission"
+                        },
+                        "projects": {
+                          "available": false,
+                          "reason": "missing_module_permission"
+                        },
+                        "reports": {
+                          "available": false,
+                          "reason": "missing_module_permission"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Inactive user"
+          },
+          "422": {
+            "description": "Invalid projects pagination parameters"
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/projects": {
+      "get": {
+        "operationId": "getDashboardProjects",
+        "summary": "Visible assignment tags with effective progress, without recalculating dashboard charts",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing items/meta structure, ordered by tag_id ascending.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardProjectsResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "آمار پروژه‌ها",
+                  "data": {
+                    "available": true,
+                    "items": [
+                      {
+                        "tag_id": 1,
+                        "title": "پروژه نمونه",
+                        "tasks_count": 10,
+                        "completed_count": 1,
+                        "progress_percentage": 41.67
+                      }
+                    ],
+                    "meta": {
+                      "current_page": 1,
+                      "last_page": 1,
+                      "per_page": 15,
+                      "total": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Inactive user or missing tasks:view permission"
+          },
+          "422": {
+            "description": "Invalid pagination"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sanctum": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Existing Sanctum authentication; existing stateful session authentication also applies."
+      }
+    },
+    "schemas": {
+      "Unavailable": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "available",
+          "reason"
+        ],
+        "properties": {
+          "available": {
+            "const": false
+          },
+          "reason": {
+            "const": "missing_module_permission"
+          }
+        }
+      },
+      "Card": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "count"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Unavailable"
+          }
+        ]
+      },
+      "TaskStatuses": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "total",
+              "items"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "items": {
+                "type": "array",
+                "minItems": 10,
+                "maxItems": 10,
+                "description": "Fixed order: draft, pending_approval, revision_requested, ready_to_start, in_progress, pending_completion_approval, completed, not_completed, rejected, closed",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "key",
+                    "label",
+                    "count",
+                    "percentage"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "draft",
+                        "pending_approval",
+                        "revision_requested",
+                        "ready_to_start",
+                        "in_progress",
+                        "pending_completion_approval",
+                        "completed",
+                        "not_completed",
+                        "rejected",
+                        "closed"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Unavailable"
+          }
+        ]
+      },
+      "TaskSchedule": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "examined_total",
+              "total",
+              "excluded_total",
+              "excluded_counts",
+              "items",
+              "fallback_completed_at_count"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "examined_total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "excluded_total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "excluded_counts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "excluded_status",
+                  "missing_due_date",
+                  "missing_completed_at"
+                ],
+                "properties": {
+                  "excluded_status": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "missing_due_date": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "missing_completed_at": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Compatibility key: both completion_requested_at and completed_at are missing on a completed assignment."
+                  },
+                  "unsupported_status": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Present only if persisted task status is outside explicit dashboard rules; never considered open."
+                  }
+                }
+              },
+              "items": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Fixed order: on_schedule, critical, overdue",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "key",
+                    "label",
+                    "count",
+                    "percentage"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "on_schedule",
+                        "critical",
+                        "overdue"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  }
+                }
+              },
+              "fallback_completed_at_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Eligible completed assignments using completed_at because completion_requested_at is missing. Subset of task_schedule.total."
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Unavailable"
+          }
+        ]
+      },
+      "Projects": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tag_id",
+                    "title",
+                    "tasks_count",
+                    "completed_count",
+                    "progress_percentage"
+                  ],
+                  "properties": {
+                    "tag_id": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "tasks_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "completed_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "progress_percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Mean effective progress over explicitly project-eligible assignment statuses; completed contributes 100, others use COALESCE(progress_percentage,0). Round half up to 2 decimals."
+                    }
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current_page",
+                  "last_page",
+                  "per_page",
+                  "total"
+                ],
+                "properties": {
+                  "current_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "last_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Unavailable"
+          }
+        ]
+      },
+      "Reports": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "total",
+              "classified_total",
+              "unclassified_count",
+              "items"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "classified_total": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unclassified_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "items": {
+                "type": "array",
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "Fixed order: needs_action, needs_review, needs_instruction",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "key",
+                    "label",
+                    "count",
+                    "percentage"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "enum": [
+                        "needs_action",
+                        "needs_review",
+                        "needs_instruction"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Unavailable"
+          }
+        ]
+      },
+      "ReportActionType": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "needs_action",
+          "needs_review",
+          "needs_instruction",
+          null
+        ],
+        "description": "Optional on report creation/update; independent of workflow status. Omitting on update preserves value; null clears classification. Historical records remain null."
+      },
+      "DashboardResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "generated_at",
+              "timezone",
+              "percentage_denominators",
+              "cards",
+              "task_statuses",
+              "task_schedule",
+              "projects",
+              "reports"
+            ],
+            "properties": {
+              "generated_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "One instant captured for the whole response, expressed in Asia/Tehran."
+              },
+              "timezone": {
+                "const": "Asia/Tehran"
+              },
+              "percentage_denominators": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "task_statuses",
+                  "task_schedule",
+                  "reports"
+                ],
+                "properties": {
+                  "task_statuses": {
+                    "const": "task_statuses.total"
+                  },
+                  "task_schedule": {
+                    "const": "task_schedule.total"
+                  },
+                  "reports": {
+                    "const": "reports.classified_total"
+                  }
+                }
+              },
+              "cards": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "active_tasks",
+                  "active_requests",
+                  "registered_reports",
+                  "meetings"
+                ],
+                "properties": {
+                  "active_tasks": {
+                    "$ref": "#/components/schemas/Card"
+                  },
+                  "active_requests": {
+                    "$ref": "#/components/schemas/Card"
+                  },
+                  "registered_reports": {
+                    "$ref": "#/components/schemas/Card"
+                  },
+                  "meetings": {
+                    "$ref": "#/components/schemas/Card"
+                  }
+                }
+              },
+              "task_statuses": {
+                "$ref": "#/components/schemas/TaskStatuses"
+              },
+              "task_schedule": {
+                "$ref": "#/components/schemas/TaskSchedule"
+              },
+              "projects": {
+                "$ref": "#/components/schemas/Projects"
+              },
+              "reports": {
+                "$ref": "#/components/schemas/Reports"
+              }
+            }
+          }
+        }
+      },
+      "DashboardProjectsResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "available",
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "available": {
+                "const": true
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "tag_id",
+                    "title",
+                    "tasks_count",
+                    "completed_count",
+                    "progress_percentage"
+                  ],
+                  "properties": {
+                    "tag_id": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "tasks_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "completed_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "progress_percentage": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "Mean effective progress over explicitly project-eligible assignment statuses; completed contributes 100, others use COALESCE(progress_percentage,0). Round half up to 2 decimals."
+                    }
+                  }
+                }
+              },
+              "meta": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "current_page",
+                  "last_page",
+                  "per_page",
+                  "total"
+                ],
+                "properties": {
+                  "current_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "last_page": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "per_page": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "total": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

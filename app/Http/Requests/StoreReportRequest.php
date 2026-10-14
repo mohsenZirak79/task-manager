@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ReportActionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,6 +18,7 @@ class StoreReportRequest extends FormRequest
         $activeUser = Rule::exists('users', 'id')->whereNull('deleted_at')->where('is_active', true);
 
         return [
+            'action_type' => ['sometimes', 'nullable', Rule::enum(ReportActionType::class)],
             'submission_key' => ['sometimes', 'string', 'min:16', 'max:100'],
             'status' => ['sometimes', 'required', Rule::in(['draft', 'sent'])],
             'title' => ['required', 'string', 'max:255'],

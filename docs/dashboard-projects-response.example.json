@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "message": "آمار پروژه‌ها",
+  "data": {
+    "available": true,
+    "items": [
+      {
+        "tag_id": 1,
+        "title": "پروژه نمونه",
+        "tasks_count": 10,
+        "completed_count": 1,
+        "progress_percentage": 41.67
+      }
+    ],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "total": 1
+    }
+  }
+}

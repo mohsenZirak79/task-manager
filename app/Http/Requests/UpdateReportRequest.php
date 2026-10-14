@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\ReportActionType;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,6 +19,7 @@ class UpdateReportRequest extends FormRequest
         $recipientId = (int) $this->input('recipient_user_id', $this->route('report')?->recipient_user_id);
 
         return [
+            'action_type' => ['sometimes', 'nullable', Rule::enum(ReportActionType::class)],
             'status' => ['prohibited'],
             'report_number' => ['prohibited'],
             'sent_at' => ['prohibited'],
