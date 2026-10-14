@@ -15495,7 +15495,24 @@
     "generated_at": "2026-10-14T11:15:16.987032+00:00",
     "source": "Deployed Laravel main route table and reviewed Report/Task comment FormRequests/resources; verified against server.",
     "application_commit": "4ab6dbb5cb9c4b1c313353e38bcc7bb030935942",
-    "deployed_at": "2026-10-14T11:40:46.736309+00:00"
+    "deployed_at": "2026-10-14T11:40:46.736309+00:00",
+    "frontend": {
+      "branch": "demo-report",
+      "commit": "d888f8c26e71a8609d0fa42a948b4ee30824752d",
+      "build_id": "5N0XlDZCP310LIKoW7LXb",
+      "service": "task-manager-frontend.service",
+      "status": "active",
+      "tests_passed": 215,
+      "tests_failed": 0,
+      "production_build": "passed",
+      "public_https_200": [
+        "/",
+        "/login",
+        "/reports",
+        "/_next/static/5N0XlDZCP310LIKoW7LXb/_buildManifest.js"
+      ],
+      "api_base_url": "/api/v1"
+    }
   },
   "x-frontend-integration": {
     "headers": {
@@ -15608,7 +15625,7 @@
         "skipped_mysql_only": 2,
         "assertions": 1130
       },
-      "mysql_report_repair_executed": false,
+      "mysql_report_repair_executed": true,
       "production_report_repair_tested": true,
       "local_sqlite_full_suite": {
         "tests": 160,
@@ -15660,6 +15677,30 @@
           "report_mention_users": 401
         },
         "destructive_tests_executed": false
+      },
+      "isolated_mysql_initial_attempt": {
+        "tests": 84,
+        "passed": 82,
+        "failed": 1,
+        "skipped": 1,
+        "assertions": 1126,
+        "failure": "DashboardTest::test_mysql_dashboard_has_repeatable_read_snapshot_despite_read_committed_default precondition expected READ-COMMITTED, initial temporary MySQL was configured REPEATABLE-READ. No dashboard code changed; rerun with required READ-COMMITTED server default.",
+        "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads"
+      },
+      "isolated_mysql_report_repair": {
+        "initial_attempt": "82 passed, 1 dashboard environment-precondition failure, 1 skipped out of84; details retained in isolated_mysql_initial_attempt",
+        "corrected_environment": "MySQL8.4 temporary instance with READ-COMMITTED default, InnoDB, localhost33317, RAM-backed disposable test database; no production database changes",
+        "focused_retry": {
+          "command": "vendor/bin/phpunit --configuration phpunit.mysql.xml --filter=test_mysql_dashboard_has_repeatable_read_snapshot_despite_read_committed_default --display-warnings --display-notices --display-deprecations",
+          "tests": 1,
+          "passed": 1,
+          "assertions": 11,
+          "exit_code": 0
+        },
+        "coverage": "82 other cases passed in the first run; the single failed concurrency precondition case passed on the corrected environment. This is not a claim that the entire suite passed in one invocation.",
+        "skipped_test": "ReportInteractionTest::test_migration_does_not_infer_previous_state_and_refuses_lossy_rollback (SQLite-only DDL test)",
+        "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads",
+        "redundant_full_retry": "Interrupted to honor expedited deployment; only the originally failed case was then rerun to completion."
       }
     },
     "mentions": {

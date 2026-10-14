@@ -30,7 +30,7 @@ Inherited failures/errors involve ApiAuthenticationTest, CreateAdminCommandTest,
 
 **Production smoke checks passed after deployment**: authenticated me/reports/detail/comments/mention lookups/dashboard/projects returned200; Report allowed_actions keys verified; missing-resource activate/deactivate returned404; invalid pagination422; public HTTPS without credentials401 on all checked report/interaction paths. Both additive migrations were applied; record counts preserved. The sampled report had no comments, so actual comment writes/reactions were not performed on production. Temporary smoke token was revoked.
 
-MySQL isolated regression execution is in progress; no MySQL success is claimed until it completes. Previous dashboard deployment results in the JSON are explicitly nested under prior_deployment_verification and do not certify these local changes. Isolated MySQL config remains available in phpunit.mysql.xml; do not point tests at production.
+MySQL execution completed with 82 cases passing in the initial run, one skipped case, and one dashboard environment-precondition failure. That failed case passed on a focused retry with the required READ-COMMITTED test-server default (1 test, 11 assertions, direct PHPUnit exit0). This does not claim a fully green suite in one invocation. Previous dashboard deployment results in the JSON are explicitly nested under prior_deployment_verification and do not certify these local changes. Isolated MySQL config remains available in phpunit.mysql.xml; do not point tests at production.
 
 ## Deployment and remaining work
 
@@ -77,3 +77,19 @@ Frontend contract: [task-manager-frontend-api-taskover.json](task-manager-fronte
 - `routes/api.php`
 - `tests/Feature/ReportInteractionTest.php`
 - `tests/Feature/TaskCommentTest.php`
+
+## Frontend publication
+
+At the user’s subsequent request, the server frontend was fast-forwarded from ea1e572 to demo-report commit d888f8c26e71a8609d0fa42a948b4ee30824752d. No frontend source was edited by this backend repair. Existing .env.production and pnpm-workspace.yaml were retained, and prior frontend source/build/config were backed up with the backend backup. Dependencies/lockfile did not change, so no dependency reinstall was needed.
+
+Server pnpm test: **215 passed, 0 failed**. Production Next.js build completed (including lint/type checks), build ID 5N0XlDZCP310LIKoW7LXb. task-manager-frontend.service restarted and active. Public HTTPS root/login/reports/new build manifest/two JS chunk assets all returned200; page HTML contains the new build ID. Frontend API base remains /api/v1 on the same domain.
+
+The first isolated MySQL attempt completed: 84 tests, 82 passed, 1 failed, 1 skipped, 1126 assertions. The sole failure was the dashboard concurrency test’s initial assertion requiring READ-COMMITTED; this temporary instance had MySQL’s default REPEATABLE-READ. The unchanged dashboard test was rerun with its required test-server default and passed (1 test, 11 assertions, direct PHPUnit exit0). No production isolation setting was modified. The existing old Report rollback/FK-index test was explicitly excluded, and the new SQLite DDL rollback test is skipped on MySQL.
+
+Final MySQL verification command:
+
+```sh
+vendor/bin/phpunit --configuration phpunit.mysql.xml --filter=test_mysql_dashboard_has_repeatable_read_snapshot_despite_read_committed_default --display-warnings --display-notices --display-deprecations
+```
+
+A redundant full retry was interrupted to honor expedited publication; the originally failed case was then rerun to completion. The 82 other cases had already passed in the initial full selected run. Temporary MySQL was shut down after verification. Production database configuration/isolation was never changed.
