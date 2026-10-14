@@ -26,7 +26,7 @@ class TaskCommentService
                 fn ($query) => $query->where('parent_id', $filters['parent_id']),
                 fn ($query) => $query->whereNull('parent_id'),
             )
-            ->with(['user', 'task.participantRecords', 'reactions' => fn ($query) => $query->where('user_id', $actor->id)])
+            ->with(['user', 'mentions', 'task.participantRecords', 'reactions' => fn ($query) => $query->where('user_id', $actor->id)])
             ->withCount([
                 'replies',
                 'reactions as like_count' => fn ($query) => $query->where('reaction', 'like'),
@@ -52,15 +52,18 @@ class TaskCommentService
                 'body' => $data['body'],
             ]);
 
+            app(CommentMentionService::class)->sync($comment, $task, $data);
+
             return $this->loadForResponse($comment, $actor);
         });
     }
 
-    public function update(TaskComment $comment, string $body, User $actor): TaskComment
+    public function update(TaskComment $comment, string $body, User $actor, array $data = []): TaskComment
     {
-        return DB::transaction(function () use ($comment, $body, $actor): TaskComment {
+        return DB::transaction(function () use ($comment, $body, $actor, $data): TaskComment {
             $comment = TaskComment::query()->lockForUpdate()->findOrFail($comment->id);
             $comment->update(['body' => $body]);
+            app(CommentMentionService::class)->sync($comment, $comment->task, $data);
 
             return $this->loadForResponse($comment, $actor);
         });
@@ -108,7 +111,7 @@ class TaskCommentService
     {
         return TaskComment::query()
             ->withTrashed()
-            ->with(['user', 'task.participantRecords', 'reactions' => fn ($query) => $query->where('user_id', $actor->id)])
+            ->with(['user', 'mentions', 'task.participantRecords', 'reactions' => fn ($query) => $query->where('user_id', $actor->id)])
             ->withCount([
                 'replies',
                 'reactions as like_count' => fn ($query) => $query->where('reaction', 'like'),

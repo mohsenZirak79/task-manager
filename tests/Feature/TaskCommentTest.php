@@ -190,7 +190,33 @@ class TaskCommentTest extends TestCase
         DB::enableQueryLog();
         $this->getJson("/api/v1/tasks/{$task->id}/comments?per_page=10")
             ->assertOk()->assertJsonCount(10, 'data.items');
-        $this->assertLessThanOrEqual(15, count(DB::getQueryLog()));
+        // Mentions add one batch query, independent of the number of comments.
+        $manyQueries = count(DB::getQueryLog());
+        $this->assertLessThanOrEqual(16, $manyQueries);
+        DB::flushQueryLog();
+        $this->getJson("/api/v1/tasks/{$task->id}/comments?per_page=1")->assertOk();
+        $this->assertLessThanOrEqual($manyQueries, count(DB::getQueryLog()));
+        DB::disableQueryLog();
+    }
+
+    public function test_mentions_only_include_visible_active_users_and_preserve_patch_omission(): void
+    {
+        [$task, $owner, $viewer, $outsider] = $this->context();
+        Sanctum::actingAs($owner);
+        $url = "/api/v1/tasks/{$task->id}/comments";
+        $users = $this->getJson($url.'/mention-users')->assertOk()->json('data.items');
+        $this->assertContains($viewer->id, array_column($users, 'id'));
+        $this->assertNotContains($outsider->id, array_column($users, 'id'));
+        $id = $this->postJson($url, ['body' => 'منشن', 'mention_user_ids' => [$viewer->id]])
+            ->assertCreated()->assertJsonPath('data.comment.mentions.0.id', $viewer->id)->json('data.comment.id');
+        $this->patchJson("$url/$id", ['body' => 'ویرایش'])->assertOk()->assertJsonCount(1, 'data.comment.mentions');
+        $this->patchJson("$url/$id", ['body' => 'غیرمجاز', 'mention_user_ids' => [$outsider->id]])->assertUnprocessable();
+        $this->assertDatabaseHas('task_comments', ['id' => $id, 'body' => 'ویرایش']);
+        $viewer->update(['is_active' => false]);
+        $this->postJson($url, ['body' => 'غیرفعال', 'mention_user_ids' => [$viewer->id]])->assertUnprocessable();
+        $this->patchJson("$url/$id", ['body' => 'پاک', 'mention_user_ids' => []])->assertOk()->assertJsonCount(0, 'data.comment.mentions');
+        Sanctum::actingAs($outsider);
+        $this->getJson($url.'/mention-users')->assertForbidden();
     }
 
     /** @return array{Task, User, User, User, User, User} */

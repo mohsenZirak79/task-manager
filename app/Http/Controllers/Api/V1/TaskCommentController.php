@@ -3,13 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\IndexCommentMentionUsersRequest;
 use App\Http\Requests\IndexTaskCommentsRequest;
 use App\Http\Requests\ReactToTaskCommentRequest;
 use App\Http\Requests\StoreTaskCommentRequest;
 use App\Http\Requests\UpdateTaskCommentRequest;
 use App\Http\Resources\TaskCommentResource;
+use App\Http\Resources\UserSummaryResource;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Services\CommentMentionService;
 use App\Services\TaskCommentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,6 +21,15 @@ use Illuminate\Support\Facades\Gate;
 class TaskCommentController extends Controller
 {
     public function __construct(private readonly TaskCommentService $comments) {}
+
+    public function mentionUsers(IndexCommentMentionUsersRequest $request, Task $task): JsonResponse
+    {
+        Gate::authorize('comment', $task);
+
+        return $this->success('کاربران قابل منشن', [
+            'items' => UserSummaryResource::collection(app(CommentMentionService::class)->eligibleUsers($task, $request->validated('search'))),
+        ]);
+    }
 
     public function index(IndexTaskCommentsRequest $request, Task $task): JsonResponse
     {
@@ -55,7 +67,7 @@ class TaskCommentController extends Controller
     {
         $this->ensureNested($task, $comment);
         Gate::authorize('update', $comment);
-        $comment = $this->comments->update($comment, $request->validated('body'), $request->user());
+        $comment = $this->comments->update($comment, $request->validated('body'), $request->user(), $request->validated());
 
         return $this->success('دیدگاه با موفقیت ویرایش شد.', [
             'comment' => new TaskCommentResource($comment),

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-14.dashboard-1.1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation."
+    "version": "2026-10-14.report-compatibility-1",
+    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is LOCAL and pending deployment; server URL remains the target domain. Dashboard API is unchanged."
   },
   "paths": {
     "/api/v1/auth/identify": {
@@ -3762,17 +3762,87 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "جزئیات گزارش مصوبه",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -3843,17 +3913,87 @@
         ],
         "responses": {
           "201": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "گزارش با موفقیت ثبت شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -5392,18 +5532,119 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "meta"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ReportApiResource"
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "required": [
+                            "current_page",
+                            "last_page",
+                            "per_page",
+                            "total"
+                          ],
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "لیست گزارش‌ها",
+                  "message": "عملیات موفق بود.",
                   "data": {
                     "items": [
-                      "$ref:schemas.report_example"
+                      {
+                        "id": 18,
+                        "allowed_actions": {
+                          "view": true,
+                          "edit": true,
+                          "delete": true,
+                          "send": false,
+                          "mark_viewed": false,
+                          "comment": true,
+                          "deactivate": true,
+                          "activate": false
+                        },
+                        "report_number": "RPT-000018",
+                        "status": "sent",
+                        "action_type": null,
+                        "sent_at": "2026-10-14T09:00:00.000000Z",
+                        "viewed_at": null,
+                        "attachments": [],
+                        "meeting_resolution_id": null,
+                        "meeting": null,
+                        "resolution": null,
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "description": "شرح گزارش",
+                        "recipient": {
+                          "id": 8,
+                          "org_code": "USR-007",
+                          "first_name": "کاربر",
+                          "last_name": "نمونه",
+                          "full_name": "کاربر نمونه",
+                          "title": null,
+                          "avatar_file_id": null
+                        },
+                        "cc_users": [],
+                        "tags": [],
+                        "creator": {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "کاربر",
+                          "last_name": "نمونه",
+                          "full_name": "کاربر نمونه",
+                          "title": null,
+                          "avatar_file_id": null
+                        },
+                        "created_at": "2026-10-14T09:00:00.000000Z",
+                        "updated_at": "2026-10-14T09:00:00.000000Z"
+                      }
                     ],
                     "meta": {
                       "current_page": 1,
@@ -5593,17 +5834,87 @@
         ],
         "responses": {
           "201": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "گزارش با موفقیت ثبت شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.standalone_report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -5927,17 +6238,87 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "جزئیات گزارش",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -5997,17 +6378,87 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "گزارش با موفقیت بروزرسانی شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -6183,6 +6634,12 @@
                       "maxLength": 100
                     },
                     "maxItems": 20
+                  },
+                  "previous_status": {
+                    "description": "Internal workflow history; client writes prohibited.",
+                    "x-laravel-rules": [
+                      "prohibited"
+                    ]
                   }
                 },
                 "required": [
@@ -6312,18 +6769,102 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "meta"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ReportCommentApiResource"
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "required": [
+                            "current_page",
+                            "last_page",
+                            "per_page",
+                            "total"
+                          ],
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "لیست دیدگاه‌های گزارش",
+                  "message": "عملیات موفق بود.",
                   "data": {
                     "items": [
-                      "$ref:schemas.comment_example"
+                      {
+                        "id": 31,
+                        "report_id": 18,
+                        "parent_id": null,
+                        "user": {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "کاربر",
+                          "last_name": "نمونه",
+                          "full_name": "کاربر نمونه",
+                          "title": null,
+                          "avatar_file_id": null
+                        },
+                        "body": "دیدگاه نمونه",
+                        "mentions": [],
+                        "is_deleted": false,
+                        "reactions": {
+                          "like": 0,
+                          "dislike": 0,
+                          "my_reaction": null
+                        },
+                        "allowed_actions": {
+                          "edit": true,
+                          "delete": true,
+                          "reply": true,
+                          "react": true
+                        },
+                        "created_at": "2026-10-14T09:00:00.000000Z",
+                        "updated_at": "2026-10-14T09:00:00.000000Z"
+                      }
                     ],
                     "meta": {
                       "current_page": 1,
@@ -6443,17 +6984,70 @@
         ],
         "responses": {
           "201": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "comment"
+                      ],
+                      "properties": {
+                        "comment": {
+                          "$ref": "#/components/schemas/ReportCommentApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "دیدگاه با موفقیت ثبت شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "comment": "$ref:schemas.comment_example"
+                    "comment": {
+                      "id": 31,
+                      "report_id": 18,
+                      "parent_id": null,
+                      "user": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "body": "دیدگاه نمونه",
+                      "mentions": [],
+                      "is_deleted": false,
+                      "reactions": {
+                        "like": 0,
+                        "dislike": 0,
+                        "my_reaction": null
+                      },
+                      "allowed_actions": {
+                        "edit": true,
+                        "delete": true,
+                        "reply": true,
+                        "react": true
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -6516,6 +7110,20 @@
                       "integer",
                       "exists:task_comments,id,report_id,\"1\",deleted_at,\"NULL\""
                     ]
+                  },
+                  "mention_user_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional. Only active users in mention-users are accepted; server rechecks visibility. Omitted on PATCH preserves mentions; [] clears them.",
+                    "x-laravel-rules": [
+                      "sometimes",
+                      "array",
+                      "max:20"
+                    ]
                   }
                 },
                 "required": [
@@ -6564,17 +7172,70 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "comment"
+                      ],
+                      "properties": {
+                        "comment": {
+                          "$ref": "#/components/schemas/ReportCommentApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "دیدگاه با موفقیت بروزرسانی شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "comment": "$ref:schemas.comment_example"
+                    "comment": {
+                      "id": 31,
+                      "report_id": 18,
+                      "parent_id": null,
+                      "user": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "body": "دیدگاه نمونه",
+                      "mentions": [],
+                      "is_deleted": false,
+                      "reactions": {
+                        "like": 0,
+                        "dislike": 0,
+                        "my_reaction": null
+                      },
+                      "allowed_actions": {
+                        "edit": true,
+                        "delete": true,
+                        "reply": true,
+                        "react": true
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -6625,6 +7286,20 @@
                       "max:5000"
                     ],
                     "maxLength": 5000
+                  },
+                  "mention_user_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional. Only active users in mention-users are accepted; server rechecks visibility. Omitted on PATCH preserves mentions; [] clears them.",
+                    "x-laravel-rules": [
+                      "sometimes",
+                      "array",
+                      "max:20"
+                    ]
                   }
                 },
                 "required": [
@@ -6768,17 +7443,87 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "گزارش با موفقیت ارسال شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
-                    "report": "$ref:schemas.report_example"
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
                   }
                 }
               }
@@ -6852,89 +7597,86 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
                 },
                 "example": {
                   "success": true,
-                  "message": "مشاهده گزارش با موفقیت ثبت شد.",
+                  "message": "عملیات موفق بود.",
                   "data": {
                     "report": {
                       "id": 18,
-                      "meeting_resolution_id": 42,
-                      "meeting": {
-                        "id": 7,
-                        "title": "جلسه بررسی عملکرد ماهانه",
-                        "meeting_date": "2026-09-30"
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
                       },
-                      "resolution": {
-                        "id": 42,
-                        "title": "تهیه گزارش عملکرد واحد مالی",
-                        "agenda_item_id": 12,
-                        "resolution_type": "report"
-                      },
-                      "title": "گزارش عملکرد ماهانه",
-                      "short_description": "خلاصه عملکرد واحد مالی در شهریور",
-                      "description": "متن کامل گزارش عملکرد واحد مالی",
-                      "recipient": {
-                        "id": 2,
-                        "org_code": "100002",
-                        "first_name": "علی",
-                        "last_name": "احمدی",
-                        "full_name": "علی احمدی",
-                        "title": "مدیر مالی",
-                        "avatar_file_id": null
-                      },
-                      "cc_users": [
-                        {
-                          "id": 3,
-                          "org_code": "100003",
-                          "first_name": "مریم",
-                          "last_name": "رضایی",
-                          "full_name": "مریم رضایی",
-                          "title": "کارشناس مالی",
-                          "avatar_file_id": null
-                        }
-                      ],
-                      "tags": [
-                        {
-                          "id": 5,
-                          "title": "ماهانه"
-                        },
-                        {
-                          "id": 8,
-                          "title": "مالی"
-                        }
-                      ],
-                      "creator": {
-                        "id": 1,
-                        "org_code": "100001",
-                        "first_name": "مدیر",
-                        "last_name": "سیستم",
-                        "full_name": "مدیر سیستم",
-                        "title": "مدیر سامانه",
-                        "avatar_file_id": null
-                      },
-                      "created_at": "2026-09-30T10:00:00.000000Z",
-                      "updated_at": "2026-09-30T10:00:00.000000Z",
                       "report_number": "RPT-000018",
                       "status": "viewed",
-                      "sent_at": "2026-09-30T10:00:00.000000Z",
-                      "viewed_at": "2026-10-03T10:00:00.000000Z",
-                      "attachments": [
-                        {
-                          "id": 12,
-                          "original_name": "filename.pdf",
-                          "mime_type": "application/pdf",
-                          "size": 1048576,
-                          "category": "attachment",
-                          "url": "https://example.com/storage/task-attachments/example.pdf"
-                        }
-                      ],
-                      "action_type": null
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": "2026-10-14T09:01:00.000000Z",
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:01:00.000000Z"
                     }
                   }
                 }
@@ -9278,6 +10020,20 @@
                       "integer",
                       "exists:task_comments,id"
                     ]
+                  },
+                  "mention_user_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional. Only active users in mention-users are accepted; server rechecks visibility. Omitted on PATCH preserves mentions; [] clears them.",
+                    "x-laravel-rules": [
+                      "sometimes",
+                      "array",
+                      "max:20"
+                    ]
                   }
                 },
                 "required": [
@@ -9388,6 +10144,20 @@
                       "max:5000"
                     ],
                     "maxLength": 5000
+                  },
+                  "mention_user_ids": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Optional. Only active users in mention-users are accepted; server rechecks visibility. Omitted on PATCH preserves mentions; [] clears them.",
+                    "x-laravel-rules": [
+                      "sometimes",
+                      "array",
+                      "max:20"
+                    ]
                   }
                 },
                 "required": [
@@ -12955,6 +13725,740 @@
           }
         ]
       }
+    },
+    "/api/v1/reports/{report}/activate": {
+      "post": {
+        "operationId": "post_api_v1_reports_report_activate",
+        "summary": "Activate report",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportController@activate",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:manage"
+        ],
+        "x-required-permissions": [
+          "reports:manage"
+        ],
+        "responses": {
+          "200": {
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "عملیات موفق بود.",
+                  "data": {
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": true,
+                        "deactivate": true,
+                        "activate": false
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "sent",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Validation failed; use errors[field] for Persian field messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current workflow state does not allow this operation."
+          }
+        },
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Restore the stored prior draft/sent/viewed state. Active reports or inactive records without known prior state return 409; no status is guessed."
+      }
+    },
+    "/api/v1/reports/{report}/deactivate": {
+      "post": {
+        "operationId": "post_api_v1_reports_report_deactivate",
+        "summary": "Deactivate report",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportController@deactivate",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:manage"
+        ],
+        "x-required-permissions": [
+          "reports:manage"
+        ],
+        "responses": {
+          "200": {
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "report"
+                      ],
+                      "properties": {
+                        "report": {
+                          "$ref": "#/components/schemas/ReportApiResource"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "عملیات موفق بود.",
+                  "data": {
+                    "report": {
+                      "id": 18,
+                      "allowed_actions": {
+                        "view": true,
+                        "edit": false,
+                        "delete": true,
+                        "send": false,
+                        "mark_viewed": false,
+                        "comment": false,
+                        "deactivate": false,
+                        "activate": true
+                      },
+                      "report_number": "RPT-000018",
+                      "status": "inactive",
+                      "action_type": null,
+                      "sent_at": "2026-10-14T09:00:00.000000Z",
+                      "viewed_at": null,
+                      "attachments": [],
+                      "meeting_resolution_id": null,
+                      "meeting": null,
+                      "resolution": null,
+                      "title": "گزارش نمونه",
+                      "short_description": "خلاصه گزارش",
+                      "description": "شرح گزارش",
+                      "recipient": {
+                        "id": 8,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "cc_users": [],
+                      "tags": [],
+                      "creator": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "created_at": "2026-10-14T09:00:00.000000Z",
+                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Validation failed; use errors[field] for Persian field messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current workflow state does not allow this operation."
+          }
+        },
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Idempotently save current draft/sent/viewed state and mark inactive under report management policy. Preserve sent_at/viewed_at, attachments and discussion history."
+      }
+    },
+    "/api/v1/reports/{report}/comments/{comment}/reaction": {
+      "put": {
+        "operationId": "put_api_v1_reports_report_comments_comment_reaction",
+        "summary": "Set or remove comment reaction",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportCommentController@reaction",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:view"
+        ],
+        "x-required-permissions": [
+          "reports:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "reactions"
+                      ],
+                      "properties": {
+                        "reactions": {
+                          "$ref": "#/components/schemas/CommentReactions"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "عملیات موفق بود.",
+                  "data": {
+                    "reactions": {
+                      "like": 1,
+                      "dislike": 0,
+                      "my_reaction": "like"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Validation failed; use errors[field] for Persian field messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current workflow state does not allow this operation."
+          }
+        },
+        "description": "Visible active report, live comment belonging to that report, and reactComment policy required. like/dislike replaces the actor reaction; null removes it. Repeated identical values are idempotent. Inactive report:409, missing/deleted/foreign comment:404.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reaction": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "x-laravel-rules": [
+                      "present",
+                      "nullable",
+                      "in:\"like\",\"dislike\""
+                    ],
+                    "enum": [
+                      "like",
+                      "dislike",
+                      null
+                    ]
+                  }
+                },
+                "required": [
+                  "reaction"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "comment",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "x-validation-source": "App\\Http\\Requests\\ReactToTaskCommentRequest"
+      }
+    },
+    "/api/v1/reports/{report}/comments/mention-users": {
+      "get": {
+        "operationId": "get_api_v1_reports_report_comments_mention_users",
+        "summary": "List eligible mention users",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportCommentController@mentionUsers",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:view"
+        ],
+        "x-required-permissions": [
+          "reports:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MentionUser"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "عملیات موفق بود.",
+                  "data": {
+                    "items": [
+                      {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Validation failed; use errors[field] for Persian field messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current workflow state does not allow this operation."
+          }
+        },
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 255
+            }
+          }
+        ],
+        "x-validation-source": "App\\Http\\Requests\\IndexCommentMentionUsersRequest",
+        "description": "Active involved users and applicable viewers, filtered through the subject view policy. Requires view access for reports (inactive:409), comment policy for tasks. Returns items without pagination. Does not send notifications."
+      }
+    },
+    "/api/v1/tasks/{task}/comments/mention-users": {
+      "get": {
+        "operationId": "get_api_v1_tasks_task_comments_mention_users",
+        "summary": "List eligible mention users",
+        "tags": [
+          "tasks"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\TaskCommentController@mentionUsers",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active"
+        ],
+        "x-required-permissions": [
+          "tasks:comment",
+          "tasks:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MentionUser"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "عملیات موفق بود.",
+                  "data": {
+                    "items": [
+                      {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "کاربر",
+                        "last_name": "نمونه",
+                        "full_name": "کاربر نمونه",
+                        "title": null,
+                        "avatar_file_id": null
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Validation failed; use errors[field] for Persian field messages.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Current workflow state does not allow this operation."
+          }
+        },
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "maxLength": 255
+            }
+          }
+        ],
+        "x-validation-source": "App\\Http\\Requests\\IndexCommentMentionUsersRequest",
+        "description": "Active involved users and applicable viewers, filtered through the subject view policy. Requires view access for reports (inactive:409), comment policy for tasks. Returns items without pagination. Does not send notifications."
+      }
     }
   },
   "components": {
@@ -13596,6 +15100,370 @@
         "required": [
           "message"
         ]
+      },
+      "ReportAllowedActions": {
+        "type": "object",
+        "required": [
+          "view",
+          "edit",
+          "delete",
+          "send",
+          "mark_viewed",
+          "comment",
+          "deactivate",
+          "activate"
+        ],
+        "properties": {
+          "view": {
+            "type": "boolean"
+          },
+          "edit": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          },
+          "send": {
+            "type": "boolean"
+          },
+          "mark_viewed": {
+            "type": "boolean"
+          },
+          "comment": {
+            "type": "boolean"
+          },
+          "deactivate": {
+            "type": "boolean"
+          },
+          "activate": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Policy authorization combined with current workflow state. The server independently enforces each operation."
+      },
+      "ReportCommentAllowedActions": {
+        "type": "object",
+        "required": [
+          "edit",
+          "delete",
+          "reply",
+          "react"
+        ],
+        "properties": {
+          "edit": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          },
+          "reply": {
+            "type": "boolean"
+          },
+          "react": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Policy authorization combined with current workflow state. The server independently enforces each operation."
+      },
+      "CommentReactions": {
+        "type": "object",
+        "required": [
+          "like",
+          "dislike",
+          "my_reaction"
+        ],
+        "properties": {
+          "like": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "dislike": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "my_reaction": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "like",
+              "dislike",
+              null
+            ]
+          }
+        }
+      },
+      "MentionUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "org_code",
+          "first_name",
+          "last_name",
+          "full_name",
+          "title",
+          "avatar_file_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "org_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_file_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "ReportApiResource": {
+        "type": "object",
+        "required": [
+          "id",
+          "allowed_actions",
+          "report_number",
+          "status",
+          "action_type",
+          "sent_at",
+          "viewed_at",
+          "attachments",
+          "meeting_resolution_id",
+          "meeting",
+          "resolution",
+          "title",
+          "short_description",
+          "description",
+          "recipient",
+          "cc_users",
+          "tags",
+          "creator",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "allowed_actions": {
+            "$ref": "#/components/schemas/ReportAllowedActions"
+          },
+          "report_number": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "viewed",
+              "inactive"
+            ]
+          },
+          "action_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "needs_action",
+              "needs_review",
+              "needs_instruction",
+              null
+            ]
+          },
+          "sent_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "viewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "meeting_resolution_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "meeting": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "resolution": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "short_description": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "recipient": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cc_users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentionUser"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ReportCommentApiResource": {
+        "type": "object",
+        "required": [
+          "id",
+          "report_id",
+          "parent_id",
+          "user",
+          "body",
+          "mentions",
+          "is_deleted",
+          "reactions",
+          "allowed_actions",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "report_id": {
+            "type": "integer"
+          },
+          "parent_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentionUser"
+            }
+          },
+          "is_deleted": {
+            "type": "boolean"
+          },
+          "reactions": {
+            "$ref": "#/components/schemas/CommentReactions"
+          },
+          "allowed_actions": {
+            "$ref": "#/components/schemas/ReportCommentAllowedActions"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
       }
     }
   },
@@ -13606,14 +15474,26 @@
     }
   ],
   "x-deployment": {
+    "status": "local_changes_pending_deployment",
     "api_base_url": "https://taskover.ir/api/v1",
     "branch": "main",
-    "application_commit": "04b025042c917111942fb1cfd9aa1f456435cf20",
-    "route_definitions": 80,
-    "http_operations": 82,
-    "route_fingerprint_sha256": "407783b85766efa3dae87995340d0ede9f0e1e902df4774b004223c4fce315d0",
-    "generated_at": "2026-10-14T09:30:44.949738+00:00",
-    "source": "Current Laravel route table, FormRequests, dashboard contract, existing illustrative response documentation."
+    "base_commit": "f4555dd9cbabfb375c25cae671f70dc63ba6dbe9",
+    "previous_deployment": {
+      "api_base_url": "https://taskover.ir/api/v1",
+      "branch": "main",
+      "application_commit": "04b025042c917111942fb1cfd9aa1f456435cf20",
+      "route_definitions": 80,
+      "http_operations": 82,
+      "route_fingerprint_sha256": "407783b85766efa3dae87995340d0ede9f0e1e902df4774b004223c4fce315d0",
+      "generated_at": "2026-10-14T09:30:44.949738+00:00",
+      "source": "Current Laravel route table, FormRequests, dashboard contract, existing illustrative response documentation."
+    },
+    "route_definitions": 85,
+    "http_operations": 87,
+    "route_fingerprint_sha256": "948fde2cbfa628c8ef5284649846b10a2c8e32e246df80365aae067512db9c4a",
+    "route_fingerprint_algorithm": "sha256 of sorted METHOD /uri lines joined by newline",
+    "generated_at": "2026-10-14T11:15:16.987032+00:00",
+    "source": "Current local Laravel route table and reviewed Report/Task comment FormRequests/resources. Deployment not performed."
   },
   "x-frontend-integration": {
     "headers": {
@@ -13680,59 +15560,84 @@
         "sent",
         "viewed"
       ],
-      "resource": "ReportResource includes action_type; no Report allowed_actions field is supplied by this deployment."
+      "resource": "All ReportResource outputs include allowed_actions and action_type. All report comment outputs include allowed_actions (edit/delete/reply/react), mentions and actor-specific reactions.",
+      "allowed_actions": "Display supported operations only when the matching flag is strictly true. The server still authorizes requests independently; handle 403,404,409,422 and refresh after changes.",
+      "activation": "Deactivation preserves exact previous status and timestamps. Inactive reports allow reads and authorized report deletion, but no edits/send/view marking/comment mutations/reactions/mention lookup. Activation needs a stored known previous state; legacy unknown state returns409. Linked report edit/delete still requires scheduled meeting; send/activation/comments retain existing meeting-state rules."
     },
-    "unsupported_report_features": [
-      {
-        "feature": "Report allowed_actions",
-        "implemented": false
-      },
-      {
-        "path": "POST /api/v1/reports/{report}/activate",
-        "implemented": false
-      },
-      {
-        "path": "POST /api/v1/reports/{report}/deactivate",
-        "implemented": false
-      },
-      {
-        "path": "PUT /api/v1/reports/{report}/comments/{comment}/reaction",
-        "implemented": false
-      }
-    ],
     "verification": {
-      "local_sqlite": {
-        "passed": 108,
+      "status": "local_changes_pending_deployment",
+      "prior_deployment_verification": {
+        "local_sqlite": {
+          "passed": 108,
+          "skipped_mysql_only": 2,
+          "assertions": 1587
+        },
+        "isolated_mysql": {
+          "passed": 109,
+          "assertions": 1596,
+          "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads (pre-existing Report rollback FK/index incompatibility)"
+        },
+        "production_origin_read_only_smoke": {
+          "via": "Nginx loopback, Host taskover.ir",
+          "authenticated_http_200": [
+            "/me",
+            "/dashboard",
+            "/dashboard/projects?page=1&per_page=1",
+            "/tasks?per_page=1",
+            "/reports?per_page=1",
+            "/meetings?per_page=1"
+          ],
+          "invalid_projects_pagination": 422,
+          "dashboard_invariants": "passed",
+          "temporary_auth_token_revoked": true
+        },
+        "public_https": {
+          "domain": "https://taskover.ir",
+          "unauthenticated_dashboard": 401,
+          "unauthenticated_projects": 401,
+          "unauthenticated_tasks": 401,
+          "homepage": 200
+        },
+        "production_destructive_tests_executed": false
+      },
+      "local_sqlite_related": {
+        "tests": 85,
+        "passed": 83,
         "skipped_mysql_only": 2,
-        "assertions": 1587
+        "assertions": 1130
       },
-      "isolated_mysql": {
-        "passed": 109,
-        "assertions": 1596,
-        "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads (pre-existing Report rollback FK/index incompatibility)"
+      "mysql_report_repair_executed": false,
+      "production_report_repair_tested": false,
+      "local_sqlite_full_suite": {
+        "tests": 160,
+        "passed": 141,
+        "failures": 9,
+        "errors": 8,
+        "skipped_mysql_only": 2,
+        "assertions": 2154,
+        "result": "failed; same 17 failing/error tests reproduced on base commit in an isolated SQLite checkout"
       },
-      "production_origin_read_only_smoke": {
-        "via": "Nginx loopback, Host taskover.ir",
-        "authenticated_http_200": [
-          "/me",
-          "/dashboard",
-          "/dashboard/projects?page=1&per_page=1",
-          "/tasks?per_page=1",
-          "/reports?per_page=1",
-          "/meetings?per_page=1"
-        ],
-        "invalid_projects_pagination": 422,
-        "dashboard_invariants": "passed",
-        "temporary_auth_token_revoked": true
-      },
-      "public_https": {
-        "domain": "https://taskover.ir",
-        "unauthenticated_dashboard": 401,
-        "unauthenticated_projects": 401,
-        "unauthenticated_tasks": 401,
-        "homepage": 200
-      },
-      "production_destructive_tests_executed": false
+      "base_commit_full_suite": {
+        "tests": 144,
+        "passed": 125,
+        "failures": 9,
+        "errors": 8,
+        "skipped_mysql_only": 2,
+        "assertions": 1872
+      }
+    },
+    "mentions": {
+      "endpoints": [
+        "GET /api/v1/reports/{report}/comments/mention-users",
+        "GET /api/v1/tasks/{task}/comments/mention-users"
+      ],
+      "input": "mention_user_ids: optional distinct array, max20; omitted on PATCH preserves, [] clears. Users must remain active and visible under the existing policy.",
+      "output": "mentions: UserSummary[]; deleted comment =>[].",
+      "notifications_sent": false
+    },
+    "notifications": {
+      "implemented": false,
+      "reason": "No notification routes/controllers/event-delivery workflow found in current main or saved implementation. Frontend notifications service currently documents mock/future backend behavior. Do not call fabricated notification routes."
     }
   }
 }

@@ -7,6 +7,8 @@ use Illuminate\Validation\Rule;
 
 class StoreReportCommentRequest extends FormRequest
 {
+    use Concerns\HasCommentMentionRules;
+
     public function authorize(): bool
     {
         return $this->user()->can('view', $this->route('report'));
@@ -15,6 +17,7 @@ class StoreReportCommentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            ...$this->commentMentionRules(),
             'body' => ['required', 'string', 'max:5000'],
             'parent_id' => ['sometimes', 'nullable', 'integer', Rule::exists('task_comments', 'id')
                 ->where('report_id', $this->route('report')->id)->whereNull('deleted_at')],

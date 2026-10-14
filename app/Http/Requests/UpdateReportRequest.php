@@ -21,6 +21,7 @@ class UpdateReportRequest extends FormRequest
         return [
             'action_type' => ['sometimes', 'nullable', Rule::enum(ReportActionType::class)],
             'status' => ['prohibited'],
+            'previous_status' => ['prohibited'],
             'report_number' => ['prohibited'],
             'sent_at' => ['prohibited'],
             'viewed_at' => ['prohibited'],

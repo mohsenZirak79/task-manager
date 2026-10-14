@@ -12,12 +12,12 @@ class Report extends Model
 {
     protected $fillable = [
         'meeting_resolution_id', 'title', 'short_description', 'description',
-        'action_type', 'recipient_user_id', 'created_by', 'status', 'sent_at', 'viewed_at', 'submission_key',
+        'action_type', 'recipient_user_id', 'created_by', 'status', 'previous_status', 'sent_at', 'viewed_at', 'submission_key',
     ];
 
     protected function casts(): array
     {
-        return ['status' => ReportStatus::class, 'sent_at' => 'datetime', 'viewed_at' => 'datetime'];
+        return ['status' => ReportStatus::class, 'previous_status' => ReportStatus::class, 'sent_at' => 'datetime', 'viewed_at' => 'datetime'];
     }
 
     protected static function booted(): void

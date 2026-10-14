@@ -91,6 +91,20 @@ class ReportController extends Controller
         return $this->success('گزارش با موفقیت ارسال شد.', ['report' => new ReportResource($this->reportService->send($report))]);
     }
 
+    public function deactivate(Report $report): JsonResponse
+    {
+        Gate::authorize('update', $report);
+
+        return $this->success('گزارش غیرفعال شد.', ['report' => new ReportResource($this->reportService->deactivate($report))]);
+    }
+
+    public function activate(Report $report): JsonResponse
+    {
+        Gate::authorize('update', $report);
+
+        return $this->success('گزارش فعال شد.', ['report' => new ReportResource($this->reportService->activate($report))]);
+    }
+
     public function markViewed(Request $request, Report $report): JsonResponse
     {
         Gate::authorize('view', $report);

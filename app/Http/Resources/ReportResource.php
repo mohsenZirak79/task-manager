@@ -2,8 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\MeetingStatus;
+use App\Enums\ReportStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Gate;
 
 class ReportResource extends JsonResource
 {
@@ -13,6 +16,7 @@ class ReportResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'allowed_actions' => $this->allowedActions($request),
             'report_number' => $this->report_number,
             'status' => $this->status->value,
             'action_type' => $this->action_type,
@@ -40,6 +44,30 @@ class ReportResource extends JsonResource
             'creator' => new UserSummaryResource($this->whenLoaded('creator')),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
+        ];
+    }
+
+    private function allowedActions(Request $request): array
+    {
+        $request->user()?->loadMissing('accessRoles.permissions');
+        $gate = Gate::forUser($request->user());
+        $visible = $gate->allows('view', $this->resource);
+        $manage = $gate->allows('update', $this->resource);
+        $active = $this->status !== ReportStatus::Inactive;
+        $meetingEditable = $this->meeting_resolution_id === null
+            || $this->resolution?->meeting?->status === MeetingStatus::Scheduled;
+
+        return [
+            'view' => $visible,
+            'edit' => $manage && $active && $meetingEditable,
+            'delete' => $gate->allows('delete', $this->resource) && $meetingEditable,
+            'send' => $manage && $this->status === ReportStatus::Draft,
+            'mark_viewed' => $visible && $this->status === ReportStatus::Sent
+                && $this->recipient_user_id === $request->user()?->id,
+            'comment' => $visible && $active,
+            'deactivate' => $manage && $active,
+            'activate' => $manage && ! $active
+                && in_array($this->previous_status, [ReportStatus::Draft, ReportStatus::Sent, ReportStatus::Viewed], true),
         ];
     }
 }

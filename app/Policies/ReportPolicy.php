@@ -33,7 +33,9 @@ class ReportPolicy
         if ($user->hasAccessRole(AccessRoles::ADMIN) || $report->created_by === $user->id || $report->recipient_user_id === $user->id) {
             return true;
         }
-        if ($report->ccUsers()->whereKey($user->id)->exists()) {
+        if ($report->relationLoaded('ccUsers')
+            ? $report->ccUsers->contains('id', $user->id)
+            : $report->ccUsers()->whereKey($user->id)->exists()) {
             return true;
         }
 
@@ -45,7 +47,9 @@ class ReportPolicy
         return $meeting->created_by === $user->id
             || $meeting->chairman_user_id === $user->id
             || $meeting->secretary_user_id === $user->id
-            || $meeting->attendees()->whereKey($user->id)->exists();
+            || ($meeting->relationLoaded('attendees')
+                ? $meeting->attendees->contains('id', $user->id)
+                : $meeting->attendees()->whereKey($user->id)->exists());
     }
 
     public function update(User $user, Report $report): bool
@@ -60,6 +64,18 @@ class ReportPolicy
             && ! $comment->trashed()
             && ($comment->user_id === $user->id
                 || ($user->hasAccessRole(AccessRoles::ADMIN) && $user->hasPermission(Permissions::REPORTS_MANAGE)));
+    }
+
+    public function reactComment(User $user, Report $report, TaskComment $comment): bool
+    {
+        return $this->view($user, $report)
+            && $comment->report_id === $report->id
+            && ! $comment->trashed();
+    }
+
+    public function replyComment(User $user, Report $report, TaskComment $comment): bool
+    {
+        return $this->reactComment($user, $report, $comment);
     }
 
     public function delete(User $user, Report $report): bool

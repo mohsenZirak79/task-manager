@@ -60,6 +60,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('report-tags', [ReportTagController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
             Route::post('reports/{report}/send', [ReportController::class, 'send'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
             Route::post('reports/{report}/view', [ReportController::class, 'markViewed'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber('report');
+            Route::post('reports/{report}/deactivate', [ReportController::class, 'deactivate'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
+            Route::post('reports/{report}/activate', [ReportController::class, 'activate'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
+            Route::get('reports/{report}/comments/mention-users', [ReportCommentController::class, 'mentionUsers'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber('report');
+            Route::put('reports/{report}/comments/{comment}/reaction', [ReportCommentController::class, 'reaction'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
             Route::get('reports/{report}/comments', [ReportCommentController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
             Route::post('reports/{report}/comments', [ReportCommentController::class, 'store'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
             Route::patch('reports/{report}/comments/{comment}', [ReportCommentController::class, 'update'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['report', 'comment']);
@@ -85,6 +89,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('tasks/{task}/completion/request', [TaskController::class, 'requestCompletion'])->middleware('permission:'.Permissions::TASKS_UPDATE_STATUS)->whereNumber('task');
             Route::post('tasks/{task}/completion/approve', [TaskController::class, 'approveCompletion'])->middleware('permission:'.Permissions::TASKS_APPROVE)->whereNumber('task');
             Route::post('tasks/{task}/completion/reject', [TaskController::class, 'rejectCompletion'])->middleware('permission:'.Permissions::TASKS_REJECT)->whereNumber('task');
+            Route::get('tasks/{task}/comments/mention-users', [TaskCommentController::class, 'mentionUsers'])->whereNumber('task');
             Route::get('tasks/{task}/comments', [TaskCommentController::class, 'index']);
             Route::post('tasks/{task}/comments', [TaskCommentController::class, 'store']);
             Route::patch('tasks/{task}/comments/{comment}', [TaskCommentController::class, 'update'])->whereNumber(['task', 'comment']);

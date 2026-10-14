@@ -18,6 +18,7 @@ class TaskCommentResource extends JsonResource
         return [
             'id' => $this->id,
             'body' => $deleted ? null : $this->body,
+            'mentions' => $deleted ? [] : UserSummaryResource::collection($this->whenLoaded('mentions')),
             'is_deleted' => $deleted,
             'user' => [
                 'id' => $this->user->id,

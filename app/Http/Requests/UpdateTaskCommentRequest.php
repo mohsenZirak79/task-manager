@@ -6,6 +6,8 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTaskCommentRequest extends FormRequest
 {
+    use Concerns\HasCommentMentionRules;
+
     public function authorize(): bool
     {
         return true;
@@ -13,6 +15,6 @@ class UpdateTaskCommentRequest extends FormRequest
 
     public function rules(): array
     {
-        return ['body' => ['required', 'string', 'max:5000']];
+        return ['body' => ['required', 'string', 'max:5000'], ...$this->commentMentionRules()];
     }
 }

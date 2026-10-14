@@ -139,6 +139,7 @@ class ReportService
         return DB::transaction(function () use ($report, $data, $actor): Report {
             $report = Report::query()->lockForUpdate()->findOrFail($report->id);
             $report->load('resolution.meeting');
+            $this->ensureActive($report);
             if ($report->resolution !== null) {
                 $this->ensureMeetingEditable($report->resolution->meeting);
             }
@@ -175,10 +176,46 @@ class ReportService
         });
     }
 
+    public function deactivate(Report $report): Report
+    {
+        return DB::transaction(function () use ($report): Report {
+            $report = Report::query()->lockForUpdate()->findOrFail($report->id);
+            if ($report->status !== ReportStatus::Inactive) {
+                $report->update(['previous_status' => $report->status, 'status' => ReportStatus::Inactive]);
+            }
+
+            return $this->find($report);
+        });
+    }
+
+    public function activate(Report $report): Report
+    {
+        return DB::transaction(function () use ($report): Report {
+            $report = Report::query()->lockForUpdate()->findOrFail($report->id);
+            if ($report->status !== ReportStatus::Inactive) {
+                throw new ConflictHttpException('فقط گزارش غیرفعال قابل فعال‌سازی است.');
+            }
+            if (! in_array($report->previous_status, [ReportStatus::Draft, ReportStatus::Sent, ReportStatus::Viewed], true)) {
+                throw new ConflictHttpException('وضعیت قبلی گزارش برای فعال‌سازی معتبر نیست.');
+            }
+            $report->update(['status' => $report->previous_status, 'previous_status' => null]);
+
+            return $this->find($report);
+        });
+    }
+
+    public function ensureActive(Report $report): void
+    {
+        if ($report->status === ReportStatus::Inactive) {
+            throw new ConflictHttpException('گزارش غیرفعال فقط قابل مشاهده است.');
+        }
+    }
+
     public function markViewed(Report $report, User $actor): Report
     {
         return DB::transaction(function () use ($report, $actor): Report {
             $report = Report::query()->lockForUpdate()->findOrFail($report->id);
+            $this->ensureActive($report);
             if ($report->recipient_user_id === $actor->id && $report->status === ReportStatus::Sent) {
                 $report->update(['status' => ReportStatus::Viewed, 'viewed_at' => now()]);
             }
@@ -264,6 +301,6 @@ class ReportService
     /** @return list<string> */
     private function relations(): array
     {
-        return ['resolution.meeting', 'resolution.agendaItem', 'recipient', 'ccUsers', 'tags', 'creator', 'attachments'];
+        return ['resolution.meeting.attendees', 'resolution.agendaItem', 'recipient', 'ccUsers', 'tags', 'creator', 'attachments'];
     }
 }
