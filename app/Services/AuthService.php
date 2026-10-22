@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Support\MobileNumber;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class AuthService
@@ -142,6 +143,29 @@ class AuthService
             $user->tokens()->delete();
 
             return $user;
+        });
+    }
+
+    public function changePassword(User $user, string $currentPassword, string $password, ?int $currentTokenId = null): void
+    {
+        DB::transaction(function () use ($user, $currentPassword, $password, $currentTokenId): void {
+            $user = User::query()->lockForUpdate()->findOrFail($user->id);
+            if (! $user->is_active) {
+                throw new HttpException(403, 'کاربر غیرفعال است.');
+            }
+            if (! $user->password || ! Hash::check($currentPassword, $user->password)) {
+                throw ValidationException::withMessages([
+                    'current_password' => 'رمز عبور فعلی صحیح نیست.',
+                ]);
+            }
+
+            $user->forceFill([
+                'password' => Hash::make($password),
+                'must_change_password' => false,
+            ])->save();
+            $user->tokens()->when($currentTokenId !== null, fn ($query) => $query->whereKeyNot($currentTokenId))->delete();
+            // Previously issued OTPs must not restore access after changing the password.
+            AuthOtp::query()->where('user_id', $user->id)->whereNull('used_at')->update(['used_at' => now()]);
         });
     }
 

@@ -31,6 +31,7 @@ Route::prefix('v1')->group(function (): void {
         Route::post('auth/logout', [AuthController::class, 'logout']);
 
         Route::middleware('active')->group(function (): void {
+            Route::post('auth/password/change', [AuthController::class, 'changePassword'])->middleware('throttle:password-change');
             Route::get('dashboard', DashboardController::class);
             Route::get('dashboard/projects', [DashboardController::class, 'projects'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('me', [ProfileController::class, 'show']);

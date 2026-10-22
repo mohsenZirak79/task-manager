@@ -2,10 +2,42 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-14.report-compatibility-1",
+    "version": "2026-10-22.self-password-change-1",
     "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged."
   },
   "paths": {
+    "/api/v1/auth/password/change": {
+      "post": {
+        "operationId": "post_api_v1_auth_password_change",
+        "summary": "Change the authenticated user's own password",
+        "description": "Requires an active authenticated user, not a users:reset_password permission. Validates current_password, changes only the authenticated account, revokes other API tokens and outstanding OTPs, and retains the current bearer token. Rate limited to 5 requests/minute per user and 20/minute per IP. No user ID or identifier is accepted as a target.",
+        "tags": ["auth"],
+        "security": [{"sanctum": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["current_password", "password", "password_confirmation"],
+                "properties": {
+                  "current_password": {"type": "string", "maxLength": 1024},
+                  "password": {"type": "string", "minLength": 8, "maxLength": 72, "description": "Must differ from current_password, contain a letter, number and symbol, and be at most 72 UTF-8 bytes."},
+                  "password_confirmation": {"type": "string", "description": "Must exactly match password."}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Password updated; current bearer token remains valid.", "content": {"application/json": {"example": {"success": true, "message": "رمز عبور با موفقیت تغییر کرد. ورودهای دیگر شما لغو شدند.", "data": []}}}},
+          "401": {"description": "Authentication required."},
+          "403": {"description": "Account is inactive."},
+          "422": {"description": "Invalid current password, confirmation or new password; errors are keyed by field."},
+          "429": {"description": "Too many password change attempts."}
+        }
+      }
+    },
     "/api/v1/auth/identify": {
       "post": {
         "operationId": "post_api_v1_auth_identify",

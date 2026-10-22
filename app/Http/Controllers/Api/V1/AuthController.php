@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ForgotPasswordRequest;
 use App\Http\Requests\IdentifyRequest;
 use App\Http\Requests\LoginRequest;
@@ -16,6 +17,7 @@ use App\Services\AuthService;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -116,6 +118,19 @@ class AuthController extends Controller
         );
 
         return $this->success('رمز عبور با موفقیت تنظیم شد.');
+    }
+
+    public function changePassword(ChangePasswordRequest $request): JsonResponse
+    {
+        $token = $request->user()->currentAccessToken();
+        $this->authService->changePassword(
+            $request->user(),
+            $request->string('current_password')->toString(),
+            $request->string('password')->toString(),
+            $token instanceof PersonalAccessToken ? $token->getKey() : null,
+        );
+
+        return $this->success('رمز عبور با موفقیت تغییر کرد. ورودهای دیگر شما لغو شدند.');
     }
 
     public function logout(Request $request): JsonResponse
