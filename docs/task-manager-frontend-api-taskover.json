@@ -3,7 +3,7 @@
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
     "version": "2026-10-27.meeting-signatures-1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Local meeting-signature extension is NOT deployed. Prior deployment/test metadata applies to earlier features only."
+    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Meeting-signature extension is deployed on https://taskover.ir. Signature creation was tested on isolated SQLite/MySQL; production smoke checks did not acknowledge real minutes on behalf of users."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -15878,7 +15878,7 @@
     }
   ],
   "x-deployment": {
-    "status": "local_changes_pending_deployment",
+    "status": "deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
     "previous_deployment": {
@@ -15926,7 +15926,10 @@
     "http_operations": 89,
     "route_fingerprint_sha256": "e7ac6ae71f9f236bdddcc65e0cb50948a04bb0fc029562254dccc04d2cff7982",
     "generated_at": "2026-10-27T13:10:27.449979+00:00",
-    "source": "Current local Laravel routes; meeting signatures not deployed."
+    "source": "Deployed main Laravel route table and reviewed signature resources. Server schema and read-only API smoke verified.",
+    "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
+    "deployed_at": "2026-10-27T13:26:50.257596+00:00",
+    "migration": "2026_10_27_000000_create_meeting_signatures_table"
   },
   "x-frontend-integration": {
     "headers": {
@@ -16117,13 +16120,13 @@
         "redundant_full_retry": "Interrupted to honor expedited deployment; only the originally failed case was then rerun to completion."
       },
       "meeting_signatures": {
-        "status": "local_SQLite_and_MySQL_passed_not_deployed",
+        "status": "deployed",
         "sqlite": {
           "tests": 46,
           "passed": 46,
           "assertions": 652
         },
-        "production_tested": false,
+        "production_tested": true,
         "mysql": {
           "tests": 45,
           "passed": 45,
@@ -16131,6 +16134,55 @@
           "engine": "MySQL8.4/InnoDB",
           "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads",
           "database": "Isolated localhost:33317 task_manager_dashboard_test; never production"
+        },
+        "production_smoke": {
+          "status": "passed",
+          "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
+          "authenticated_http_200": [
+            "/me",
+            "/meetings?per_page=5",
+            "/meetings/1",
+            "/reports?per_page=1",
+            "/dashboard",
+            "/dashboard/projects?page=1&per_page=1"
+          ],
+          "meeting_content_version_and_attendee_signature_fields": "verified",
+          "sampled_meeting_state": "scheduled",
+          "sign_for_non_completed_meeting": 403,
+          "missing_meeting_sign": 404,
+          "public_https": [
+            {
+              "method": "GET",
+              "path": "/",
+              "expected": 200,
+              "actual": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/meetings/1",
+              "expected": 401,
+              "actual": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/meetings/1/sign",
+              "expected": 401,
+              "actual": 401
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/dashboard",
+              "expected": 401,
+              "actual": 401
+            }
+          ],
+          "migration_applied": true,
+          "business_counts_preserved": true,
+          "signatures_created": 0,
+          "successful_signature_creation_exercised_on_production": false,
+          "note": "No eligible completed meeting was acknowledged during the smoke test. Positive signing/idempotency/version-history paths were tested on isolated SQLite and MySQL, not by impersonating real attendees.",
+          "temporary_smoke_token_revoked": true,
+          "frontend_source_changed": false
         }
       }
     },
@@ -16148,7 +16200,7 @@
       "reason": "No notification routes/controllers/event-delivery workflow found in current main or saved implementation. Frontend notifications service currently documents mock/future backend behavior. Do not call fabricated notification routes."
     },
     "meeting_signatures": {
-      "status": "local_not_deployed",
+      "status": "deployed",
       "endpoint": "POST /api/v1/meetings/{meeting}/sign",
       "available_after": "completed",
       "request": "content_version from GET data.meeting.signature_content_version; no target user or timestamp accepted",

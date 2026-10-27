@@ -1,6 +1,6 @@
 # امضای مصوبات نهایی جلسه
 
-وضعیت: پیاده‌سازی محلی؛ هنوز commit، push یا روی سرور منتشر نشده است. فایل‌های فرانت تغییر نکرده‌اند.
+وضعیت: کد 6a3836b89b34eeb5f9531e78645d7b614057bc48 روی main پوش و روی https://taskover.ir منتشر شده است. migration اجرا شده و فایل‌های فرانت تغییر نکرده‌اند.
 
 ## قاعدهٔ تأییدشده
 
@@ -61,7 +61,7 @@ Content-Type: application/json
 - دکمه فقط برای ردیفی با `can_sign=true` فعال باشد و هنگام درخواست غیرفعال شود. بعد از موفقیت، دادهٔ جلسه از پاسخ جایگزین یا query آن invalidate شود.
 - تاریخ نمونهٔ طرح را از ISO سرور به تاریخ شمسی و ساعت `Asia/Tehran` تبدیل کنید. سرور تاریخ شمسی یا تصویر تیک تولید نمی‌کند.
 
-[نمونهٔ کامل پاسخ](meeting-signatures-response.example.json) و [قرارداد کامل OpenAPI](task-manager-frontend-api-taskover.json).
+[JSON اختصاصی و مستقل تحویل فرانت](taskover-meeting-signatures-api.json)، [نمونهٔ کامل پاسخ](meeting-signatures-response.example.json) و [قرارداد کامل OpenAPI](task-manager-frontend-api-taskover.json).
 
 ## نسخه و حفظ سابقه
 
@@ -105,9 +105,11 @@ vendor/bin/phpunit --configuration phpunit.mysql.xml --filter='^(?!.*test_migrat
 
 موارد پوشش: هویت و مجوز، حساب غیرفعال، مدیر غیرعضو، وضعیت‌های قبل از اتمام، منع جعل امضاکننده/زمان، idempotency، امضای مستقل اعضا، استقلال مشاهده و اتمام، محتوای قدیمی و امضای مجدد، بقای snapshot، بازتولید هش از JSON ذخیره‌شده در MySQL، بررسی مجدد زیر قفل، قفل ویرایش‌های completed، unique دیتابیس و تعداد ثابت query با افزایش حاضرین.
 
-Pint و git diff --check پاس شده‌اند. نمونه‌های JSON با schema اعتبارسنجی و فهرست مسیرها با Laravel تطبیق داده شده‌اند. مسیرهای قرارداد داشبورد با نسخهٔ قبلی برابرند. تست روی دیتابیس production انجام نشده و انتشار سرور جزو این مرحله نیست. این نتیجه به معنی اجرای کل تست‌های نامرتبط پروژه نیست.
+Pint و git diff --check پاس شده‌اند. نمونه‌های JSON با schema اعتبارسنجی و فهرست مسیرها با Laravel تطبیق داده شده‌اند. مسیرهای قرارداد داشبورد با نسخهٔ قبلی برابرند. تست‌های خودکار روی دیتابیس production اجرا نشدند. پس از انتشار، بررسی بدون ثبت امضای واقعی روی سرور انجام و موفق شد. این نتیجه به معنی اجرای کل تست‌های نامرتبط پروژه نیست.
 
 ## فایل‌های تغییرکرده
+
+- `docs/taskover-meeting-signatures-api.json`
 
 - `app/Http/Controllers/Api/V1/MeetingController.php`
 - `app/Http/Requests/SignMeetingRequest.php`
@@ -125,3 +127,14 @@ Pint و git diff --check پاس شده‌اند. نمونه‌های JSON با s
 - `docs/task-manager-frontend-api-taskover.json`
 - `routes/api.php`
 - `tests/Feature/MeetingSignatureTest.php`
+
+## تأیید انتشار
+
+- برنچ main، application commit: `6a3836b89b34eeb5f9531e78645d7b614057bc48`.
+- پشتیبان خصوصی کد، env و دیتابیس قبل از انتشار گرفته شد.
+- migration جدول امضا اجرا، autoload و cacheها بازسازی و PHP-FPM reload شد.
+- HTTP احرازهویت‌شدهٔ me، فهرست/جزئیات جلسه، گزارش‌ها، داشبورد و پروژه‌ها: ۲۰۰.
+- فیلدهای نسخهٔ محتوا و وضعیت امضای حاضرین در پاسخ واقعی تأیید شدند. جلسهٔ نمونه scheduled بود؛ تلاش امضا طبق انتظار ۴۰۳ و جلسهٔ ناموجود ۴۰۴ داد.
+- دامنهٔ عمومی: صفحهٔ اصلی ۲۰۰؛ جزئیات جلسه، امضا و داشبورد بدون ورود ۴۰۱.
+- هیچ امضایی به‌جای اعضا ثبت نشد؛ تعداد رکوردهای تجاری حفظ شد و توکن موقت بررسی حذف شد. مسیر مثبت امضا و تغییر نسخه در تست‌های ایزولهٔ دو دیتابیس پوشش داده شده است؛ روی جلسهٔ واقعی completed امضا ثبت نشد.
+- فایل تحویل فرانت: `docs/taskover-meeting-signatures-api.json`.

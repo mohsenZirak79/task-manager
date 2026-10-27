@@ -1,0 +1,708 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TaskOver — Meeting Signatures Frontend Integration",
+    "version": "2026-10-27.1",
+    "description": "Deployed backend contract for attendee acknowledgment of final resolutions after meeting completion. Self-contained schemas and illustrative examples; actual IDs/content_version come from live GET."
+  },
+  "servers": [
+    {
+      "url": "https://taskover.ir",
+      "description": "Production; paths below already include /api/v1"
+    }
+  ],
+  "paths": {
+    "/api/v1/meetings/{meeting}": {
+      "get": {
+        "operationId": "get_api_v1_meetings_meeting",
+        "summary": "Show meeting",
+        "tags": [
+          "meetings"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingController@show",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:meetings:view"
+        ],
+        "x-required-permissions": [
+          "meetings:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Full meeting including additive signature state. Example: authenticated user7 is unsigned, user8 signed the current version. IDs/times are illustrative.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingSignResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "جزئیات صورت‌جلسه",
+                  "data": {
+                    "meeting": {
+                      "id": 18,
+                      "title": "صورت جلسه",
+                      "short_description": "خلاصه",
+                      "location": "اتاق جلسات",
+                      "meeting_date": "2026-10-27",
+                      "start_time": "09:00",
+                      "status": "completed",
+                      "started_at": "2026-10-27T06:00:00.000000Z",
+                      "viewed_at": null,
+                      "signature_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                      "allowed_actions": {
+                        "edit": false,
+                        "start": false,
+                        "acknowledge": false,
+                        "sign": true
+                      },
+                      "chairman": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "عضو",
+                        "last_name": "اول",
+                        "full_name": "عضو اول",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "secretary": {
+                        "id": 8,
+                        "org_code": "USR-008",
+                        "first_name": "عضو",
+                        "last_name": "دوم",
+                        "full_name": "عضو دوم",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "creator": {
+                        "id": 9,
+                        "org_code": "USR-009",
+                        "first_name": "ثبت‌کننده",
+                        "last_name": "جلسه",
+                        "full_name": "ثبت‌کننده جلسه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "attendees": [
+                        {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "عضو",
+                          "last_name": "اول",
+                          "full_name": "عضو اول",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "unsigned",
+                          "signed_at": null,
+                          "signed_content_version": null,
+                          "can_sign": true
+                        },
+                        {
+                          "id": 8,
+                          "org_code": "USR-008",
+                          "first_name": "عضو",
+                          "last_name": "دوم",
+                          "full_name": "عضو دوم",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
+                        }
+                      ],
+                      "agenda_items": [
+                        {
+                          "id": 11,
+                          "title": "دستور جلسه",
+                          "description": null,
+                          "sort_order": 0
+                        }
+                      ],
+                      "resolutions": [
+                        {
+                          "id": 21,
+                          "agenda_item_id": 11,
+                          "title": "مصوبه اولیه",
+                          "description": "متن مورد تأیید",
+                          "resolution_type": "report",
+                          "sort_order": 0,
+                          "task": null,
+                          "report": null,
+                          "created_at": "2026-10-27T10:00:00.000000Z",
+                          "updated_at": "2026-10-27T10:00:00.000000Z"
+                        }
+                      ],
+                      "submitted_at": "2026-10-27T05:00:00.000000Z",
+                      "completed_at": "2026-10-27T09:00:00.000000Z",
+                      "created_at": "2026-10-27T04:00:00.000000Z",
+                      "updated_at": "2026-10-27T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Existing permission, policy, active-user or module rule denies this operation."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          }
+        },
+        "description": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات",
+        "parameters": [
+          {
+            "name": "meeting",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/meetings/{meeting}/sign": {
+      "post": {
+        "operationId": "post_api_v1_meetings_meeting_sign",
+        "summary": "Acknowledge final meeting resolutions as the current attendee",
+        "tags": [
+          "meetings"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingController@sign",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:meetings:view"
+        ],
+        "x-required-permissions": [
+          "meetings:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Signature registered or existing signature returned unchanged. Full meeting response with current per-attendee signature state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingSignResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "امضای مصوبات جلسه ثبت شد.",
+                  "data": {
+                    "meeting": {
+                      "id": 18,
+                      "title": "صورت جلسه",
+                      "short_description": "خلاصه",
+                      "location": "اتاق جلسات",
+                      "meeting_date": "2026-10-27",
+                      "start_time": "09:00",
+                      "status": "completed",
+                      "started_at": "2026-10-27T06:00:00.000000Z",
+                      "viewed_at": null,
+                      "signature_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                      "allowed_actions": {
+                        "edit": false,
+                        "start": false,
+                        "acknowledge": false,
+                        "sign": false
+                      },
+                      "chairman": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "عضو",
+                        "last_name": "اول",
+                        "full_name": "عضو اول",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "secretary": {
+                        "id": 8,
+                        "org_code": "USR-008",
+                        "first_name": "عضو",
+                        "last_name": "دوم",
+                        "full_name": "عضو دوم",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "creator": {
+                        "id": 9,
+                        "org_code": "USR-009",
+                        "first_name": "ثبت‌کننده",
+                        "last_name": "جلسه",
+                        "full_name": "ثبت‌کننده جلسه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "attendees": [
+                        {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "عضو",
+                          "last_name": "اول",
+                          "full_name": "عضو اول",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
+                        },
+                        {
+                          "id": 8,
+                          "org_code": "USR-008",
+                          "first_name": "عضو",
+                          "last_name": "دوم",
+                          "full_name": "عضو دوم",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
+                        }
+                      ],
+                      "agenda_items": [
+                        {
+                          "id": 11,
+                          "title": "دستور جلسه",
+                          "description": null,
+                          "sort_order": 0
+                        }
+                      ],
+                      "resolutions": [
+                        {
+                          "id": 21,
+                          "agenda_item_id": 11,
+                          "title": "مصوبه اولیه",
+                          "description": "متن مورد تأیید",
+                          "resolution_type": "report",
+                          "sort_order": 0,
+                          "task": null,
+                          "report": null,
+                          "created_at": "2026-10-27T10:00:00.000000Z",
+                          "updated_at": "2026-10-27T10:00:00.000000Z"
+                        }
+                      ],
+                      "submitted_at": "2026-10-27T05:00:00.000000Z",
+                      "completed_at": "2026-10-27T09:00:00.000000Z",
+                      "created_at": "2026-10-27T04:00:00.000000Z",
+                      "updated_at": "2026-10-27T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an attendee, missing meetings:view, inactive user, or meeting not completed. Admin/super-admin cannot bypass membership or state."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Missing/malformed content_version or client-supplied signer/time/snapshot."
+          },
+          "409": {
+            "description": "The minutes content version has changed. Refresh the meeting and obtain explicit consent for the new version."
+          }
+        },
+        "parameters": [
+          {
+            "name": "meeting",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. View/start/complete remain independent. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again.",
+        "x-validation-source": "App\\Http\\Requests\\SignMeetingRequest",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content_version"
+                ],
+                "properties": {
+                  "content_version": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$",
+                    "description": "Copy signature_content_version from the latest GET meeting. Never hardcode this illustrative hash."
+                  }
+                },
+                "description": "user_id, attendee_user_id, signed_at, signature_file_id and content_snapshot are prohibited. Signing actor and time come from server authentication/clock."
+              },
+              "example": {
+                "content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sanctum": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Existing Sanctum authentication; existing stateful session authentication also applies."
+      }
+    },
+    "schemas": {
+      "MeetingSignResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "meeting"
+            ],
+            "properties": {
+              "meeting": {
+                "$ref": "#/components/schemas/MeetingWithSignatures"
+              }
+            }
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "MeetingWithSignatures": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "signature_content_version",
+          "attendees",
+          "allowed_actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "signature_content_version": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingAttendeeWithSignature"
+            }
+          },
+          "allowed_actions": {
+            "type": "object",
+            "required": [
+              "edit",
+              "start",
+              "acknowledge",
+              "sign"
+            ],
+            "properties": {
+              "edit": {
+                "type": "boolean"
+              },
+              "start": {
+                "type": "boolean"
+              },
+              "acknowledge": {
+                "type": "boolean"
+              },
+              "sign": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "description": "Additive signature fields; all existing MeetingResource fields remain available. Existing meeting list summaries are unchanged."
+      },
+      "MeetingAttendeeWithSignature": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MentionUser"
+          },
+          {
+            "type": "object",
+            "required": [
+              "signature_status",
+              "signed_at",
+              "signed_content_version",
+              "can_sign"
+            ],
+            "properties": {
+              "signature_status": {
+                "type": "string",
+                "enum": [
+                  "unsigned",
+                  "signed",
+                  "outdated"
+                ]
+              },
+              "signed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "Timestamp for CURRENT content only. Null for unsigned/outdated. Convert ISO UTC to Asia/Tehran for display."
+              },
+              "signed_content_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "Signed content hash; may refer to an older version when status=outdated."
+              },
+              "can_sign": {
+                "type": "boolean",
+                "description": "True only for the current authenticated attendee, completed meeting, meetings:view permission and no signature for current content."
+              }
+            }
+          }
+        ]
+      },
+      "MentionUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "org_code",
+          "first_name",
+          "last_name",
+          "full_name",
+          "title",
+          "avatar_file_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "org_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_name": {
+            "type": "string"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_file_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "x-frontend-integration": {
+    "language": "fa-IR",
+    "api_base_url": "https://taskover.ir/api/v1",
+    "scope": "امضای مصوبات نهایی پس از اتمام جلسه، مطابق جدول نام/وضعیت/تاریخ",
+    "flow": [
+      "GET /api/v1/meetings/{meeting} را بگیرید و متن نهایی مصوبات را نشان دهید.",
+      "دکمه فقط برای ردیف کاربر جاری با can_sign=true فعال باشد.",
+      "POST /api/v1/meetings/{meeting}/sign را با content_version برابر signature_content_version همان پاسخ بفرستید.",
+      "بعد از موفقیت data.meeting را جایگزین یا query جلسه را invalidate کنید."
+    ],
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer <ACCESS_TOKEN>",
+      "Content-Type": "application/json"
+    },
+    "ui_fields": {
+      "name": "attendees[].full_name",
+      "status": "attendees[].signature_status",
+      "time": "attendees[].signed_at",
+      "sign_button": "attendees[].can_sign یا meeting.allowed_actions.sign",
+      "version_to_submit": "meeting.signature_content_version"
+    },
+    "states": {
+      "signed": "تیک آبی و تاریخ/ساعت امضای محتوای فعلی",
+      "unsigned": "ـ برای وضعیت و تاریخ",
+      "outdated": "امضای نسخه قبلی؛ نیازمند تأیید مجدد، signed_at فعلی null"
+    },
+    "time_display": {
+      "server_format": "ISO 8601 UTC",
+      "display_timezone": "Asia/Tehran",
+      "display_calendar": "Persian",
+      "example": "Intl.DateTimeFormat(\"fa-IR\", { timeZone: \"Asia/Tehran\", dateStyle: \"short\", timeStyle: \"short\" })"
+    },
+    "rules": [
+      "فقط status=completed؛ اتمام منتظر امضای اعضا نمی‌ماند.",
+      "فقط خود عضو فعال دارای meetings:view؛ مدیر/سوپرادمین نیز باید شخصاً عضو باشد.",
+      "view و sign مستقل‌اند؛ تصویر امضای پروفایل ورودی این API نیست.",
+      "تکرار امضا با همان محتوا موفق است و زمان اولیه تغییر نمی‌کند.",
+      "content_version را ثابت نگذارید؛ مقدار واقعی GET را بفرستید. امضای نسخه قدیمی برای محتوای جدید معتبر نیست."
+    ],
+    "prohibited_client_fields": [
+      "user_id",
+      "attendee_user_id",
+      "signed_at",
+      "signature_file_id",
+      "content_snapshot"
+    ],
+    "errors": {
+      "401": "ورود لازم است",
+      "403": "نبود مجوز/عضویت، حساب غیرفعال یا جلسه پایان نیافته است",
+      "404": "جلسه یافت نشد",
+      "409": "محتوا تغییر کرده؛ جلسه را دوباره بگیرید، متن جدید را نمایش دهید و تأیید مجدد بگیرید",
+      "422": "خطای ورودی؛ errors فیلدها را نمایش دهید"
+    },
+    "examples_are_illustrative": true,
+    "signature_type": "Authenticated acknowledgment; not certificate-based cryptographic signing."
+  },
+  "x-release": {
+    "status": "deployed",
+    "branch": "main",
+    "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
+    "deployed_at": "2026-10-27T13:26:50.257596+00:00",
+    "migration_applied": true,
+    "backend_test_results": {
+      "sqlite": {
+        "passed": 46,
+        "assertions": 652
+      },
+      "mysql": {
+        "passed": 45,
+        "assertions": 643,
+        "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads"
+      }
+    },
+    "production_smoke": {
+      "status": "passed",
+      "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
+      "authenticated_http_200": [
+        "/me",
+        "/meetings?per_page=5",
+        "/meetings/1",
+        "/reports?per_page=1",
+        "/dashboard",
+        "/dashboard/projects?page=1&per_page=1"
+      ],
+      "meeting_content_version_and_attendee_signature_fields": "verified",
+      "sampled_meeting_state": "scheduled",
+      "sign_for_non_completed_meeting": 403,
+      "missing_meeting_sign": 404,
+      "public_https": [
+        {
+          "method": "GET",
+          "path": "/",
+          "expected": 200,
+          "actual": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/meetings/1",
+          "expected": 401,
+          "actual": 401
+        },
+        {
+          "method": "POST",
+          "path": "/api/v1/meetings/1/sign",
+          "expected": 401,
+          "actual": 401
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/dashboard",
+          "expected": 401,
+          "actual": 401
+        }
+      ],
+      "migration_applied": true,
+      "business_counts_preserved": true,
+      "signatures_created": 0,
+      "successful_signature_creation_exercised_on_production": false,
+      "note": "No eligible completed meeting was acknowledged during the smoke test. Positive signing/idempotency/version-history paths were tested on isolated SQLite and MySQL, not by impersonating real attendees.",
+      "temporary_smoke_token_revoked": true,
+      "frontend_source_changed": false
+    }
+  }
+}
