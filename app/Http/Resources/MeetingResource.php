@@ -2,8 +2,11 @@
 
 namespace App\Http\Resources;
 
+use App\Services\MeetingSignatureContent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class MeetingResource extends JsonResource
 {
@@ -11,7 +14,16 @@ class MeetingResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $request->user()->loadMissing('accessRoles.permissions');
+        $content = app(MeetingSignatureContent::class);
+        $version = $content->version($content->snapshot($this->resource));
+        $this->resource->loadMissing(['signatures' => fn ($query) => $query->select(['id', 'meeting_id', 'user_id', 'content_version', 'signed_at'])]);
+        $byUser = $this->signatures->groupBy('user_id');
+        $maySign = Gate::forUser($request->user())->allows('sign', $this->resource);
+        $actorSigned = $byUser->get($request->user()->id, collect())->contains('content_version', $version);
+
         return [
+            'signature_content_version' => $version,
             'id' => $this->id,
             'title' => $this->title,
             'short_description' => $this->short_description,
@@ -20,17 +32,23 @@ class MeetingResource extends JsonResource
             'start_time' => $this->start_time?->format('H:i'),
             'status' => $this->status->value,
             'started_at' => $this->started_at?->toISOString(),
-            'viewed_at' => \Illuminate\Support\Facades\DB::table('meeting_acknowledgements')
+            'viewed_at' => DB::table('meeting_acknowledgements')
                 ->where('meeting_id', $this->id)->where('user_id', $request->user()->id)->value('viewed_at'),
             'allowed_actions' => [
-                'edit' => \Illuminate\Support\Facades\Gate::forUser($request->user())->allows('update', $this->resource),
-                'start' => \Illuminate\Support\Facades\Gate::forUser($request->user())->allows('start', $this->resource),
-                'acknowledge' => \Illuminate\Support\Facades\Gate::forUser($request->user())->allows('acknowledge', $this->resource),
+                'sign' => $maySign && ! $actorSigned,
+                'edit' => Gate::forUser($request->user())->allows('update', $this->resource),
+                'start' => Gate::forUser($request->user())->allows('start', $this->resource),
+                'acknowledge' => Gate::forUser($request->user())->allows('acknowledge', $this->resource),
             ],
             'chairman' => $this->chairman ? new UserSummaryResource($this->chairman) : null,
             'secretary' => $this->secretary ? new UserSummaryResource($this->secretary) : null,
             'creator' => $this->creator ? new UserSummaryResource($this->creator) : null,
-            'attendees' => UserSummaryResource::collection($this->whenLoaded('attendees')),
+            'attendees' => $this->attendees->map(function ($attendee) use ($byUser, $version, $maySign, $request) {
+                $signatures = $byUser->get($attendee->id, collect());
+                $signature = $signatures->firstWhere('content_version', $version) ?? $signatures->first();
+
+                return new MeetingAttendeeResource($attendee, $signature, $version, $maySign && $attendee->id === $request->user()->id);
+            }),
             'agenda_items' => MeetingAgendaItemResource::collection($this->whenLoaded('agendaItems')),
             'resolutions' => MeetingResolutionResource::collection($this->whenLoaded('resolutions')),
             'submitted_at' => $this->submitted_at?->toISOString(),

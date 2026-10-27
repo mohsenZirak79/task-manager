@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\MeetingStatus;
 use App\Models\Meeting;
 use App\Models\User;
 use App\Support\AccessRoles;
@@ -11,7 +12,7 @@ class MeetingPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        if (in_array($ability, ['update', 'submit', 'start', 'acknowledge'], true)) {
+        if (in_array($ability, ['update', 'submit', 'start', 'acknowledge', 'sign'], true)) {
             return null;
         }
 
@@ -48,17 +49,27 @@ class MeetingPolicy
 
     public function start(User $user, Meeting $meeting): bool
     {
-        return $meeting->status === \App\Enums\MeetingStatus::Scheduled
+        return $meeting->status === MeetingStatus::Scheduled
             && $meeting->started_at === null
             && in_array($user->id, [$meeting->created_by, $meeting->secretary_user_id], true);
     }
 
     public function acknowledge(User $user, Meeting $meeting): bool
     {
-        return $meeting->status === \App\Enums\MeetingStatus::Scheduled
+        return $meeting->status === MeetingStatus::Scheduled
             && $meeting->started_at === null
             && ! in_array($user->id, [$meeting->created_by, $meeting->secretary_user_id], true)
             && $this->isMeetingMember($user, $meeting);
+    }
+
+    public function sign(User $user, Meeting $meeting): bool
+    {
+        return $user->is_active
+            && $meeting->status === MeetingStatus::Completed
+            && $user->hasPermission(Permissions::MEETINGS_VIEW)
+            && ($meeting->relationLoaded('attendees')
+                ? $meeting->attendees->contains('id', $user->id)
+                : $meeting->attendees()->whereKey($user->id)->exists());
     }
 
     public function delete(User $user, Meeting $meeting): bool

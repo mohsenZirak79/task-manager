@@ -47,6 +47,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('meetings/{meeting}/submit', [MeetingController::class, 'submit'])->middleware('permission:'.Permissions::MEETINGS_UPDATE)->whereNumber('meeting');
             Route::post('meetings/{meeting}/complete', [MeetingController::class, 'complete'])->middleware('permission:'.Permissions::MEETINGS_COMPLETE)->whereNumber('meeting');
             Route::post('meetings/{meeting}/start', [MeetingController::class, 'start'])->whereNumber('meeting');
+            Route::post('meetings/{meeting}/sign', [MeetingController::class, 'sign'])->middleware('permission:'.Permissions::MEETINGS_VIEW)->whereNumber('meeting');
             Route::post('meetings/{meeting}/view', [MeetingController::class, 'acknowledge'])->whereNumber('meeting');
             Route::post('meetings/{meeting}/resolutions', [MeetingResolutionController::class, 'store'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber('meeting');
             Route::patch('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'update'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber(['meeting', 'resolution']);

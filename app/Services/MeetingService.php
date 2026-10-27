@@ -403,6 +403,7 @@ class MeetingService
     {
         return $meeting->fresh([
             'chairman', 'secretary', 'creator', 'attendees', 'agendaItems',
+            'signatures' => fn ($query) => $query->select(['id', 'meeting_id', 'user_id', 'content_version', 'signed_at']),
             'resolutions.agendaItem', 'resolutions.creator', 'resolutions.task.assignees', 'resolutions.task.tags',
             'resolutions.report.recipient', 'resolutions.report.ccUsers', 'resolutions.report.tags', 'resolutions.report.creator',
         ]);

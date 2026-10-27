@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-22.self-password-change-1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged."
+    "version": "2026-10-27.meeting-signatures-1",
+    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Local meeting-signature extension is NOT deployed. Prior deployment/test metadata applies to earlier features only."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -11,30 +11,70 @@
         "operationId": "post_api_v1_auth_password_change",
         "summary": "Change the authenticated user's own password",
         "description": "Requires an active authenticated user, not a users:reset_password permission. Validates current_password, changes only the authenticated account, revokes other API tokens and outstanding OTPs, and retains the current bearer token. Rate limited to 5 requests/minute per user and 20/minute per IP. No user ID or identifier is accepted as a target.",
-        "tags": ["auth"],
-        "security": [{"sanctum": []}],
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["current_password", "password", "password_confirmation"],
+                "required": [
+                  "current_password",
+                  "password",
+                  "password_confirmation"
+                ],
                 "properties": {
-                  "current_password": {"type": "string", "maxLength": 1024},
-                  "password": {"type": "string", "minLength": 8, "maxLength": 72, "description": "Must differ from current_password, contain a letter, number and symbol, and be at most 72 UTF-8 bytes."},
-                  "password_confirmation": {"type": "string", "description": "Must exactly match password."}
+                  "current_password": {
+                    "type": "string",
+                    "maxLength": 1024
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 72,
+                    "description": "Must differ from current_password, contain a letter, number and symbol, and be at most 72 UTF-8 bytes."
+                  },
+                  "password_confirmation": {
+                    "type": "string",
+                    "description": "Must exactly match password."
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": {"description": "Password updated; current bearer token remains valid.", "content": {"application/json": {"example": {"success": true, "message": "رمز عبور با موفقیت تغییر کرد. ورودهای دیگر شما لغو شدند.", "data": []}}}},
-          "401": {"description": "Authentication required."},
-          "403": {"description": "Account is inactive."},
-          "422": {"description": "Invalid current password, confirmation or new password; errors are keyed by field."},
-          "429": {"description": "Too many password change attempts."}
+          "200": {
+            "description": "Password updated; current bearer token remains valid.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "رمز عبور با موفقیت تغییر کرد. ورودهای دیگر شما لغو شدند.",
+                  "data": []
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Account is inactive."
+          },
+          "422": {
+            "description": "Invalid current password, confirmation or new password; errors are keyed by field."
+          },
+          "429": {
+            "description": "Too many password change attempts."
+          }
         }
       }
     },
@@ -2012,114 +2052,114 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful operation; existing resource and policy rules apply.",
+            "description": "Full meeting including additive signature state. Example: authenticated user7 is unsigned, user8 signed the current version. IDs/times are illustrative.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "$ref": "#/components/schemas/MeetingSignResponse"
                 },
                 "example": {
                   "success": true,
                   "message": "جزئیات صورت‌جلسه",
                   "data": {
                     "meeting": {
-                      "id": 10,
-                      "title": "جلسه برنامه‌ریزی فروش",
-                      "location": "سالن جلسات طبقه دوم",
-                      "meeting_date": "2026-09-20",
-                      "start_time": "10:30",
-                      "status": "scheduled",
+                      "id": 18,
+                      "title": "صورت جلسه",
+                      "short_description": "خلاصه",
+                      "location": "اتاق جلسات",
+                      "meeting_date": "2026-10-27",
+                      "start_time": "09:00",
+                      "status": "completed",
+                      "started_at": "2026-10-27T06:00:00.000000Z",
+                      "viewed_at": null,
+                      "signature_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                      "allowed_actions": {
+                        "edit": false,
+                        "start": false,
+                        "acknowledge": false,
+                        "sign": true
+                      },
                       "chairman": {
-                        "id": 8,
-                        "org_code": "100008",
-                        "first_name": "کریم",
-                        "last_name": "نمونه",
-                        "full_name": "کریم نمونه",
-                        "title": "مدیر فروش",
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "عضو",
+                        "last_name": "اول",
+                        "full_name": "عضو اول",
+                        "title": null,
                         "avatar_file_id": null
                       },
                       "secretary": {
-                        "id": 15,
-                        "org_code": "100015",
-                        "first_name": "دبیر",
-                        "last_name": "نمونه",
-                        "full_name": "دبیر نمونه",
-                        "title": "مدیر فروش",
+                        "id": 8,
+                        "org_code": "USR-008",
+                        "first_name": "عضو",
+                        "last_name": "دوم",
+                        "full_name": "عضو دوم",
+                        "title": null,
                         "avatar_file_id": null
                       },
                       "creator": {
-                        "id": 8,
-                        "org_code": "100008",
-                        "first_name": "کریم",
-                        "last_name": "نمونه",
-                        "full_name": "کریم نمونه",
-                        "title": "مدیر فروش",
+                        "id": 9,
+                        "org_code": "USR-009",
+                        "first_name": "ثبت‌کننده",
+                        "last_name": "جلسه",
+                        "full_name": "ثبت‌کننده جلسه",
+                        "title": null,
                         "avatar_file_id": null
                       },
                       "attendees": [
                         {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "عضو",
+                          "last_name": "اول",
+                          "full_name": "عضو اول",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "unsigned",
+                          "signed_at": null,
+                          "signed_content_version": null,
+                          "can_sign": true
+                        },
+                        {
                           "id": 8,
-                          "org_code": "100008",
-                          "first_name": "کریم",
-                          "last_name": "نمونه",
-                          "full_name": "کریم نمونه",
-                          "title": "مدیر فروش",
-                          "avatar_file_id": null
+                          "org_code": "USR-008",
+                          "first_name": "عضو",
+                          "last_name": "دوم",
+                          "full_name": "عضو دوم",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
                         }
                       ],
                       "agenda_items": [
                         {
-                          "id": 12,
-                          "title": "بررسی خرید تجهیزات",
+                          "id": 11,
+                          "title": "دستور جلسه",
                           "description": null,
-                          "sort_order": 1
+                          "sort_order": 0
                         }
                       ],
                       "resolutions": [
                         {
-                          "id": 42,
-                          "agenda_item_id": 12,
-                          "title": "خرید تجهیزات",
-                          "description": "پس از دریافت پیش‌فاکتور انجام شود.",
-                          "sort_order": 1,
-                          "task": {
-                            "id": 80,
-                            "title": "خرید تجهیزات",
-                            "status": "in_progress",
-                            "progress_percentage": 0,
-                            "due_date": "2026-09-30",
-                            "duration_minutes": 120,
-                            "assignees": [
-                              {
-                                "id": 8,
-                                "org_code": "100008",
-                                "first_name": "کریم",
-                                "last_name": "نمونه",
-                                "full_name": "کریم نمونه",
-                                "title": "مدیر فروش",
-                                "avatar_file_id": null
-                              }
-                            ],
-                            "tags": [
-                              {
-                                "id": 1,
-                                "title": "فوری"
-                              },
-                              {
-                                "id": 2,
-                                "title": "مالی"
-                              }
-                            ]
-                          },
-                          "created_at": "2026-09-13T08:30:00.000000Z",
-                          "updated_at": "2026-09-13T08:40:00.000000Z"
+                          "id": 21,
+                          "agenda_item_id": 11,
+                          "title": "مصوبه اولیه",
+                          "description": "متن مورد تأیید",
+                          "resolution_type": "report",
+                          "sort_order": 0,
+                          "task": null,
+                          "report": null,
+                          "created_at": "2026-10-27T10:00:00.000000Z",
+                          "updated_at": "2026-10-27T10:00:00.000000Z"
                         }
                       ],
-                      "submitted_at": "2026-09-13T08:20:00.000000Z",
-                      "completed_at": null,
-                      "created_at": "2026-09-13T08:00:00.000000Z",
-                      "updated_at": "2026-09-13T08:20:00.000000Z",
-                      "short_description": "مرور وضعیت جاری و تصمیم‌گیری درباره اقدامات بعدی"
+                      "submitted_at": "2026-10-27T05:00:00.000000Z",
+                      "completed_at": "2026-10-27T09:00:00.000000Z",
+                      "created_at": "2026-10-27T04:00:00.000000Z",
+                      "updated_at": "2026-10-27T09:00:00.000000Z"
                     }
                   }
                 }
@@ -14491,6 +14531,207 @@
         "x-validation-source": "App\\Http\\Requests\\IndexCommentMentionUsersRequest",
         "description": "Active involved users and applicable viewers, filtered through the subject view policy. Requires view access for reports (inactive:409), comment policy for tasks. Returns items without pagination. Does not send notifications."
       }
+    },
+    "/api/v1/meetings/{meeting}/sign": {
+      "post": {
+        "operationId": "post_api_v1_meetings_meeting_sign",
+        "summary": "Acknowledge final meeting resolutions as the current attendee",
+        "tags": [
+          "meetings"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingController@sign",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:meetings:view"
+        ],
+        "x-required-permissions": [
+          "meetings:view"
+        ],
+        "responses": {
+          "200": {
+            "description": "Signature registered or existing signature returned unchanged. Full meeting response with current per-attendee signature state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingSignResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "امضای مصوبات جلسه ثبت شد.",
+                  "data": {
+                    "meeting": {
+                      "id": 18,
+                      "title": "صورت جلسه",
+                      "short_description": "خلاصه",
+                      "location": "اتاق جلسات",
+                      "meeting_date": "2026-10-27",
+                      "start_time": "09:00",
+                      "status": "completed",
+                      "started_at": "2026-10-27T06:00:00.000000Z",
+                      "viewed_at": null,
+                      "signature_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                      "allowed_actions": {
+                        "edit": false,
+                        "start": false,
+                        "acknowledge": false,
+                        "sign": false
+                      },
+                      "chairman": {
+                        "id": 7,
+                        "org_code": "USR-007",
+                        "first_name": "عضو",
+                        "last_name": "اول",
+                        "full_name": "عضو اول",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "secretary": {
+                        "id": 8,
+                        "org_code": "USR-008",
+                        "first_name": "عضو",
+                        "last_name": "دوم",
+                        "full_name": "عضو دوم",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "creator": {
+                        "id": 9,
+                        "org_code": "USR-009",
+                        "first_name": "ثبت‌کننده",
+                        "last_name": "جلسه",
+                        "full_name": "ثبت‌کننده جلسه",
+                        "title": null,
+                        "avatar_file_id": null
+                      },
+                      "attendees": [
+                        {
+                          "id": 7,
+                          "org_code": "USR-007",
+                          "first_name": "عضو",
+                          "last_name": "اول",
+                          "full_name": "عضو اول",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
+                        },
+                        {
+                          "id": 8,
+                          "org_code": "USR-008",
+                          "first_name": "عضو",
+                          "last_name": "دوم",
+                          "full_name": "عضو دوم",
+                          "title": null,
+                          "avatar_file_id": null,
+                          "signature_status": "signed",
+                          "signed_at": "2026-10-27T10:00:00.000000Z",
+                          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+                          "can_sign": false
+                        }
+                      ],
+                      "agenda_items": [
+                        {
+                          "id": 11,
+                          "title": "دستور جلسه",
+                          "description": null,
+                          "sort_order": 0
+                        }
+                      ],
+                      "resolutions": [
+                        {
+                          "id": 21,
+                          "agenda_item_id": 11,
+                          "title": "مصوبه اولیه",
+                          "description": "متن مورد تأیید",
+                          "resolution_type": "report",
+                          "sort_order": 0,
+                          "task": null,
+                          "report": null,
+                          "created_at": "2026-10-27T10:00:00.000000Z",
+                          "updated_at": "2026-10-27T10:00:00.000000Z"
+                        }
+                      ],
+                      "submitted_at": "2026-10-27T05:00:00.000000Z",
+                      "completed_at": "2026-10-27T09:00:00.000000Z",
+                      "created_at": "2026-10-27T04:00:00.000000Z",
+                      "updated_at": "2026-10-27T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not an attendee, missing meetings:view, inactive user, or meeting not completed. Admin/super-admin cannot bypass membership or state."
+          },
+          "404": {
+            "description": "Resource not found or inaccessible."
+          },
+          "422": {
+            "description": "Missing/malformed content_version or client-supplied signer/time/snapshot."
+          },
+          "409": {
+            "description": "The minutes content version has changed. Refresh the meeting and obtain explicit consent for the new version."
+          }
+        },
+        "parameters": [
+          {
+            "name": "meeting",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. View/start/complete remain independent. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again.",
+        "x-validation-source": "App\\Http\\Requests\\SignMeetingRequest",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content_version"
+                ],
+                "properties": {
+                  "content_version": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$",
+                    "description": "Copy signature_content_version from the latest GET meeting. Never hardcode this illustrative hash."
+                  }
+                },
+                "description": "user_id, attendee_user_id, signed_at, signature_file_id and content_snapshot are prohibited. Signing actor and time come from server authentication/clock."
+              },
+              "example": {
+                "content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -15496,6 +15737,137 @@
             "format": "date-time"
           }
         }
+      },
+      "MeetingAttendeeWithSignature": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MentionUser"
+          },
+          {
+            "type": "object",
+            "required": [
+              "signature_status",
+              "signed_at",
+              "signed_content_version",
+              "can_sign"
+            ],
+            "properties": {
+              "signature_status": {
+                "type": "string",
+                "enum": [
+                  "unsigned",
+                  "signed",
+                  "outdated"
+                ]
+              },
+              "signed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time",
+                "description": "Timestamp for CURRENT content only. Null for unsigned/outdated. Convert ISO UTC to Asia/Tehran for display."
+              },
+              "signed_content_version": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "Signed content hash; may refer to an older version when status=outdated."
+              },
+              "can_sign": {
+                "type": "boolean",
+                "description": "True only for the current authenticated attendee, completed meeting, meetings:view permission and no signature for current content."
+              }
+            }
+          }
+        ]
+      },
+      "MeetingWithSignatures": {
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "signature_content_version",
+          "attendees",
+          "allowed_actions"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "completed",
+              "cancelled"
+            ]
+          },
+          "signature_content_version": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "attendees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingAttendeeWithSignature"
+            }
+          },
+          "allowed_actions": {
+            "type": "object",
+            "required": [
+              "edit",
+              "start",
+              "acknowledge",
+              "sign"
+            ],
+            "properties": {
+              "edit": {
+                "type": "boolean"
+              },
+              "start": {
+                "type": "boolean"
+              },
+              "acknowledge": {
+                "type": "boolean"
+              },
+              "sign": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "description": "Additive signature fields; all existing MeetingResource fields remain available. Existing meeting list summaries are unchanged."
+      },
+      "MeetingSignResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "meeting"
+            ],
+            "properties": {
+              "meeting": {
+                "$ref": "#/components/schemas/MeetingWithSignatures"
+              }
+            }
+          }
+        }
       }
     }
   },
@@ -15506,45 +15878,55 @@
     }
   ],
   "x-deployment": {
-    "status": "deployed",
+    "status": "local_changes_pending_deployment",
     "api_base_url": "https://taskover.ir/api/v1",
-    "branch": "main",
-    "base_commit": "f4555dd9cbabfb375c25cae671f70dc63ba6dbe9",
+    "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
     "previous_deployment": {
+      "status": "deployed",
       "api_base_url": "https://taskover.ir/api/v1",
       "branch": "main",
-      "application_commit": "04b025042c917111942fb1cfd9aa1f456435cf20",
-      "route_definitions": 80,
-      "http_operations": 82,
-      "route_fingerprint_sha256": "407783b85766efa3dae87995340d0ede9f0e1e902df4774b004223c4fce315d0",
-      "generated_at": "2026-10-14T09:30:44.949738+00:00",
-      "source": "Current Laravel route table, FormRequests, dashboard contract, existing illustrative response documentation."
+      "base_commit": "f4555dd9cbabfb375c25cae671f70dc63ba6dbe9",
+      "previous_deployment": {
+        "api_base_url": "https://taskover.ir/api/v1",
+        "branch": "main",
+        "application_commit": "04b025042c917111942fb1cfd9aa1f456435cf20",
+        "route_definitions": 80,
+        "http_operations": 82,
+        "route_fingerprint_sha256": "407783b85766efa3dae87995340d0ede9f0e1e902df4774b004223c4fce315d0",
+        "generated_at": "2026-10-14T09:30:44.949738+00:00",
+        "source": "Current Laravel route table, FormRequests, dashboard contract, existing illustrative response documentation."
+      },
+      "route_definitions": 85,
+      "http_operations": 87,
+      "route_fingerprint_sha256": "948fde2cbfa628c8ef5284649846b10a2c8e32e246df80365aae067512db9c4a",
+      "route_fingerprint_algorithm": "sha256 of sorted METHOD /uri lines joined by newline",
+      "generated_at": "2026-10-14T11:15:16.987032+00:00",
+      "source": "Deployed Laravel main route table and reviewed Report/Task comment FormRequests/resources; verified against server.",
+      "application_commit": "4ab6dbb5cb9c4b1c313353e38bcc7bb030935942",
+      "deployed_at": "2026-10-14T11:40:46.736309+00:00",
+      "frontend": {
+        "branch": "demo-report",
+        "commit": "d888f8c26e71a8609d0fa42a948b4ee30824752d",
+        "build_id": "5N0XlDZCP310LIKoW7LXb",
+        "service": "task-manager-frontend.service",
+        "status": "active",
+        "tests_passed": 215,
+        "tests_failed": 0,
+        "production_build": "passed",
+        "public_https_200": [
+          "/",
+          "/login",
+          "/reports",
+          "/_next/static/5N0XlDZCP310LIKoW7LXb/_buildManifest.js"
+        ],
+        "api_base_url": "/api/v1"
+      }
     },
-    "route_definitions": 85,
-    "http_operations": 87,
-    "route_fingerprint_sha256": "948fde2cbfa628c8ef5284649846b10a2c8e32e246df80365aae067512db9c4a",
-    "route_fingerprint_algorithm": "sha256 of sorted METHOD /uri lines joined by newline",
-    "generated_at": "2026-10-14T11:15:16.987032+00:00",
-    "source": "Deployed Laravel main route table and reviewed Report/Task comment FormRequests/resources; verified against server.",
-    "application_commit": "4ab6dbb5cb9c4b1c313353e38bcc7bb030935942",
-    "deployed_at": "2026-10-14T11:40:46.736309+00:00",
-    "frontend": {
-      "branch": "demo-report",
-      "commit": "d888f8c26e71a8609d0fa42a948b4ee30824752d",
-      "build_id": "5N0XlDZCP310LIKoW7LXb",
-      "service": "task-manager-frontend.service",
-      "status": "active",
-      "tests_passed": 215,
-      "tests_failed": 0,
-      "production_build": "passed",
-      "public_https_200": [
-        "/",
-        "/login",
-        "/reports",
-        "/_next/static/5N0XlDZCP310LIKoW7LXb/_buildManifest.js"
-      ],
-      "api_base_url": "/api/v1"
-    }
+    "route_definitions": 87,
+    "http_operations": 89,
+    "route_fingerprint_sha256": "e7ac6ae71f9f236bdddcc65e0cb50948a04bb0fc029562254dccc04d2cff7982",
+    "generated_at": "2026-10-27T13:10:27.449979+00:00",
+    "source": "Current local Laravel routes; meeting signatures not deployed."
   },
   "x-frontend-integration": {
     "headers": {
@@ -15733,6 +16115,23 @@
         "skipped_test": "ReportInteractionTest::test_migration_does_not_infer_previous_state_and_refuses_lossy_rollback (SQLite-only DDL test)",
         "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads",
         "redundant_full_retry": "Interrupted to honor expedited deployment; only the originally failed case was then rerun to completion."
+      },
+      "meeting_signatures": {
+        "status": "local_SQLite_and_MySQL_passed_not_deployed",
+        "sqlite": {
+          "tests": 46,
+          "passed": 46,
+          "assertions": 652
+        },
+        "production_tested": false,
+        "mysql": {
+          "tests": 45,
+          "passed": 45,
+          "assertions": 643,
+          "engine": "MySQL8.4/InnoDB",
+          "excluded_existing_test": "test_migration_backfills_existing_reports_and_can_roll_back_threads",
+          "database": "Isolated localhost:33317 task_manager_dashboard_test; never production"
+        }
       }
     },
     "mentions": {
@@ -15747,6 +16146,24 @@
     "notifications": {
       "implemented": false,
       "reason": "No notification routes/controllers/event-delivery workflow found in current main or saved implementation. Frontend notifications service currently documents mock/future backend behavior. Do not call fabricated notification routes."
+    },
+    "meeting_signatures": {
+      "status": "local_not_deployed",
+      "endpoint": "POST /api/v1/meetings/{meeting}/sign",
+      "available_after": "completed",
+      "request": "content_version from GET data.meeting.signature_content_version; no target user or timestamp accepted",
+      "rendering": {
+        "signed": "Blue check and signed_at formatted as Persian date/time in Asia/Tehran",
+        "unsigned": "Dash for status/time; sign button only if own can_sign=true",
+        "outdated": "Previous content signed; display needs new signature and dash for current signed_at"
+      },
+      "retry": "Identical user+meeting+content retry is idempotent, first signed_at retained.409 means refresh/review/obtain fresh consent.",
+      "permission": "Existing meetings:view plus active user and actual meeting_attendees membership. Chairman/secretary are already added by existing attendee sync; no new role/permission system.",
+      "history": "Immutable snapshot stored per content signature; prior consent never backfilled or overwritten. content_version is a content-addressed SHA256 fingerprint, not a sequential revision number. Identical content has the same version.",
+      "content_scope": "Meeting text/date/time/chairman/secretary, attendee IDs, agenda text/order, resolution text/type/order and task/report link IDs. Excludes live linked task/report content/progress, user profile/signature image, view state and lifecycle timestamps.",
+      "independent": "Viewing does not sign. Signing does not view or complete. Completion does not require signatures. Existing edit/complete locks remain unchanged.",
+      "cryptographic_signing": false,
+      "frontend_source_changed": false
     }
   }
 }

@@ -40,6 +40,11 @@ class Meeting extends Model
         return $this->belongsToMany(User::class, 'meeting_attendees')->withTimestamps();
     }
 
+    public function signatures(): HasMany
+    {
+        return $this->hasMany(MeetingSignature::class)->orderByDesc('signed_at')->orderByDesc('id');
+    }
+
     public function agendaItems(): HasMany
     {
         return $this->hasMany(MeetingAgendaItem::class)->orderBy('sort_order')->orderBy('id');

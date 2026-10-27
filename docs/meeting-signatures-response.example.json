@@ -1,0 +1,105 @@
+{
+  "success": true,
+  "message": "جزئیات صورت‌جلسه",
+  "data": {
+    "meeting": {
+      "id": 18,
+      "title": "صورت جلسه",
+      "short_description": "خلاصه",
+      "location": "اتاق جلسات",
+      "meeting_date": "2026-10-27",
+      "start_time": "09:00",
+      "status": "completed",
+      "started_at": "2026-10-27T06:00:00.000000Z",
+      "viewed_at": null,
+      "signature_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+      "allowed_actions": {
+        "edit": false,
+        "start": false,
+        "acknowledge": false,
+        "sign": true
+      },
+      "chairman": {
+        "id": 7,
+        "org_code": "USR-007",
+        "first_name": "عضو",
+        "last_name": "اول",
+        "full_name": "عضو اول",
+        "title": null,
+        "avatar_file_id": null
+      },
+      "secretary": {
+        "id": 8,
+        "org_code": "USR-008",
+        "first_name": "عضو",
+        "last_name": "دوم",
+        "full_name": "عضو دوم",
+        "title": null,
+        "avatar_file_id": null
+      },
+      "creator": {
+        "id": 9,
+        "org_code": "USR-009",
+        "first_name": "ثبت‌کننده",
+        "last_name": "جلسه",
+        "full_name": "ثبت‌کننده جلسه",
+        "title": null,
+        "avatar_file_id": null
+      },
+      "attendees": [
+        {
+          "id": 7,
+          "org_code": "USR-007",
+          "first_name": "عضو",
+          "last_name": "اول",
+          "full_name": "عضو اول",
+          "title": null,
+          "avatar_file_id": null,
+          "signature_status": "unsigned",
+          "signed_at": null,
+          "signed_content_version": null,
+          "can_sign": true
+        },
+        {
+          "id": 8,
+          "org_code": "USR-008",
+          "first_name": "عضو",
+          "last_name": "دوم",
+          "full_name": "عضو دوم",
+          "title": null,
+          "avatar_file_id": null,
+          "signature_status": "signed",
+          "signed_at": "2026-10-27T10:00:00.000000Z",
+          "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
+          "can_sign": false
+        }
+      ],
+      "agenda_items": [
+        {
+          "id": 11,
+          "title": "دستور جلسه",
+          "description": null,
+          "sort_order": 0
+        }
+      ],
+      "resolutions": [
+        {
+          "id": 21,
+          "agenda_item_id": 11,
+          "title": "مصوبه اولیه",
+          "description": "متن مورد تأیید",
+          "resolution_type": "report",
+          "sort_order": 0,
+          "task": null,
+          "report": null,
+          "created_at": "2026-10-27T10:00:00.000000Z",
+          "updated_at": "2026-10-27T10:00:00.000000Z"
+        }
+      ],
+      "submitted_at": "2026-10-27T05:00:00.000000Z",
+      "completed_at": "2026-10-27T09:00:00.000000Z",
+      "created_at": "2026-10-27T04:00:00.000000Z",
+      "updated_at": "2026-10-27T09:00:00.000000Z"
+    }
+  }
+}

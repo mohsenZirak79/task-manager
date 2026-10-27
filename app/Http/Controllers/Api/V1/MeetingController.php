@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\IndexMeetingRequest;
+use App\Http\Requests\SignMeetingRequest;
 use App\Http\Requests\StoreMeetingRequest;
 use App\Http\Requests\SubmitMeetingRequest;
 use App\Http\Requests\UpdateMeetingRequest;
@@ -11,8 +12,10 @@ use App\Http\Resources\MeetingResource;
 use App\Http\Resources\MeetingSummaryResource;
 use App\Models\Meeting;
 use App\Services\MeetingService;
+use App\Services\MeetingSignatureService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class MeetingController extends Controller
@@ -84,27 +87,38 @@ class MeetingController extends Controller
 
     public function start(Request $request, Meeting $meeting): JsonResponse
     {
-        $meeting = \Illuminate\Support\Facades\DB::transaction(function () use ($meeting): Meeting {
+        $meeting = DB::transaction(function () use ($meeting): Meeting {
             $locked = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             Gate::authorize('start', $locked);
             $locked->update(['started_at' => now()]);
+
             return $locked;
         });
+
         return $this->success('جلسه شروع شد.', ['meeting' => new MeetingResource($this->meetingService->find($meeting))]);
     }
 
     public function acknowledge(Request $request, Meeting $meeting): JsonResponse
     {
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $meeting): void {
+        DB::transaction(function () use ($request, $meeting): void {
             $locked = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             Gate::authorize('acknowledge', $locked);
-            \Illuminate\Support\Facades\DB::table('meeting_acknowledgements')->insertOrIgnore([
+            DB::table('meeting_acknowledgements')->insertOrIgnore([
                 'meeting_id' => $locked->id,
                 'user_id' => $request->user()->id,
                 'viewed_at' => now(),
             ]);
         });
+
         return $this->success('مشاهده جلسه ثبت شد.', ['meeting' => new MeetingResource($this->meetingService->find($meeting))]);
+    }
+
+    public function sign(SignMeetingRequest $request, Meeting $meeting): JsonResponse
+    {
+        Gate::authorize('sign', $meeting);
+        $meeting = app(MeetingSignatureService::class)->sign($meeting, $request->user(), $request->validated('content_version'));
+
+        return $this->success('امضای مصوبات جلسه ثبت شد.', ['meeting' => new MeetingResource($meeting)]);
     }
 
     private function success(string $message, array $data = [], int $status = 200): JsonResponse
