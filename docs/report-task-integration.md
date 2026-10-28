@@ -1,6 +1,6 @@
 # اتصال گزارش به تسک — قرارداد تحویل محلی
 
-این تغییرات روی نسخه محلی آماده شده‌اند؛ push، deploy یا migration روی production انجام نشده است. فرانت و APIهای داشبورد تغییر نکرده‌اند.
+این تغییرات روی main پوش و روی https://taskover.ir منتشر شدند. migration جدید اعمال شد و PHP-FPM reload شد. فرانت و APIهای داشبورد تغییر نکرده‌اند.
 
 ## نتیجه بررسی نیازمندی‌ها
 
@@ -19,11 +19,11 @@
 | شمارنده و فهرست تسک‌های گزارش | IMPLEMENTED NOW | فقط تسک‌های قابل‌مشاهده کاربر؛ SQL aggregation و pagination، بدون query افزایشی به‌ازای هر آیتم. |
 | فیلدهای تسک و رفتار مالی/برنامه‌ریزی/ارسال | ALREADY IMPLEMENTED | همان StoreTaskRequest/TaskService استفاده می‌شوند؛ برای گزارش مسیر گردش کار جدید ساخته نشد. |
 | بخش‌های میانی متن اصلی که ارسال نشده‌اند | NOT IMPLEMENTED | متن از ابتدای بخش ۱ به انتهای مستندات و تحویل می‌پرد؛ هیچ workflow یا permission برای بخش‌های نامعلوم حدس زده نشد. |
-| انتشار روی سرور | NOT IMPLEMENTED | مطابق دستور فعلی مجاز نیست؛ فایل JSON تغییرات جدید را local/not deployed معرفی می‌کند. |
+| انتشار روی سرور | IMPLEMENTED NOW | پس از دستور صریح انتشار، main روی سرور pull شد، backup گرفته شد، migration اجرا و smoke test انجام شد. |
 
 ## API و اتصال فرانت
 
-قرارداد **کامل**: [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json)، OpenAPI 3.1، شامل ۶۹ مسیر و ۹۲ عملیات HTTP موجود و جدید. آدرس پایه در فایل `https://taskover.ir` است؛ قابلیت‌های جدید تا deploy در آن دامنه فعال نیستند. schemaها، مثال‌ها، مجوزها و خطاهای مسیرهای جدید داخل همین فایل هستند.
+قرارداد **کامل**: [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json)، OpenAPI 3.1، شامل ۶۹ مسیر و ۹۲ عملیات HTTP موجود و جدید. آدرس پایه در فایل `https://taskover.ir` است؛ قابلیت‌های جدید در این دامنه منتشر شده‌اند. schemaها، مثال‌ها، مجوزها و خطاهای مسیرهای جدید داخل همین فایل هستند.
 
 همه مسیرها `Authorization: Bearer <token>` و `Accept: application/json` دارند؛ برای نوشتن `Content-Type: application/json` نیز ارسال شود.
 
@@ -111,7 +111,7 @@ php artisan migrate --force
 
 ## تست و محدودیت‌های بررسی
 
-نتایج نهایی اجرای واقعی در بخش `x-frontend-integration.verification.report_task_integration` فایل JSON و جدول زیر ثبت می‌شوند. SQLite و MySQL فقط دیتابیس تست‌اند؛ به دیتابیس production متصل نشده‌ایم. همه تست‌های جدید از زمان ثابت `2026-10-28T09:00:00Z` استفاده می‌کنند.
+نتایج نهایی اجرای واقعی در بخش `x-frontend-integration.verification.report_task_integration` فایل JSON و جدول زیر ثبت می‌شوند. SQLite و MySQL فقط دیتابیس تست‌اند؛ اجرای PHPUnit فقط روی دیتابیس تست انجام شده است؛ روی production فقط migration مجاز و smoke محدود اجرا شد. همه تست‌های جدید از زمان ثابت `2026-10-28T09:00:00Z` استفاده می‌کنند.
 
 | اجرا | کل تست | موفق | شکست/خطا | skip | assertion |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -145,6 +145,16 @@ vendor/bin/phpunit --configuration phpunit.mysql.xml --filter=ReportTaskMigratio
 
 تست‌ها شامل تفکیک گیرنده/رونوشت/مدیر، وضعیت‌ها و مجوزها، validation و assignment/request، برنامه‌ریزی و پیوست و منابع، rollback تراکنش، retry، تعارض کلید، unique و FK در دیتابیس، حفاظت مبدأ، صفحه‌بندی، داده پنهان، نبود مجوز ماژول، عدم افزایش query با تعداد تسک/گزارش، مجوز منشی و اتصال تسک موجود و رگرسیون امضا/گزارش/داشبورد هستند.
 
-تست رگرسیون MySQL قدیمی `test_migration_backfills_existing_reports_and_can_roll_back_threads` به‌دلیل rollback ناسازگار FK/index در migration قدیمی از اجرای گسترده MySQL مستثنا شد؛ در SQLite اجرا می‌شود. تست DDL قدیمی ReportInteractionTest نیز خودش در MySQL skip می‌شود. دو تست مخصوص snapshot و read-only در DashboardTest روی SQLite skip و روی MySQL اجرای گسترده اجرا شدند. کل مجموعه نامرتبط پروژه اجرا نشده و موفق اعلام نمی‌شود. تست بار هم‌زمان HTTP یا محیط production انجام نشده است؛ کنترل retry با تراکنش، قفل، unique constraint و تست‌های مرتبط بررسی شده است.
+تست رگرسیون MySQL قدیمی `test_migration_backfills_existing_reports_and_can_roll_back_threads` به‌دلیل rollback ناسازگار FK/index در migration قدیمی از اجرای گسترده MySQL مستثنا شد؛ در SQLite اجرا می‌شود. تست DDL قدیمی ReportInteractionTest نیز خودش در MySQL skip می‌شود. دو تست مخصوص snapshot و read-only در DashboardTest روی SQLite skip و روی MySQL اجرای گسترده اجرا شدند. کل مجموعه نامرتبط پروژه اجرا نشده و موفق اعلام نمی‌شود. تست بار هم‌زمان HTTP و اجرای PHPUnit روی production انجام نشده است؛ smoke انتشار فقط خواندن و رد درخواست نامعتبر/غیرمجاز را بررسی کرد. کنترل retry با تراکنش، قفل، unique constraint و تست‌های مرتبط بررسی شده است.
 
 در بررسی harness تست، rollback سراسری migrationهای قدیمی نیز خطاهای موجود index ستون `users.is_super_admin` در SQLite و index/FK مربوط به `task_comments` در MySQL را نشان داد. این rollbackهای نامرتبط اصلاح نشدند. تست migration جدید فقط down/up همان migration را اجرا می‌کند، عدم حذف رکوردها را می‌سنجد و سپس آن را دوباره برقرار می‌کند؛ موفقیت آن به‌معنای تأیید rollback همه تاریخچه پروژه نیست.
+
+## انتشار تأییدشده روی سرور
+
+- زمان انتشار: `2026-10-28T10:49:37.236397+00:00`.
+- کامیت کد: `2be8c9b3417eb6d46a130e36ad309e3f98e5b0bd` روی main.
+- پشتیبان خصوصی دیتابیس، تنظیمات و کد پیش از انتشار: `/var/www/task-manager/backups/report-tasks-20261028-104843`.
+- migration جدید اجرا شد؛ optimize و reload سرویس `php8.4-fpm` موفق بود.
+- ۱۵ بررسی احرازهویت‌شده از مسیر Nginx روی سرور: خواندن تسک/گزارش/جلسه/داشبورد موفق؛ مسیر ساخت تسک برای مدیر غیرگیرنده 403 و مسیر اتصال با task_id نامعتبر 422 داد. تعداد رکوردهای کسب‌وکار تغییر نکرد؛ توکن موقت حذف شد.
+- ۵ بررسی HTTPS عمومی: صفحه اصلی 200 و مسیرهای محافظت‌شده بدون توکن 401.
+- ایجاد واقعی تسک یا اتصال واقعی تسک روی production انجام نشد؛ مسیرهای موفق و retry در SQLite/MySQL تست شده‌اند. قرارداد JSON کامل با سرور یکسان است.

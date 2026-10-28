@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-28.report-task-integration-1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Meeting-signature extension is deployed on https://taskover.ir. Signature creation was tested on isolated SQLite/MySQL; production smoke checks did not acknowledge real minutes on behalf of users. Report-to-task and resolution-link extension: LOCAL, NOT DEPLOYED. Full existing route inventory retained; meeting signatures included. Earlier deployment metadata refers only to the previous live version."
+    "version": "2026-10-28.report-task-integration-deployed-1",
+    "description": "Complete existing /api/v1 route inventory and FormRequest validation for TaskOver. Includes report-to-task creation, paginated report tasks, existing-task resolution linking, authorization-aware actions, and versioned meeting attendee signatures. Deployed on https://taskover.ir. Dashboard paths and schemas are unchanged. Contextual validation and authorization remain server-enforced; legacy resource examples are illustrative. Positive task creation/retry and signature flows were tested on isolated SQLite/MySQL. Production smoke checks exercised authenticated reads and rejected writes without creating real business records."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -17443,7 +17443,7 @@
     }
   ],
   "x-deployment": {
-    "status": "local_changes_not_deployed",
+    "status": "deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
     "previous_deployment": {
@@ -17490,11 +17490,11 @@
     "route_definitions": 90,
     "http_operations": 92,
     "route_fingerprint_sha256": "cbf9118ba184da00a302d4d529436a6069de983a33440d5b4c658233e99ba45d",
-    "generated_at": "2026-10-28",
+    "generated_at": "2026-10-28T10:54:00.654011+00:00",
     "source": "Deployed main Laravel route table and reviewed signature resources. Server schema and read-only API smoke verified.",
-    "application_commit": null,
-    "deployed_at": null,
-    "migration": "2026_10_28_000000_add_report_source_to_tasks_table: local tests only, not production",
+    "application_commit": "2be8c9b3417eb6d46a130e36ad309e3f98e5b0bd",
+    "deployed_at": "2026-10-28T10:49:37.236397+00:00",
+    "migration": "2026_10_28_000000_add_report_source_to_tasks_table: applied",
     "previous_live_version": {
       "status": "deployed",
       "api_base_url": "https://taskover.ir/api/v1",
@@ -17766,7 +17766,7 @@
       },
       "report_task_integration": {
         "verified_at": "2026-10-28T10:44:29.177637+00:00",
-        "state": "local_uncommitted_changes_not_deployed",
+        "state": "deployed",
         "base_commit": "514714dd703d84d5ce78463b91feb5954ccd10f4",
         "sqlite_regression": {
           "tests": 133,
@@ -17857,10 +17857,125 @@
         "limits": [
           "Selected related regression suites only; unrelated full-project suite not run.",
           "No concurrent HTTP load test or production integration test.",
-          "Frontend code and production deployment unchanged.",
+          "Frontend code unchanged; backend deployed. Production smoke used reads/rejected requests; no business task was created.",
           "Missing middle sections of original requirement text were not inferred.",
           "Legacy full-schema rollback has pre-existing index/FK errors in SQLite users and MySQL report workflow migrations. The new source migration down/up was independently tested and passes."
-        ]
+        ],
+        "application_commit": "2be8c9b3417eb6d46a130e36ad309e3f98e5b0bd",
+        "production_smoke": {
+          "checked_at": "2026-10-28T10:53:04.574806+00:00",
+          "checks": [
+            {
+              "method": "GET",
+              "path": "/api/v1/me",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tasks?scope=all",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/tasks/4",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/3",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/3/tasks?per_page=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/reports/3/create-task",
+              "status": 403
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/1",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/1/tasks?per_page=1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/reports/1/create-task",
+              "status": 403
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/meetings",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/meetings/1",
+              "status": 200
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/meetings/1/resolutions/1/link-task",
+              "status": 422
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/dashboard",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/dashboard/projects",
+              "status": 200
+            }
+          ],
+          "business_counts_unchanged": true,
+          "positive_creation_tested_in_production": false,
+          "authenticated_token_revoked": true
+        },
+        "public_https_smoke": {
+          "checked_at": "2026-10-28T10:54:00.654011+00:00",
+          "base_url": "https://taskover.ir",
+          "checks": [
+            {
+              "method": "GET",
+              "path": "/",
+              "status": 200
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/reports/1/tasks",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/reports/1/create-task",
+              "status": 401
+            },
+            {
+              "method": "POST",
+              "path": "/api/v1/meetings/1/resolutions/1/link-task",
+              "status": 401
+            },
+            {
+              "method": "GET",
+              "path": "/api/v1/dashboard",
+              "status": 401
+            }
+          ]
+        }
       }
     },
     "mentions": {
@@ -17895,7 +18010,7 @@
       "frontend_source_changed": false
     },
     "report_tasks": {
-      "deployment": "LOCAL ONLY; migrate/deploy backend before enabling UI.",
+      "deployment": "DEPLOYED on https://taskover.ir/api/v1; migration applied. Frontend may now integrate the documented routes.",
       "business_rule": "Only active primary recipient, status viewed; cc/creator/admin are not sufficient. Requires reports:view and existing TaskPolicy.create. No new permission/status.",
       "flow": [
         "GET /api/v1/reports/{report}",
