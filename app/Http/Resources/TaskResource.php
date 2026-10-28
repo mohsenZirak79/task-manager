@@ -14,6 +14,8 @@ class TaskResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $request->user()?->loadMissing('accessRoles.permissions');
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -52,6 +54,9 @@ class TaskResource extends JsonResource
                 ? new UserSummaryResource($this->equipmentProvider)
                 : null,
             'rejection_reason' => $this->rejection_reason,
+            'report_source' => $this->sourceReport && Gate::forUser($request->user())->allows('view', $this->sourceReport)
+                ? ['id' => $this->sourceReport->id, 'title' => $this->sourceReport->title]
+                : null,
             'meeting_source' => $this->meetingResolution ? [
                 'meeting_id' => $this->meetingResolution->meeting_id,
                 'meeting_title' => $this->meetingResolution->meeting?->title,

@@ -7,6 +7,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
 use App\Models\MediaFile;
 use App\Models\OrgPosition;
+use App\Models\Report;
 use App\Models\Tag;
 use App\Models\Task;
 use App\Models\TaskPlanningItem;
@@ -23,13 +24,16 @@ class TaskService
 {
     public function __construct(private readonly TaskVisibilityService $visibility) {}
 
-    public function paginate(array $filters, User $actor): LengthAwarePaginator
+    public function paginate(array $filters, User $actor, ?Report $sourceReport = null): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $sort = $filters['sort'] ?? 'newest';
 
         $scope = $this->visibility->resolveScope($filters['scope'] ?? null, $filters['submission_type'] ?? null);
-        $query = $this->visibility->apply($this->visibility->visibleQuery($actor)->with($this->summaryRelations()), $actor, $scope)
+        $base = $this->visibility->visibleQuery($actor)->with($this->summaryRelations());
+        $query = ($sourceReport === null
+            ? $this->visibility->apply($base, $actor, $scope)
+            : $base->where('source_report_id', $sourceReport->id))
             ->when($filters['search'] ?? null, function ($query, string $search): void {
                 $query->where(function ($query) use ($search): void {
                     $query->where('title', 'like', "%{$search}%")
@@ -1067,6 +1071,7 @@ class TaskService
             'requester', 'creator', 'assignees', 'followers', 'supervisors',
             'participantRecords', 'tags', 'attachments', 'planningItems',
             'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
+            'sourceReport.ccUsers', 'sourceReport.resolution.meeting.attendees',
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\MeetingStatus;
 use App\Services\MeetingSignatureContent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -36,6 +37,8 @@ class MeetingResource extends JsonResource
                 ->where('meeting_id', $this->id)->where('user_id', $request->user()->id)->value('viewed_at'),
             'allowed_actions' => [
                 'sign' => $maySign && ! $actorSigned,
+                'manage_resolutions' => $this->status === MeetingStatus::Scheduled
+                    && Gate::forUser($request->user())->allows('manageResolutions', $this->resource),
                 'edit' => Gate::forUser($request->user())->allows('update', $this->resource),
                 'start' => Gate::forUser($request->user())->allows('start', $this->resource),
                 'acknowledge' => Gate::forUser($request->user())->allows('acknowledge', $this->resource),

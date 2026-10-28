@@ -305,7 +305,7 @@ class ReportInteractionTest extends TestCase
     {
         $report = $this->report('draft');
         $url = "/api/v1/reports/{$report->id}";
-        $actions = ['view' => true, 'edit' => true, 'delete' => true, 'send' => true,
+        $actions = ['create_task' => false, 'view' => true, 'edit' => true, 'delete' => true, 'send' => true,
             'mark_viewed' => false, 'comment' => true, 'deactivate' => true, 'activate' => false];
         $this->getJson($url)->assertOk()->assertJsonPath('data.report.allowed_actions', $actions);
         $this->getJson('/api/v1/reports')->assertOk()->assertJsonPath('data.items.0.allowed_actions', $actions);

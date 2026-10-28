@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Enums\MeetingStatus;
 use App\Enums\ReportStatus;
+use App\Models\Task;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
@@ -14,12 +15,22 @@ class ReportResource extends JsonResource
 
     public function toArray(Request $request): array
     {
+        $request->user()?->loadMissing(['accessRoles.permissions', 'orgPositions']);
+        $canViewTasks = Gate::forUser($request->user())->allows('viewAny', Task::class);
+
         return [
             'id' => $this->id,
             'allowed_actions' => $this->allowedActions($request),
             'report_number' => $this->report_number,
             'status' => $this->status->value,
             'action_type' => $this->action_type,
+            'tasks_count' => $canViewTasks ? $this->whenHas('tasks_count', fn () => (int) $this->tasks_count) : null,
+            'tasks_url' => $canViewTasks ? '/api/v1/reports/'.$this->id.'/tasks' : null,
+            'task_suggestions' => [
+                'title' => $this->title,
+                'short_description' => mb_substr($this->short_description, 0, 100),
+                'request_description' => $this->description,
+            ],
             'sent_at' => $this->sent_at?->toISOString(),
             'viewed_at' => $this->viewed_at?->toISOString(),
             'attachments' => MediaFileResource::collection($this->whenLoaded('attachments')),
@@ -58,9 +69,11 @@ class ReportResource extends JsonResource
             || $this->resolution?->meeting?->status === MeetingStatus::Scheduled;
 
         return [
+            'create_task' => $gate->allows('createTask', $this->resource),
             'view' => $visible,
             'edit' => $manage && $active && $meetingEditable,
-            'delete' => $gate->allows('delete', $this->resource) && $meetingEditable,
+            'delete' => $gate->allows('delete', $this->resource) && $meetingEditable
+                && ! ($this->tasks_exists ?? $this->tasks()->exists()),
             'send' => $manage && $this->status === ReportStatus::Draft,
             'mark_viewed' => $visible && $this->status === ReportStatus::Sent
                 && $this->recipient_user_id === $request->user()?->id,

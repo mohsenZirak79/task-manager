@@ -235,6 +235,8 @@ class MeetingService
         return DB::transaction(function () use ($meeting, $resolution, $task, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             $resolution = MeetingResolution::query()->lockForUpdate()->findOrFail($resolution->id);
+            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
             $this->ensureScheduled($meeting);
             if ($resolution->task_id !== null) {
@@ -405,12 +407,13 @@ class MeetingService
             'chairman', 'secretary', 'creator', 'attendees', 'agendaItems',
             'signatures' => fn ($query) => $query->select(['id', 'meeting_id', 'user_id', 'content_version', 'signed_at']),
             'resolutions.agendaItem', 'resolutions.creator', 'resolutions.task.assignees', 'resolutions.task.tags',
+            'resolutions.report' => fn ($query) => $query->withExists('tasks'),
             'resolutions.report.recipient', 'resolutions.report.ccUsers', 'resolutions.report.tags', 'resolutions.report.creator',
         ]);
     }
 
     private function loadResolution(MeetingResolution $resolution): MeetingResolution
     {
-        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.tags', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting', 'report.recipient', 'report.ccUsers', 'report.tags', 'report.creator']);
+        return $resolution->fresh(['agendaItem', 'creator', 'task.requester', 'task.creator', 'task.assignees', 'task.followers', 'task.supervisors', 'task.tags', 'task.financialProvider', 'task.equipmentProvider', 'task.meetingResolution.meeting', 'report' => fn ($query) => $query->withExists('tasks'), 'report.recipient', 'report.ccUsers', 'report.tags', 'report.creator']);
     }
 }

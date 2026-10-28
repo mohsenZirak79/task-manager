@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-27.meeting-signatures-1",
-    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Meeting-signature extension is deployed on https://taskover.ir. Signature creation was tested on isolated SQLite/MySQL; production smoke checks did not acknowledge real minutes on behalf of users."
+    "version": "2026-10-28.report-task-integration-1",
+    "description": "Current main route inventory and FormRequest validation, with complete dashboard schemas and frontend integration rules. Other resource response examples originate from existing project documentation and are illustrative rather than a strict exhaustive resource schema. Contextual exists/unique/not_in rules still depend on the current authenticated user and bound resource; exported validation is not a replacement for server validation. Report compatibility repair is deployed on https://taskover.ir; dashboard API is unchanged. Meeting-signature extension is deployed on https://taskover.ir. Signature creation was tested on isolated SQLite/MySQL; production smoke checks did not acknowledge real minutes on behalf of users. Report-to-task and resolution-link extension: LOCAL, NOT DEPLOYED. Full existing route inventory retained; meeting signatures included. Earlier deployment metadata refers only to the previous live version."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -2077,7 +2077,8 @@
                         "edit": false,
                         "start": false,
                         "acknowledge": false,
-                        "sign": true
+                        "sign": true,
+                        "manage_resolutions": false
                       },
                       "chairman": {
                         "id": 7,
@@ -2183,7 +2184,7 @@
             "description": "Resource not found or inaccessible."
           }
         },
-        "description": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات",
+        "description": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات allowed_actions.manage_resolutions reflects scheduled status plus existing manager policy; secretary is not automatically granted a missing module permission.",
         "parameters": [
           {
             "name": "meeting",
@@ -3430,7 +3431,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -3878,7 +3880,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -3913,7 +3916,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -4029,7 +4038,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -4064,7 +4074,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -5680,7 +5696,8 @@
                           "mark_viewed": false,
                           "comment": true,
                           "deactivate": true,
-                          "activate": false
+                          "activate": false,
+                          "create_task": false
                         },
                         "report_number": "RPT-000018",
                         "status": "sent",
@@ -5715,7 +5732,14 @@
                           "avatar_file_id": null
                         },
                         "created_at": "2026-10-14T09:00:00.000000Z",
-                        "updated_at": "2026-10-14T09:00:00.000000Z"
+                        "updated_at": "2026-10-14T09:00:00.000000Z",
+                        "tasks_url": "/api/v1/reports/18/tasks",
+                        "task_suggestions": {
+                          "title": "گزارش نمونه",
+                          "short_description": "خلاصه گزارش",
+                          "request_description": "شرح گزارش"
+                        },
+                        "tasks_count": 0
                       }
                     ],
                     "meta": {
@@ -5753,7 +5777,7 @@
             }
           }
         },
-        "description": "فهرست گزارش‌های قابل مشاهده کاربر",
+        "description": "فهرست گزارش‌های قابل مشاهده کاربر Report resources include task_suggestions, authorization-aware allowed_actions.create_task, tasks_url and visible tasks_count (null without tasks:view). Follow tasks_url for a paginated TaskResource list.",
         "parameters": [
           {
             "name": "status",
@@ -5950,7 +5974,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -5985,7 +6010,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -6354,7 +6385,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -6389,7 +6421,14 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      },
+                      "tasks_count": 0
                     }
                   }
                 }
@@ -6413,7 +6452,7 @@
             "description": "Resource not found or inaccessible."
           }
         },
-        "description": "دریافت جزئیات گزارش با شناسه گزارش",
+        "description": "دریافت جزئیات گزارش با شناسه گزارش Report resources include task_suggestions, authorization-aware allowed_actions.create_task, tasks_url and visible tasks_count (null without tasks:view). Follow tasks_url for a paginated TaskResource list.",
         "parameters": [
           {
             "name": "report",
@@ -6494,7 +6533,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -6529,7 +6569,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -6797,6 +6843,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Report has linked tasks or meeting state prevents deletion. Deactivate instead; source history is preserved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
                 }
               }
             }
@@ -7559,7 +7615,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -7594,7 +7651,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -7713,7 +7776,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "viewed",
@@ -7748,7 +7812,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:01:00.000000Z"
+                      "updated_at": "2026-10-14T09:01:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -8056,7 +8126,8 @@
                           "request_completion": false,
                           "approve_completion": false,
                           "reject_completion": false
-                        }
+                        },
+                        "report_source": null
                       }
                     ],
                     "meta": {
@@ -8437,7 +8508,8 @@
                         "change_status": false,
                         "update_progress": false,
                         "comment": true
-                      }
+                      },
+                      "report_source": null
                     }
                   }
                 }
@@ -8951,21 +9023,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
+                  "$ref": "#/components/schemas/TaskApiResponse"
                 },
                 "example": {
                   "success": true,
                   "message": "جزئیات تسک",
                   "data": {
                     "task": {
-                      "id": 80,
-                      "title": "تهیه گزارش فروش",
-                      "short_description": "آماده‌سازی گزارش ماهانه",
-                      "request_description": null,
-                      "duration_minutes": 120,
-                      "due_date": "2026-09-30",
+                      "id": 801,
+                      "title": "پیگیری گزارش",
+                      "short_description": "اقدام اصلاحی",
+                      "request_description": "شرح اقدام",
+                      "duration_minutes": 60,
+                      "due_date": "2026-11-05",
                       "progress_percentage": 0,
-                      "status": "in_progress",
+                      "status": "draft",
                       "submission_type": "assignment",
                       "requester": {
                         "id": 8,
@@ -9006,72 +9078,34 @@
                       "equipment_provider": null,
                       "rejection_reason": null,
                       "meeting_source": null,
-                      "created_at": "2026-09-13T08:00:00.000000Z",
-                      "updated_at": "2026-09-13T08:10:00.000000Z",
-                      "workflow_history": [
-                        {
-                          "id": 1,
-                          "action": "submitted",
-                          "from_status": "draft",
-                          "to_status": "in_progress",
-                          "old_progress": null,
-                          "new_progress": null,
-                          "reason": null,
-                          "actor": {
-                            "id": 8,
-                            "org_code": "100008",
-                            "first_name": "کریم",
-                            "last_name": "نمونه",
-                            "full_name": "کریم نمونه",
-                            "title": "مدیر فروش",
-                            "avatar_file_id": null
-                          },
-                          "created_at": "2026-09-13T08:10:00.000000Z",
-                          "context": null
-                        }
-                      ],
-                      "tags": [
-                        {
-                          "id": 1,
-                          "title": "فوری"
-                        },
-                        {
-                          "id": 2,
-                          "title": "مالی"
-                        }
-                      ],
-                      "attachments": [
-                        {
-                          "id": 31,
-                          "url": "/storage/task-attachments/brief.pdf",
-                          "original_name": "brief.pdf",
-                          "mime_type": "application/pdf",
-                          "category": "attachment",
-                          "size": 102400
-                        }
-                      ],
-                      "planning_items": [
-                        {
-                          "id": 1,
-                          "title": "تحلیل نیازمندی",
-                          "weight": "40.00",
-                          "progress_percentage": 0,
-                          "sort_order": 0
-                        }
-                      ],
+                      "created_at": "2026-10-28T09:00:00.000000Z",
+                      "updated_at": "2026-10-28T09:00:00.000000Z",
+                      "workflow_history": [],
+                      "tags": [],
+                      "attachments": [],
+                      "planning_items": [],
                       "allowed_actions": {
                         "update_planning": false,
                         "view": true,
-                        "edit": false,
-                        "delete": false,
-                        "submit": false,
-                        "approve": true,
-                        "reject": true,
-                        "request_revision": true,
+                        "edit": true,
+                        "delete": true,
+                        "submit": true,
+                        "approve": false,
+                        "reject": false,
+                        "request_revision": false,
                         "change_status": false,
                         "update_progress": false,
                         "comment": true
-                      }
+                      },
+                      "report_source": {
+                        "id": 24,
+                        "title": "گزارش عملکرد"
+                      },
+                      "registered_at": null,
+                      "started_at": null,
+                      "completion_requested_at": null,
+                      "completed_at": null,
+                      "closed_at": null
                     }
                   }
                 }
@@ -9217,7 +9251,8 @@
                         "change_status": false,
                         "update_progress": false,
                         "comment": true
-                      }
+                      },
+                      "report_source": null
                     }
                   }
                 }
@@ -9753,7 +9788,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -11154,7 +11190,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -11324,7 +11361,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -11495,7 +11533,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -11666,7 +11705,8 @@
                           "id": 2,
                           "title": "مالی"
                         }
-                      ]
+                      ],
+                      "report_source": null
                     }
                   }
                 }
@@ -13867,7 +13907,8 @@
                         "mark_viewed": false,
                         "comment": true,
                         "deactivate": true,
-                        "activate": false
+                        "activate": false,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "sent",
@@ -13902,7 +13943,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -14022,7 +14069,8 @@
                         "mark_viewed": false,
                         "comment": false,
                         "deactivate": false,
-                        "activate": true
+                        "activate": true,
+                        "create_task": false
                       },
                       "report_number": "RPT-000018",
                       "status": "inactive",
@@ -14057,7 +14105,13 @@
                         "avatar_file_id": null
                       },
                       "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z"
+                      "updated_at": "2026-10-14T09:00:00.000000Z",
+                      "tasks_url": "/api/v1/reports/18/tasks",
+                      "task_suggestions": {
+                        "title": "گزارش نمونه",
+                        "short_description": "خلاصه گزارش",
+                        "request_description": "شرح گزارش"
+                      }
                     }
                   }
                 }
@@ -14582,7 +14636,8 @@
                         "edit": false,
                         "start": false,
                         "acknowledge": false,
-                        "sign": false
+                        "sign": false,
+                        "manage_resolutions": false
                       },
                       "chairman": {
                         "id": 7,
@@ -14705,7 +14760,7 @@
             }
           }
         ],
-        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. View/start/complete remain independent. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again.",
+        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. View/start/complete remain independent. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again. allowed_actions.manage_resolutions reflects scheduled status plus existing manager policy; secretary is not automatically granted a missing module permission.",
         "x-validation-source": "App\\Http\\Requests\\SignMeetingRequest",
         "requestBody": {
           "required": true,
@@ -14727,6 +14782,702 @@
               },
               "example": {
                 "content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report}/create-task": {
+      "post": {
+        "operationId": "post_api_v1_reports_report_create_task",
+        "summary": "Create a task from a viewed report",
+        "description": "Only active primary recipient of viewed report, including for super-admin. Calls existing TaskService.create inside report-row-locked transaction, reauthorizes locked source. Multiple tasks per report via new keys. Same key plus same validated payload returns existing current task with 200/replayed=true; changed payload returns 409. Hash ignores associative key ordering, preserves list order and JSON value types. Replays recheck current authorization/state and validation. Missing draft title/short_description/request_description default from report, short description clipped to 100 characters; custom values override. For submit=true, explicitly submit mandatory task fields (suggestions available on report). Existing task deletion rules remain: deleting a draft also removes its key; do not retry a deleted creation key, use a fresh key for a deliberate replacement.",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportTaskController@store",
+        "x-required-permissions": [
+          "reports:view",
+          "tasks:create"
+        ],
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:view",
+          "permission:tasks:create"
+        ],
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "New task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportTaskCreationResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "تسک مرتبط با گزارش ثبت شد.",
+                  "data": {
+                    "task": {
+                      "id": 801,
+                      "title": "پیگیری گزارش",
+                      "short_description": "اقدام اصلاحی",
+                      "request_description": "شرح اقدام",
+                      "duration_minutes": 60,
+                      "due_date": "2026-11-05",
+                      "progress_percentage": 0,
+                      "status": "draft",
+                      "submission_type": "assignment",
+                      "requester": {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      },
+                      "creator": {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      },
+                      "assignees": [
+                        {
+                          "id": 8,
+                          "org_code": "100008",
+                          "first_name": "کریم",
+                          "last_name": "نمونه",
+                          "full_name": "کریم نمونه",
+                          "title": "مدیر فروش",
+                          "avatar_file_id": null
+                        }
+                      ],
+                      "followers": [],
+                      "supervisors": [],
+                      "financial_resources": null,
+                      "financial_estimated_cost": null,
+                      "financial_provider": null,
+                      "equipment_resources": null,
+                      "equipment_estimated_cost": null,
+                      "equipment_provider": null,
+                      "rejection_reason": null,
+                      "meeting_source": null,
+                      "created_at": "2026-10-28T09:00:00.000000Z",
+                      "updated_at": "2026-10-28T09:00:00.000000Z",
+                      "workflow_history": [],
+                      "tags": [],
+                      "attachments": [],
+                      "planning_items": [],
+                      "allowed_actions": {
+                        "update_planning": false,
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "submit": true,
+                        "approve": false,
+                        "reject": false,
+                        "request_revision": false,
+                        "change_status": false,
+                        "update_progress": false,
+                        "comment": true
+                      },
+                      "report_source": {
+                        "id": 24,
+                        "title": "گزارش عملکرد"
+                      },
+                      "registered_at": null,
+                      "started_at": null,
+                      "completion_requested_at": null,
+                      "completed_at": null,
+                      "closed_at": null
+                    },
+                    "replayed": false
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay; no new task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportTaskCreationResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "تسک مرتبط با گزارش ثبت شد.",
+                  "data": {
+                    "task": {
+                      "id": 801,
+                      "title": "پیگیری گزارش",
+                      "short_description": "اقدام اصلاحی",
+                      "request_description": "شرح اقدام",
+                      "duration_minutes": 60,
+                      "due_date": "2026-11-05",
+                      "progress_percentage": 0,
+                      "status": "draft",
+                      "submission_type": "assignment",
+                      "requester": {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      },
+                      "creator": {
+                        "id": 8,
+                        "org_code": "100008",
+                        "first_name": "کریم",
+                        "last_name": "نمونه",
+                        "full_name": "کریم نمونه",
+                        "title": "مدیر فروش",
+                        "avatar_file_id": null
+                      },
+                      "assignees": [
+                        {
+                          "id": 8,
+                          "org_code": "100008",
+                          "first_name": "کریم",
+                          "last_name": "نمونه",
+                          "full_name": "کریم نمونه",
+                          "title": "مدیر فروش",
+                          "avatar_file_id": null
+                        }
+                      ],
+                      "followers": [],
+                      "supervisors": [],
+                      "financial_resources": null,
+                      "financial_estimated_cost": null,
+                      "financial_provider": null,
+                      "equipment_resources": null,
+                      "equipment_estimated_cost": null,
+                      "equipment_provider": null,
+                      "rejection_reason": null,
+                      "meeting_source": null,
+                      "created_at": "2026-10-28T09:00:00.000000Z",
+                      "updated_at": "2026-10-28T09:00:00.000000Z",
+                      "workflow_history": [],
+                      "tags": [],
+                      "attachments": [],
+                      "planning_items": [],
+                      "allowed_actions": {
+                        "update_planning": false,
+                        "view": true,
+                        "edit": true,
+                        "delete": true,
+                        "submit": true,
+                        "approve": false,
+                        "reject": false,
+                        "request_revision": false,
+                        "change_status": false,
+                        "update_progress": false,
+                        "comment": true
+                      },
+                      "report_source": {
+                        "id": 24,
+                        "title": "گزارش عملکرد"
+                      },
+                      "registered_at": null,
+                      "started_at": null,
+                      "completion_requested_at": null,
+                      "completed_at": null,
+                      "closed_at": null
+                    },
+                    "replayed": true
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission, ownership, report state or organization rules deny the operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report, meeting or resolution not found / wrong resolution parent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting idempotency payload or workflow state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Existing task validation or malformed submission_key / pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReportTaskInput"
+              },
+              "example": {
+                "submission_key": "a9a1c972-871f-4397-ad93-a20710de5c61",
+                "submission_type": "assignment",
+                "title": "پیگیری گزارش",
+                "short_description": "اقدام اصلاحی",
+                "request_description": "شرح اقدام",
+                "duration_minutes": 60,
+                "due_date": "2026-11-05",
+                "submit": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/{report}/tasks": {
+      "get": {
+        "operationId": "get_api_v1_reports_report_tasks",
+        "summary": "List visible tasks created from report",
+        "description": "Requires ReportPolicy.view and TaskPolicy.viewAny. Uses shared TaskVisibilityService.visibleQuery without extra personal-list scopes, sorted created_at DESC, id DESC. Status of source report does not hide existing linked tasks; no create privilege needed for reading. Counts and items never expose tasks outside actor visibility. No eager loading of all records.",
+        "tags": [
+          "reports"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ReportTaskController@index",
+        "x-required-permissions": [
+          "reports:view",
+          "tasks:view"
+        ],
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:reports:view",
+          "permission:tasks:view"
+        ],
+        "parameters": [
+          {
+            "name": "report",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportTasksResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "تسک‌های مرتبط با گزارش",
+                  "data": {
+                    "items": [
+                      {
+                        "id": 801,
+                        "title": "پیگیری گزارش",
+                        "short_description": "اقدام اصلاحی",
+                        "request_description": "شرح اقدام",
+                        "duration_minutes": 60,
+                        "due_date": "2026-11-05",
+                        "progress_percentage": 0,
+                        "status": "draft",
+                        "submission_type": "assignment",
+                        "requester": {
+                          "id": 8,
+                          "org_code": "100008",
+                          "first_name": "کریم",
+                          "last_name": "نمونه",
+                          "full_name": "کریم نمونه",
+                          "title": "مدیر فروش",
+                          "avatar_file_id": null
+                        },
+                        "creator": {
+                          "id": 8,
+                          "org_code": "100008",
+                          "first_name": "کریم",
+                          "last_name": "نمونه",
+                          "full_name": "کریم نمونه",
+                          "title": "مدیر فروش",
+                          "avatar_file_id": null
+                        },
+                        "assignees": [
+                          {
+                            "id": 8,
+                            "org_code": "100008",
+                            "first_name": "کریم",
+                            "last_name": "نمونه",
+                            "full_name": "کریم نمونه",
+                            "title": "مدیر فروش",
+                            "avatar_file_id": null
+                          }
+                        ],
+                        "followers": [],
+                        "supervisors": [],
+                        "financial_resources": null,
+                        "financial_estimated_cost": null,
+                        "financial_provider": null,
+                        "equipment_resources": null,
+                        "equipment_estimated_cost": null,
+                        "equipment_provider": null,
+                        "rejection_reason": null,
+                        "meeting_source": null,
+                        "created_at": "2026-10-28T09:00:00.000000Z",
+                        "updated_at": "2026-10-28T09:00:00.000000Z",
+                        "workflow_history": [],
+                        "tags": [],
+                        "attachments": [],
+                        "planning_items": [],
+                        "allowed_actions": {
+                          "update_planning": false,
+                          "view": true,
+                          "edit": true,
+                          "delete": true,
+                          "submit": true,
+                          "approve": false,
+                          "reject": false,
+                          "request_revision": false,
+                          "change_status": false,
+                          "update_progress": false,
+                          "comment": true
+                        },
+                        "report_source": {
+                          "id": 24,
+                          "title": "گزارش عملکرد"
+                        },
+                        "registered_at": null,
+                        "started_at": null,
+                        "completion_requested_at": null,
+                        "completed_at": null,
+                        "closed_at": null
+                      }
+                    ],
+                    "meta": {
+                      "current_page": 1,
+                      "last_page": 1,
+                      "per_page": 15,
+                      "total": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission, ownership, report state or organization rules deny the operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report, meeting or resolution not found / wrong resolution parent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Existing task validation or malformed submission_key / pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/meetings/{meeting}/resolutions/{resolution}/link-task": {
+      "post": {
+        "operationId": "post_api_v1_meetings_meeting_resolutions_resolution_link_task",
+        "summary": "Link an existing task to a meeting resolution",
+        "description": "Existing controller/service now routed. MeetingPolicy.manageResolutions (secretary/creator/chairman/admin with permission), correct parent, scheduled meeting, task-type empty resolution, TaskPolicy.view and assignees among meeting attendees. One task may belong to only one resolution. Does not create tasks or convert report resolutions. Meeting/resolution/task rows locked, manager policy rechecked. Existing occupied/repeated link returns 409, no duplicate row.",
+        "tags": [
+          "meetings"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingResolutionController@linkTask",
+        "x-required-permissions": [
+          "meetings:manage_resolutions",
+          "tasks:view"
+        ],
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active",
+          "permission:meetings:manage_resolutions",
+          "permission:tasks:view"
+        ],
+        "parameters": [
+          {
+            "name": "meeting",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "resolution",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "resolution"
+                      ],
+                      "properties": {
+                        "resolution": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "message": "تسک موجود با موفقیت به مصوبه متصل شد.",
+                  "data": {
+                    "resolution": {
+                      "id": 42,
+                      "agenda_item_id": null,
+                      "title": "مصوبه",
+                      "description": "شرح کامل مصوبه",
+                      "resolution_type": "task",
+                      "sort_order": 0,
+                      "task": {
+                        "id": 801,
+                        "title": "پیگیری گزارش",
+                        "status": "draft",
+                        "progress_percentage": 0,
+                        "due_date": "2026-11-05",
+                        "duration_minutes": 60,
+                        "assignees": [
+                          {
+                            "id": 8,
+                            "org_code": "100008",
+                            "first_name": "کریم",
+                            "last_name": "نمونه",
+                            "full_name": "کریم نمونه",
+                            "title": "مدیر فروش",
+                            "avatar_file_id": null
+                          }
+                        ],
+                        "tags": []
+                      },
+                      "report": null,
+                      "created_at": "2026-10-28T09:00:00.000000Z",
+                      "updated_at": "2026-10-28T09:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission, ownership, report state or organization rules deny the operation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Report, meeting or resolution not found / wrong resolution parent.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicting idempotency payload or workflow state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Existing task validation or malformed submission_key / pagination.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "task_id"
+                ],
+                "properties": {
+                  "task_id": {
+                    "type": "integer",
+                    "description": "Existing task ID; existing exists:tasks,id validation."
+                  }
+                }
+              },
+              "example": {
+                "task_id": 801
               }
             }
           }
@@ -15384,7 +16135,8 @@
           "mark_viewed",
           "comment",
           "deactivate",
-          "activate"
+          "activate",
+          "create_task"
         ],
         "properties": {
           "view": {
@@ -15394,7 +16146,8 @@
             "type": "boolean"
           },
           "delete": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Existing delete permission/meeting rule, and false when any task references this report (including tasks hidden from actor). Server/model/foreign key enforce deletion safety independently."
           },
           "send": {
             "type": "boolean"
@@ -15410,6 +16163,10 @@
           },
           "activate": {
             "type": "boolean"
+          },
+          "create_task": {
+            "type": "boolean",
+            "description": "Active primary recipient, report viewed, reports:view and existing TaskPolicy.create (tasks:create plus organization/super-admin rule). Super-admin has no recipient/state bypass."
           }
         },
         "additionalProperties": false,
@@ -15523,19 +16280,14 @@
           "action_type",
           "sent_at",
           "viewed_at",
-          "attachments",
           "meeting_resolution_id",
-          "meeting",
-          "resolution",
           "title",
           "short_description",
           "description",
-          "recipient",
-          "cc_users",
-          "tags",
-          "creator",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "tasks_url",
+          "task_suggestions"
         ],
         "properties": {
           "id": {
@@ -15660,6 +16412,41 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "tasks_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Count of source-report tasks visible to actor, using TaskVisibilityService. Null without tasks:view. Included on direct report CRUD/list responses; may be omitted in nested resolution reports."
+          },
+          "tasks_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Relative paginated relationship URL; null without tasks:view."
+          },
+          "task_suggestions": {
+            "type": "object",
+            "required": [
+              "title",
+              "short_description",
+              "request_description"
+            ],
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "short_description": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "request_description": {
+                "type": "string"
+              }
+            }
           }
         }
       },
@@ -15822,7 +16609,8 @@
               "edit",
               "start",
               "acknowledge",
-              "sign"
+              "sign",
+              "manage_resolutions"
             ],
             "properties": {
               "edit": {
@@ -15836,6 +16624,10 @@
               },
               "sign": {
                 "type": "boolean"
+              },
+              "manage_resolutions": {
+                "type": "boolean",
+                "description": "Existing MeetingPolicy.manageResolutions AND meeting status scheduled. Secretary still needs meetings:manage_resolutions."
               }
             }
           }
@@ -15868,6 +16660,779 @@
             }
           }
         }
+      },
+      "TaskApiResource": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "short_description",
+          "request_description",
+          "duration_minutes",
+          "due_date",
+          "progress_percentage",
+          "status",
+          "submission_type",
+          "requester",
+          "creator",
+          "assignees",
+          "followers",
+          "supervisors",
+          "tags",
+          "attachments",
+          "planning_items",
+          "financial_resources",
+          "financial_estimated_cost",
+          "equipment_resources",
+          "equipment_estimated_cost",
+          "rejection_reason",
+          "financial_provider",
+          "equipment_provider",
+          "meeting_source",
+          "report_source",
+          "allowed_actions",
+          "registered_at",
+          "started_at",
+          "completion_requested_at",
+          "completed_at",
+          "closed_at",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "short_description": {
+            "type": "string"
+          },
+          "request_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending_approval",
+              "revision_requested",
+              "ready_to_start",
+              "in_progress",
+              "pending_completion_approval",
+              "completed",
+              "not_completed",
+              "rejected",
+              "closed"
+            ]
+          },
+          "submission_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "assignment",
+              "request",
+              null
+            ]
+          },
+          "requester": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "creator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "assignees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentionUser"
+            }
+          },
+          "followers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentionUser"
+            }
+          },
+          "supervisors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MentionUser"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "title"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "planning_items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "title",
+                "weight",
+                "progress_percentage",
+                "sort_order"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "string"
+                },
+                "progress_percentage": {
+                  "type": "integer"
+                },
+                "sort_order": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "financial_resources": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "financial_estimated_cost": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "equipment_resources": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "equipment_estimated_cost": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rejection_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "financial_provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "equipment_provider": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MentionUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "meeting_source": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "report_source": {
+            "anyOf": [
+              {
+                "type": "object",
+                "required": [
+                  "id",
+                  "title"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source report metadata, only if the actor may view that report. Null for unrelated tasks or inaccessible source. Source FK cannot be set/changed by task payloads."
+          },
+          "allowed_actions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "registered_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "completion_requested_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "closed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "workflow_history": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "TaskApiResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "task"
+            ],
+            "properties": {
+              "task": {
+                "$ref": "#/components/schemas/TaskApiResource"
+              }
+            }
+          }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "required": [
+          "current_page",
+          "last_page",
+          "per_page",
+          "total"
+        ],
+        "properties": {
+          "current_page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "last_page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "per_page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ReportTasksResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "items",
+              "meta"
+            ],
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TaskApiResource"
+                }
+              },
+              "meta": {
+                "$ref": "#/components/schemas/PaginationMeta"
+              }
+            }
+          }
+        }
+      },
+      "ReportTaskCreationResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "task",
+              "replayed"
+            ],
+            "properties": {
+              "task": {
+                "$ref": "#/components/schemas/TaskApiResource"
+              },
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "CreateReportTaskInput": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "x-laravel-rules": [
+              "sometimes",
+              "string",
+              "max:255"
+            ],
+            "maxLength": 255
+          },
+          "short_description": {
+            "type": "string",
+            "x-laravel-rules": [
+              "sometimes",
+              "string",
+              "max:100"
+            ],
+            "maxLength": 100
+          },
+          "submission_type": {
+            "type": "string",
+            "x-laravel-rules": [
+              "required",
+              "in:assignment,request"
+            ],
+            "enum": [
+              "assignment",
+              "request"
+            ]
+          },
+          "request_description": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "string"
+            ]
+          },
+          "duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "integer",
+              "min:1"
+            ],
+            "minimum": 1
+          },
+          "due_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "date",
+              "after_or_equal:today"
+            ],
+            "format": "date"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "x-laravel-rules": [
+              "sometimes",
+              "integer",
+              "between:0,100"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "requester_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "integer",
+              "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+            ]
+          },
+          "assignee_ids": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "x-laravel-rules": [
+                "integer",
+                "distinct",
+                "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+              ]
+            }
+          },
+          "follower_ids": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "x-laravel-rules": [
+                "integer",
+                "distinct",
+                "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+              ]
+            }
+          },
+          "supervisor_ids": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "x-laravel-rules": [
+                "integer",
+                "distinct",
+                "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+              ]
+            }
+          },
+          "tags": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array",
+              "max:20"
+            ],
+            "items": {
+              "type": "string",
+              "x-laravel-rules": [
+                "required",
+                "string",
+                "max:100",
+                "distinct"
+              ],
+              "maxLength": 100
+            },
+            "maxItems": 20
+          },
+          "attachment_file_ids": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array",
+              "max:20"
+            ],
+            "items": {
+              "type": "integer",
+              "x-laravel-rules": [
+                "integer",
+                "distinct",
+                "exists:media_files,id,category,\"attachment\""
+              ]
+            },
+            "maxItems": 20
+          },
+          "planning_items": {
+            "type": "array",
+            "x-laravel-rules": [
+              "sometimes",
+              "array",
+              "max:100"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "x-laravel-rules": [
+                    "required",
+                    "string",
+                    "max:255"
+                  ],
+                  "maxLength": 255
+                },
+                "weight": {
+                  "type": "number",
+                  "x-laravel-rules": [
+                    "required",
+                    "numeric",
+                    "min:0"
+                  ],
+                  "minimum": 0
+                },
+                "progress_percentage": {
+                  "type": "integer",
+                  "x-laravel-rules": [
+                    "sometimes",
+                    "integer",
+                    "between:0,100"
+                  ]
+                },
+                "sort_order": {
+                  "type": "integer",
+                  "x-laravel-rules": [
+                    "sometimes",
+                    "integer",
+                    "min:0"
+                  ],
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "title",
+                "weight"
+              ]
+            },
+            "maxItems": 100
+          },
+          "financial_resources": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "string"
+            ]
+          },
+          "financial_estimated_cost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "numeric",
+              "min:0"
+            ],
+            "minimum": 0
+          },
+          "financial_provider_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "integer",
+              "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+            ]
+          },
+          "equipment_resources": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "string"
+            ]
+          },
+          "equipment_estimated_cost": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "numeric",
+              "min:0"
+            ],
+            "minimum": 0
+          },
+          "equipment_provider_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "x-laravel-rules": [
+              "sometimes",
+              "nullable",
+              "integer",
+              "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
+            ]
+          },
+          "submit": {
+            "type": "boolean",
+            "x-laravel-rules": [
+              "sometimes",
+              "boolean"
+            ]
+          },
+          "submission_key": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Required fresh UUID for each intended new task. Reuse unchanged key/body for transport retries. Scope is report + authenticated creator; uppercase UUID normalized to lowercase."
+          }
+        },
+        "required": [
+          "submission_type",
+          "submission_key"
+        ],
+        "description": "Exact StoreTaskRequest rules plus submission_key UUID. source_report_id, report_submission_key and report_request_hash are prohibited, not client-writable. submit=true requires explicit title, short_description, duration_minutes and due_date; request additionally needs assignees/tags/followers/supervisors. Assignment assignee/requester is actor only. Request targets follow existing organization rules. Initial assignment planning progress stays zero. Attachments must be eligible files owned by actor (existing super-admin exception); report attachments/tags are not silently copied.",
+        "x-prohibited-fields": [
+          "source_report_id",
+          "report_submission_key",
+          "report_request_hash"
+        ]
       }
     }
   },
@@ -15878,7 +17443,7 @@
     }
   ],
   "x-deployment": {
-    "status": "deployed",
+    "status": "local_changes_not_deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
     "previous_deployment": {
@@ -15922,14 +17487,28 @@
         "api_base_url": "/api/v1"
       }
     },
-    "route_definitions": 87,
-    "http_operations": 89,
-    "route_fingerprint_sha256": "e7ac6ae71f9f236bdddcc65e0cb50948a04bb0fc029562254dccc04d2cff7982",
-    "generated_at": "2026-10-27T13:10:27.449979+00:00",
+    "route_definitions": 90,
+    "http_operations": 92,
+    "route_fingerprint_sha256": "cbf9118ba184da00a302d4d529436a6069de983a33440d5b4c658233e99ba45d",
+    "generated_at": "2026-10-28",
     "source": "Deployed main Laravel route table and reviewed signature resources. Server schema and read-only API smoke verified.",
-    "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
-    "deployed_at": "2026-10-27T13:26:50.257596+00:00",
-    "migration": "2026_10_27_000000_create_meeting_signatures_table"
+    "application_commit": null,
+    "deployed_at": null,
+    "migration": "2026_10_28_000000_add_report_source_to_tasks_table: local tests only, not production",
+    "previous_live_version": {
+      "status": "deployed",
+      "api_base_url": "https://taskover.ir/api/v1",
+      "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
+      "route_definitions": 87,
+      "http_operations": 89,
+      "route_fingerprint_sha256": "e7ac6ae71f9f236bdddcc65e0cb50948a04bb0fc029562254dccc04d2cff7982",
+      "generated_at": "2026-10-27T13:10:27.449979+00:00",
+      "source": "Deployed main Laravel route table and reviewed signature resources. Server schema and read-only API smoke verified.",
+      "application_commit": "6a3836b89b34eeb5f9531e78645d7b614057bc48",
+      "deployed_at": "2026-10-27T13:26:50.257596+00:00",
+      "migration": "2026_10_27_000000_create_meeting_signatures_table"
+    },
+    "local_base_commit": "514714dd703d84d5ce78463b91feb5954ccd10f4"
   },
   "x-frontend-integration": {
     "headers": {
@@ -16184,6 +17763,104 @@
           "temporary_smoke_token_revoked": true,
           "frontend_source_changed": false
         }
+      },
+      "report_task_integration": {
+        "verified_at": "2026-10-28T10:44:29.177637+00:00",
+        "state": "local_uncommitted_changes_not_deployed",
+        "base_commit": "514714dd703d84d5ce78463b91feb5954ccd10f4",
+        "sqlite_regression": {
+          "tests": 133,
+          "assertions": 1717,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 2,
+          "passed": 131,
+          "duration_seconds": 13.975578
+        },
+        "mysql_core_and_signatures": {
+          "tests": 39,
+          "assertions": 310,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 39,
+          "duration_seconds": 14.030832
+        },
+        "mysql_regression": {
+          "tests": 132,
+          "assertions": 1723,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 1,
+          "passed": 131,
+          "duration_seconds": 302.936896
+        },
+        "sqlite_migration": {
+          "tests": 1,
+          "assertions": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1,
+          "duration_seconds": 0.409179
+        },
+        "mysql_migration": {
+          "tests": 1,
+          "assertions": 5,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0,
+          "passed": 1,
+          "duration_seconds": 4.736142
+        },
+        "mysql_environment": "Disposable MySQL 8.4/InnoDB, localhost:33317, task_manager_dashboard_test, READ-COMMITTED default; existing protected phpunit.mysql.xml bootstrap.",
+        "mysql_regression_excluded_test": "ReportWorkflowTest::test_migration_backfills_existing_reports_and_can_roll_back_threads (pre-existing rollback FK/index incompatibility); executed on SQLite.",
+        "mysql_regression_skipped_test": "ReportInteractionTest::test_migration_does_not_infer_previous_state_and_refuses_lossy_rollback (SQLite-only DDL test).",
+        "sqlite_skipped_tests": [
+          "DashboardTest::test_mysql_dashboard_has_repeatable_read_snapshot_despite_read_committed_default",
+          "DashboardTest::test_mysql_snapshot_is_read_only_and_rolls_back_on_failure"
+        ],
+        "contract_checks": {
+          "paths": 69,
+          "operations": 92,
+          "schemas": 27,
+          "schema_examples_validated": 11,
+          "all_internal_refs_resolved": true,
+          "method_path_inventory_matches_laravel": true,
+          "dashboard_schemas_and_paths_unchanged_against_HEAD": true
+        },
+        "style": "vendor/bin/pint --test --dirty: pass; git diff --check: pass",
+        "changed_files": [
+          "app/Http/Controllers/Api/V1/ReportTaskController.php",
+          "app/Http/Requests/CreateReportTaskRequest.php",
+          "app/Http/Requests/IndexReportTasksRequest.php",
+          "app/Http/Resources/MeetingResource.php",
+          "app/Http/Resources/ReportResource.php",
+          "app/Http/Resources/TaskResource.php",
+          "app/Models/Report.php",
+          "app/Models/Task.php",
+          "app/Policies/ReportPolicy.php",
+          "app/Policies/TaskPolicy.php",
+          "app/Services/MeetingService.php",
+          "app/Services/ReportService.php",
+          "app/Services/ReportTaskService.php",
+          "app/Services/TaskService.php",
+          "database/migrations/2026_10_28_000000_add_report_source_to_tasks_table.php",
+          "docs/report-task-integration.md",
+          "docs/task-manager-frontend-api-taskover.json",
+          "routes/api.php",
+          "tests/Feature/MeetingResolutionIntegrationTest.php",
+          "tests/Feature/ReportInteractionTest.php",
+          "tests/Feature/ReportTaskMigrationTest.php",
+          "tests/Feature/ReportTaskTest.php"
+        ],
+        "limits": [
+          "Selected related regression suites only; unrelated full-project suite not run.",
+          "No concurrent HTTP load test or production integration test.",
+          "Frontend code and production deployment unchanged.",
+          "Missing middle sections of original requirement text were not inferred.",
+          "Legacy full-schema rollback has pre-existing index/FK errors in SQLite users and MySQL report workflow migrations. The new source migration down/up was independently tested and passes."
+        ]
       }
     },
     "mentions": {
@@ -16216,6 +17893,44 @@
       "independent": "Viewing does not sign. Signing does not view or complete. Completion does not require signatures. Existing edit/complete locks remain unchanged.",
       "cryptographic_signing": false,
       "frontend_source_changed": false
+    },
+    "report_tasks": {
+      "deployment": "LOCAL ONLY; migrate/deploy backend before enabling UI.",
+      "business_rule": "Only active primary recipient, status viewed; cc/creator/admin are not sufficient. Requires reports:view and existing TaskPolicy.create. No new permission/status.",
+      "flow": [
+        "GET /api/v1/reports/{report}",
+        "Show create button using allowed_actions.create_task.",
+        "Seed form from task_suggestions; keep submission_type explicit.",
+        "Generate UUID once per intended creation; retain key and exact JSON on network retry.",
+        "POST /api/v1/reports/{report}/create-task; 201 new, 200 replay, 409 changed body/key conflict.",
+        "Refresh report tasks_count and follow tasks_url with page/per_page."
+      ],
+      "source": "GET task returns report_source object only when source remains visible; otherwise null. GET report count only includes tasks the actor may see, null without module permission.",
+      "relationships": "tasks.source_report_id nullable FK RESTRICT to reports. One report to many tasks. Does not replace meeting resolution task_id/report type. No copying report tags/attachments or permissions to the new task.",
+      "compatibility": "Old task POST unchanged. Old report payloads unchanged. Source FK/key/hash not writable. Existing draft deletion removes creation key; never retry after intentional task deletion.",
+      "example_request": {
+        "submission_key": "a9a1c972-871f-4397-ad93-a20710de5c61",
+        "submission_type": "assignment",
+        "title": "پیگیری گزارش",
+        "short_description": "اقدام اصلاحی",
+        "request_description": "شرح اقدام",
+        "duration_minutes": 60,
+        "due_date": "2026-11-05",
+        "submit": false
+      }
+    },
+    "meeting_resolution_integration": {
+      "link_existing": {
+        "method": "POST",
+        "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}/link-task",
+        "body": {
+          "task_id": 801
+        }
+      },
+      "secretary_permission": "Read data.meeting.allowed_actions.manage_resolutions; requires existing meetings:manage_resolutions, scheduled meeting and MeetingPolicy manager relation.",
+      "resolution_data": "GET /api/v1/meetings/{meeting}: data.meeting.resolutions contains id, agenda_item_id, title, description, resolution_type, sort_order, task summary/report, created_at, updated_at. Join agenda_item_id to agenda_items in same response. GET /api/v1/tasks/{id} for full linked task (separate authorization).",
+      "completion": "Existing POST /api/v1/meetings/{meeting}/complete remains; meeting status completed enables attendee acknowledgments via existing sign endpoint. No extra completion status introduced.",
+      "missing_source_text": "Requirement sections between the partial section 1 and final deliverables were not supplied. No extra workflow or permission inferred."
     }
   }
 }

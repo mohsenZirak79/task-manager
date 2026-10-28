@@ -10,17 +10,21 @@ use App\Models\Meeting;
 use App\Models\MeetingResolution;
 use App\Models\Report;
 use App\Models\Tag;
+use App\Models\Task;
 use App\Models\User;
 use App\Support\AccessRoles;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class ReportService
 {
+    public function __construct(private readonly TaskVisibilityService $taskVisibility) {}
+
     public function visibleQuery(User $actor): Builder
     {
         $query = Report::query();
@@ -46,6 +50,7 @@ class ReportService
         $query = $this->visibleQuery($actor)
             ->with($this->relations())
             ->latest('reports.id');
+        $this->withVisibleTaskCount($query, $actor);
 
         $query->when($filters['search'] ?? null, function ($query, string $search): void {
             $query->where(function ($query) use ($search): void {
@@ -71,7 +76,26 @@ class ReportService
 
     public function find(Report $report): Report
     {
-        return $report->load($this->relations());
+        $query = Report::query()->whereKey($report->id)->with($this->relations());
+        if ($actor = auth()->user()) {
+            $this->withVisibleTaskCount($query, $actor);
+        }
+
+        return $query->firstOrFail();
+    }
+
+    private function withVisibleTaskCount(Builder $query, User $actor): void
+    {
+        $query->withExists('tasks');
+        $canViewTasks = Gate::forUser($actor)->allows('viewAny', Task::class);
+        $query->withCount(['tasks' => function (Builder $tasks) use ($actor, $canViewTasks): void {
+            if (! $canViewTasks) {
+                $tasks->whereRaw('1 = 0');
+
+                return;
+            }
+            $tasks->whereIn('tasks.id', $this->taskVisibility->visibleQuery($actor)->select('tasks.id'));
+        }]);
     }
 
     public function create(Meeting $meeting, MeetingResolution $resolution, array $data, User $actor): Report

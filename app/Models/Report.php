@@ -7,9 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class Report extends Model
 {
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'source_report_id');
+    }
+
     protected $fillable = [
         'meeting_resolution_id', 'title', 'short_description', 'description',
         'action_type', 'recipient_user_id', 'created_by', 'status', 'previous_status', 'sent_at', 'viewed_at', 'submission_key',
@@ -23,6 +29,9 @@ class Report extends Model
     protected static function booted(): void
     {
         static::deleting(function (Report $report): void {
+            if ($report->tasks()->exists()) {
+                throw new ConflictHttpException('گزارش دارای تسک مرتبط قابل حذف نیست؛ می‌توانید آن را غیرفعال کنید.');
+            }
             // Remove self references before the report FK cascades to comments.
             $report->comments()->withTrashed()->update(['parent_id' => null]);
         });

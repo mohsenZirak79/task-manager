@@ -13,6 +13,13 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Task extends Model
 {
+    protected $hidden = ['report_submission_key', 'report_request_hash'];
+
+    public function sourceReport(): BelongsTo
+    {
+        return $this->belongsTo(Report::class, 'source_report_id');
+    }
+
     protected $fillable = [
         'title',
         'short_description',

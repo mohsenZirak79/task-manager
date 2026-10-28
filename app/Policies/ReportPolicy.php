@@ -2,16 +2,23 @@
 
 namespace App\Policies;
 
+use App\Enums\ReportStatus;
 use App\Models\Report;
+use App\Models\Task;
 use App\Models\TaskComment;
 use App\Models\User;
 use App\Support\AccessRoles;
 use App\Support\Permissions;
+use Illuminate\Support\Facades\Gate;
 
 class ReportPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
+        if ($ability === 'createTask') {
+            return null;
+        }
+
         return $user->isSuperAdmin() ? true : null;
     }
 
@@ -23,6 +30,15 @@ class ReportPolicy
     public function create(User $user): bool
     {
         return $user->hasPermission(Permissions::REPORTS_MANAGE);
+    }
+
+    public function createTask(User $user, Report $report): bool
+    {
+        return $user->is_active
+            && $report->recipient_user_id === $user->id
+            && $report->status === ReportStatus::Viewed
+            && $this->view($user, $report)
+            && Gate::forUser($user)->allows('create', Task::class);
     }
 
     public function view(User $user, Report $report): bool

@@ -22,7 +22,9 @@ class TaskPolicy
     public function create(User $user): bool
     {
         return $user->hasPermission(Permissions::TASKS_CREATE)
-            && ($user->isSuperAdmin() || $user->orgPositions()->exists());
+            && ($user->isSuperAdmin() || ($user->relationLoaded('orgPositions')
+                ? $user->orgPositions->isNotEmpty()
+                : $user->orgPositions()->exists()));
     }
 
     public function view(User $user, Task $task): bool
