@@ -60,6 +60,10 @@ class Meeting extends Model
         if ($this->started_at !== null) {
             return false;
         }
+        // A draft has not been scheduled yet; its proposed time must not lock editing or submission.
+        if ($this->status === MeetingStatus::Draft) {
+            return true;
+        }
         if (! in_array($this->status, [MeetingStatus::Draft, MeetingStatus::Scheduled], true)) {
             return false;
         }
