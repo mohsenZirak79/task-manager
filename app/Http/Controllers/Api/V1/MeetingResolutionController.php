@@ -40,7 +40,7 @@ class MeetingResolutionController extends Controller
     public function destroy(Request $request, Meeting $meeting, MeetingResolution $resolution): JsonResponse
     {
         Gate::authorize('manageResolutions', $meeting);
-        $this->meetingService->deleteResolution($meeting, $resolution);
+        $this->meetingService->deleteResolution($meeting, $resolution, $request->user());
 
         return $this->success('مصوبه با موفقیت حذف شد.');
     }

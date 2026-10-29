@@ -12,7 +12,7 @@ class MeetingPolicy
 {
     public function before(User $user, string $ability): ?bool
     {
-        if (in_array($ability, ['update', 'submit', 'start', 'acknowledge', 'sign'], true)) {
+        if (in_array($ability, ['update', 'submit', 'start', 'acknowledge', 'sign', 'manageResolutions', 'complete'], true)) {
             return null;
         }
 
@@ -80,14 +80,26 @@ class MeetingPolicy
 
     public function complete(User $user, Meeting $meeting): bool
     {
-        return $user->hasPermission(Permissions::MEETINGS_COMPLETE)
-            && ($this->isAdmin($user) || $meeting->chairman_user_id === $user->id || $meeting->secretary_user_id === $user->id);
+        return $user->is_active && (
+            $this->isOfficer($user, $meeting)
+            || $user->isSuperAdmin()
+            || ($user->hasPermission(Permissions::MEETINGS_COMPLETE) && $this->isAdmin($user))
+        );
     }
 
     public function manageResolutions(User $user, Meeting $meeting): bool
     {
-        return $user->hasPermission(Permissions::MEETINGS_MANAGE_RESOLUTIONS)
-            && ($this->isAdmin($user) || $this->canManage($user, $meeting));
+        return $user->is_active && (
+            $this->isOfficer($user, $meeting)
+            || $user->isSuperAdmin()
+            || ($user->hasPermission(Permissions::MEETINGS_MANAGE_RESOLUTIONS)
+                && ($this->isAdmin($user) || $this->canManage($user, $meeting)))
+        );
+    }
+
+    private function isOfficer(User $user, Meeting $meeting): bool
+    {
+        return in_array($user->id, [$meeting->chairman_user_id, $meeting->secretary_user_id], true);
     }
 
     private function canManage(User $user, Meeting $meeting): bool

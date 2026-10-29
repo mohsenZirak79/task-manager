@@ -39,6 +39,9 @@ class MeetingResource extends JsonResource
                 'sign' => $maySign && ! $actorSigned,
                 'manage_resolutions' => $this->status === MeetingStatus::Scheduled
                     && Gate::forUser($request->user())->allows('manageResolutions', $this->resource),
+                'complete' => $this->status === MeetingStatus::Scheduled
+                    && $this->resolutions->isNotEmpty()
+                    && Gate::forUser($request->user())->allows('complete', $this->resource),
                 'edit' => Gate::forUser($request->user())->allows('update', $this->resource),
                 'start' => Gate::forUser($request->user())->allows('start', $this->resource),
                 'acknowledge' => Gate::forUser($request->user())->allows('acknowledge', $this->resource),

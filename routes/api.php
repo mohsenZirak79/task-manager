@@ -46,17 +46,17 @@ Route::prefix('v1')->group(function (): void {
             Route::patch('meetings/{meeting}', [MeetingController::class, 'update'])->middleware('permission:'.Permissions::MEETINGS_UPDATE)->whereNumber('meeting');
             Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])->middleware('permission:'.Permissions::MEETINGS_DELETE)->whereNumber('meeting');
             Route::post('meetings/{meeting}/submit', [MeetingController::class, 'submit'])->middleware('permission:'.Permissions::MEETINGS_UPDATE)->whereNumber('meeting');
-            Route::post('meetings/{meeting}/complete', [MeetingController::class, 'complete'])->middleware('permission:'.Permissions::MEETINGS_COMPLETE)->whereNumber('meeting');
+            Route::post('meetings/{meeting}/complete', [MeetingController::class, 'complete'])->middleware('can:complete,meeting')->whereNumber('meeting');
             Route::post('meetings/{meeting}/start', [MeetingController::class, 'start'])->whereNumber('meeting');
             Route::post('meetings/{meeting}/sign', [MeetingController::class, 'sign'])->middleware('permission:'.Permissions::MEETINGS_VIEW)->whereNumber('meeting');
             Route::post('meetings/{meeting}/view', [MeetingController::class, 'acknowledge'])->whereNumber('meeting');
-            Route::post('meetings/{meeting}/resolutions', [MeetingResolutionController::class, 'store'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber('meeting');
-            Route::patch('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'update'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber(['meeting', 'resolution']);
-            Route::delete('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'destroy'])->middleware('permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS)->whereNumber(['meeting', 'resolution']);
-            Route::post('meetings/{meeting}/resolutions/{resolution}/create-task', [MeetingResolutionController::class, 'createTask'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::TASKS_CREATE])->whereNumber(['meeting', 'resolution']);
-            Route::post('meetings/{meeting}/resolutions/{resolution}/link-task', [MeetingResolutionController::class, 'linkTask'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::TASKS_VIEW])->whereNumber(['meeting', 'resolution']);
+            Route::post('meetings/{meeting}/resolutions', [MeetingResolutionController::class, 'store'])->middleware('can:manageResolutions,meeting')->whereNumber('meeting');
+            Route::patch('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'update'])->middleware('can:manageResolutions,meeting')->whereNumber(['meeting', 'resolution']);
+            Route::delete('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'destroy'])->middleware('can:manageResolutions,meeting')->whereNumber(['meeting', 'resolution']);
+            Route::post('meetings/{meeting}/resolutions/{resolution}/create-task', [MeetingResolutionController::class, 'createTask'])->middleware(['can:manageResolutions,meeting', 'permission:'.Permissions::TASKS_CREATE])->whereNumber(['meeting', 'resolution']);
+            Route::post('meetings/{meeting}/resolutions/{resolution}/link-task', [MeetingResolutionController::class, 'linkTask'])->middleware(['can:manageResolutions,meeting', 'permission:'.Permissions::TASKS_VIEW])->whereNumber(['meeting', 'resolution']);
             Route::get('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'showForResolution'])->middleware('permission:'.Permissions::REPORTS_VIEW)->whereNumber(['meeting', 'resolution']);
-            Route::post('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'store'])->middleware(['permission:'.Permissions::MEETINGS_MANAGE_RESOLUTIONS, 'permission:'.Permissions::REPORTS_MANAGE])->whereNumber(['meeting', 'resolution']);
+            Route::post('meetings/{meeting}/resolutions/{resolution}/report', [ReportController::class, 'store'])->middleware(['can:manageResolutions,meeting', 'permission:'.Permissions::REPORTS_MANAGE])->whereNumber(['meeting', 'resolution']);
 
             Route::post('reports/{report}/create-task', [ReportTaskController::class, 'store'])->middleware(['permission:'.Permissions::REPORTS_VIEW, 'permission:'.Permissions::TASKS_CREATE])->whereNumber('report');
             Route::get('reports/{report}/tasks', [ReportTaskController::class, 'index'])->middleware(['permission:'.Permissions::REPORTS_VIEW, 'permission:'.Permissions::TASKS_VIEW])->whereNumber('report');

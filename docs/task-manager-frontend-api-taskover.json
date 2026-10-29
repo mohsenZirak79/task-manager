@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-28.report-task-integration-deployed-1",
-    "description": "Complete existing /api/v1 route inventory and FormRequest validation for TaskOver. Includes report-to-task creation, paginated report tasks, existing-task resolution linking, authorization-aware actions, and versioned meeting attendee signatures. Deployed on https://taskover.ir. Dashboard paths and schemas are unchanged. Contextual validation and authorization remain server-enforced; legacy resource examples are illustrative. Positive task creation/retry and signature flows were tested on isolated SQLite/MySQL. Production smoke checks exercised authenticated reads and rejected writes without creating real business records."
+    "version": "2026-10-29.meeting-officer-access-1",
+    "description": "Current /api/v1 route inventory and FormRequest validation for TaskOver. Includes meeting-scoped active chairman/secretary access, allowed_actions.complete, report-to-task integration and versioned attendee signatures. This revision must be deployed together with the matching frontend; calendar display is Persian while API dates stay Gregorian ISO. Existing administrator and independent task/report permissions are preserved. Contextual validation and authorization remain server-enforced; legacy resource examples are illustrative."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -2078,7 +2078,8 @@
                         "start": false,
                         "acknowledge": false,
                         "sign": true,
-                        "manage_resolutions": false
+                        "manage_resolutions": false,
+                        "complete": false
                       },
                       "chairman": {
                         "id": 7,
@@ -2184,7 +2185,7 @@
             "description": "Resource not found or inaccessible."
           }
         },
-        "description": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات allowed_actions.manage_resolutions reflects scheduled status plus existing manager policy; secretary is not automatically granted a missing module permission.",
+        "description": "نمایش جزئیات جلسه، حاضرین، دستورها و خلاصه تسک مصوبات. Active chairman/secretary of this meeting may manage scheduled resolutions without a global management permission. Read allowed_actions.manage_resolutions and allowed_actions.complete; completion additionally requires at least one resolution.",
         "parameters": [
           {
             "name": "meeting",
@@ -2651,11 +2652,10 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:complete"
+          "can:complete,meeting"
         ],
-        "x-required-permissions": [
-          "meetings:complete"
-        ],
+        "x-required-permissions": [],
+        "x-policy": "Active chairman/secretary of this meeting, or existing authorized administrator; scheduled meeting and at least one resolution are required. Use allowed_actions.complete.",
         "responses": {
           "200": {
             "description": "Successful operation; existing resource and policy rules apply.",
@@ -2834,11 +2834,10 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions"
+          "can:manageResolutions,meeting"
         ],
-        "x-required-permissions": [
-          "meetings:manage_resolutions"
-        ],
+        "x-required-permissions": [],
+        "x-policy": "Active chairman/secretary of this meeting, or existing authorized manager. Use allowed_actions.manage_resolutions; scheduled meetings only.",
         "responses": {
           "201": {
             "description": "Successful operation; existing resource and policy rules apply.",
@@ -3009,11 +3008,10 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions"
+          "can:manageResolutions,meeting"
         ],
-        "x-required-permissions": [
-          "meetings:manage_resolutions"
-        ],
+        "x-required-permissions": [],
+        "x-policy": "MeetingPolicy.manageResolutions for this meeting; resolution must belong to it; scheduled meetings only.",
         "responses": {
           "200": {
             "description": "Successful operation; existing resource and policy rules apply.",
@@ -3220,11 +3218,10 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions"
+          "can:manageResolutions,meeting"
         ],
-        "x-required-permissions": [
-          "meetings:manage_resolutions"
-        ],
+        "x-required-permissions": [],
+        "x-policy": "MeetingPolicy.manageResolutions for this meeting; resolution must belong to it; scheduled meetings only.",
         "responses": {
           "200": {
             "description": "Successful operation; existing resource and policy rules apply.",
@@ -3309,13 +3306,13 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions",
+          "can:manageResolutions,meeting",
           "permission:tasks:create"
         ],
         "x-required-permissions": [
-          "meetings:manage_resolutions",
           "tasks:create"
         ],
+        "x-policy": "MeetingPolicy.manageResolutions for this meeting; tasks:create is still required.",
         "responses": {
           "201": {
             "description": "Successful operation; existing resource and policy rules apply.",
@@ -3985,13 +3982,13 @@
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions",
+          "can:manageResolutions,meeting",
           "permission:reports:manage"
         ],
         "x-required-permissions": [
-          "meetings:manage_resolutions",
           "reports:manage"
         ],
+        "x-policy": "MeetingPolicy.manageResolutions for this meeting; reports:manage is still required.",
         "responses": {
           "201": {
             "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
@@ -14637,7 +14634,8 @@
                         "start": false,
                         "acknowledge": false,
                         "sign": false,
-                        "manage_resolutions": false
+                        "manage_resolutions": false,
+                        "complete": false
                       },
                       "chairman": {
                         "id": 7,
@@ -14760,7 +14758,7 @@
             }
           }
         ],
-        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. View/start/complete remain independent. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again. allowed_actions.manage_resolutions reflects scheduled status plus existing manager policy; secretary is not automatically granted a missing module permission.",
+        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again. Meeting-scoped officer management and completion are independent of signing; read the corresponding allowed_actions flags.",
         "x-validation-source": "App\\Http\\Requests\\SignMeetingRequest",
         "requestBody": {
           "required": true,
@@ -15295,7 +15293,7 @@
       "post": {
         "operationId": "post_api_v1_meetings_meeting_resolutions_resolution_link_task",
         "summary": "Link an existing task to a meeting resolution",
-        "description": "Existing controller/service now routed. MeetingPolicy.manageResolutions (secretary/creator/chairman/admin with permission), correct parent, scheduled meeting, task-type empty resolution, TaskPolicy.view and assignees among meeting attendees. One task may belong to only one resolution. Does not create tasks or convert report resolutions. Meeting/resolution/task rows locked, manager policy rechecked. Existing occupied/repeated link returns 409, no duplicate row.",
+        "description": "MeetingPolicy.manageResolutions permits this meeting's active chairman/secretary or an existing authorized manager. Correct parent, scheduled meeting, task-type empty resolution, tasks:view, TaskPolicy.view and assignees among meeting attendees are required. One task may belong to only one resolution. Does not create tasks or convert report resolutions. Meeting/resolution/task rows locked, manager policy rechecked. Existing occupied/repeated link returns409, no duplicate row.",
         "tags": [
           "meetings"
         ],
@@ -15306,15 +15304,15 @@
         ],
         "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingResolutionController@linkTask",
         "x-required-permissions": [
-          "meetings:manage_resolutions",
           "tasks:view"
         ],
+        "x-policy": "MeetingPolicy.manageResolutions for this meeting; tasks:view and task visibility are still required.",
         "x-middleware": [
           "api",
           "auth:sanctum",
           "last.activity",
           "active",
-          "permission:meetings:manage_resolutions",
+          "can:manageResolutions,meeting",
           "permission:tasks:view"
         ],
         "parameters": [
@@ -16610,7 +16608,8 @@
               "start",
               "acknowledge",
               "sign",
-              "manage_resolutions"
+              "manage_resolutions",
+              "complete"
             ],
             "properties": {
               "edit": {
@@ -16627,7 +16626,11 @@
               },
               "manage_resolutions": {
                 "type": "boolean",
-                "description": "Existing MeetingPolicy.manageResolutions AND meeting status scheduled. Secretary still needs meetings:manage_resolutions."
+                "description": "Scheduled meeting AND MeetingPolicy.manageResolutions. Active chairman/secretary of this meeting do not need global meetings:manage_resolutions. Existing authorized managers retain their access."
+              },
+              "complete": {
+                "type": "boolean",
+                "description": "Scheduled meeting, at least one resolution and MeetingPolicy.complete. Active chairman/secretary of this meeting do not need global meetings:complete."
               }
             }
           }
@@ -18042,7 +18045,7 @@
           "task_id": 801
         }
       },
-      "secretary_permission": "Read data.meeting.allowed_actions.manage_resolutions; requires existing meetings:manage_resolutions, scheduled meeting and MeetingPolicy manager relation.",
+      "secretary_permission": "Read data.meeting.allowed_actions.manage_resolutions and complete. Active chairman/secretary of this meeting may manage scheduled resolutions without global management/complete permissions. Completion requires at least one resolution. This exception does not grant task/report module permissions or authority over unrelated meetings.",
       "resolution_data": "GET /api/v1/meetings/{meeting}: data.meeting.resolutions contains id, agenda_item_id, title, description, resolution_type, sort_order, task summary/report, created_at, updated_at. Join agenda_item_id to agenda_items in same response. GET /api/v1/tasks/{id} for full linked task (separate authorization).",
       "completion": "Existing POST /api/v1/meetings/{meeting}/complete remains; meeting status completed enables attendee acknowledgments via existing sign endpoint. No extra completion status introduced.",
       "missing_source_text": "Requirement sections between the partial section 1 and final deliverables were not supplied. No extra workflow or permission inferred."

@@ -111,10 +111,11 @@ class MeetingService
         });
     }
 
-    public function complete(Meeting $meeting): Meeting
+    public function complete(Meeting $meeting, User $actor): Meeting
     {
-        return DB::transaction(function () use ($meeting): Meeting {
+        return DB::transaction(function () use ($meeting, $actor): Meeting {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('complete', $meeting);
             if ($meeting->status !== MeetingStatus::Scheduled) {
                 throw new HttpException(409, 'فقط جلسه زمان‌بندی‌شده قابل اتمام است.');
             }
@@ -145,6 +146,7 @@ class MeetingService
     {
         return DB::transaction(function () use ($meeting, $data, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $this->ensureScheduled($meeting);
             $this->ensureAgendaBelongsToMeeting($meeting, $data['agenda_item_id'] ?? null);
             $this->authorizeLinkedTask($data['task_id'] ?? null, $actor);
@@ -166,6 +168,7 @@ class MeetingService
     {
         return DB::transaction(function () use ($meeting, $resolution, $data, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
             $this->ensureScheduled($meeting);
             if (array_key_exists('agenda_item_id', $data)) {
@@ -189,10 +192,11 @@ class MeetingService
         });
     }
 
-    public function deleteResolution(Meeting $meeting, MeetingResolution $resolution): void
+    public function deleteResolution(Meeting $meeting, MeetingResolution $resolution, User $actor): void
     {
-        DB::transaction(function () use ($meeting, $resolution): void {
+        DB::transaction(function () use ($meeting, $resolution, $actor): void {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
             $this->ensureScheduled($meeting);
             $resolution->delete();
@@ -203,6 +207,7 @@ class MeetingService
     {
         return DB::transaction(function () use ($meeting, $resolution, $data, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $resolution = MeetingResolution::query()->lockForUpdate()->findOrFail($resolution->id);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
             $this->ensureScheduled($meeting);

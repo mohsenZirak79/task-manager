@@ -85,7 +85,7 @@ class MeetingResolutionIntegrationTest extends TestCase
         $this->link($this->resolution(), $task)->assertConflict();
     }
 
-    public function test_secretary_without_permission_and_unrelated_user_cannot_manage_resolutions(): void
+    public function test_secretary_can_manage_without_global_permission_but_unrelated_user_cannot(): void
     {
         $resolution = $this->resolution();
         $task = $this->task($this->secretary);
@@ -93,8 +93,8 @@ class MeetingResolutionIntegrationTest extends TestCase
         $role->permissions()->detach(Permission::where('name', Permissions::MEETINGS_MANAGE_RESOLUTIONS)->value('id'));
         $this->secretary->unsetRelation('accessRoles');
         $this->getJson("/api/v1/meetings/{$this->meeting->id}")->assertOk()
-            ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', false);
-        $this->link($resolution, $task)->assertForbidden();
+            ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', true);
+        $this->link($resolution, $task)->assertOk();
         $outsider = User::factory()->create();
         $outsider->accessRoles()->sync([$role->id]);
         $role->permissions()->syncWithoutDetaching(Permission::where('name', Permissions::MEETINGS_MANAGE_RESOLUTIONS)->pluck('id'));

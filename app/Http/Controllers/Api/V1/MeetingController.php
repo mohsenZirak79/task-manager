@@ -80,7 +80,7 @@ class MeetingController extends Controller
     public function complete(Request $request, Meeting $meeting): JsonResponse
     {
         Gate::authorize('complete', $meeting);
-        $meeting = $this->meetingService->complete($meeting);
+        $meeting = $this->meetingService->complete($meeting, $request->user());
 
         return $this->success('جلسه با موفقیت تکمیل و قفل شد.', ['meeting' => new MeetingResource($meeting)]);
     }
