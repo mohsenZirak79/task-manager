@@ -1,6 +1,6 @@
 # اصلاح صورت‌جلسه و اجرای مصوبات — ۱۴۰۵/۰۸/۱۰
 
-این نسخه محلی است و هنوز push یا deploy نشده است. فرانت `demo-report` و بک‌اند `main` باید همراه migration منتشر شوند. قرارداد کامل: [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json)، شامل ۷۱ مسیر و ۹۴ عملیات مطابق route:list واقعی.
+این نسخه روی https://taskover.ir منتشر شده است؛ بک‌اند main و فرانت demo-report پوش و سرور به‌روز شده‌اند. هر دو migration اجرا و سرویس‌ها فعال‌اند. قرارداد کامل: [task-manager-frontend-api-taskover.json](task-manager-frontend-api-taskover.json)، شامل ۷۱ مسیر و ۹۴ عملیات مطابق route:list واقعی.
 
 ## رفتار نهایی
 
@@ -101,9 +101,11 @@ php artisan migrate --force
 
 دو skip SQLite تست snapshot اختصاصی MySQL هستند و روی MySQL موفق اجرا شده‌اند. یک skip MySQL در ReportInteractionTest مربوط به تست DDL/rollback SQLite است. ReportWorkflowTest روی SQLite اجرا شده است؛ مجموعه MySQL آن را شامل نمی‌شود، چون تست rollback قدیمی آن ناسازگاری شناخته‌شده FK/index دارد. جمع MySQL بدون هم‌پوشانی: ۱۵۶ تست، ۱۵۵ موفق و یک skip.
 
-build بهینه Next.js با ۲۴ صفحه static موفق است؛ lint بدون خطا/هشدار و Pint موفق‌اند. تست‌ها شامل ثبت بدون خروجی، اجبار همه فرم‌ها، مرز امضا/اتمام، آخرین امضا، تکرار درخواست، rollback خروجی‌های نیمه‌ساخته، نسخه قدیمی، پیوست‌ها، محدودیت عضو/مجوز، ارتباط‌های تاریخی، ترتیب، داده route-bound قدیمی، حفاظت migration، روز کاری و رندر فرانت هستند. تست کلیک واقعی مرورگر و تست production انجام نشده‌اند؛ کل تست‌های نامرتبط پروژه نیز موفق اعلام نمی‌شوند.
+build بهینه Next.js با ۲۴ صفحه static موفق است؛ lint بدون خطا/هشدار و Pint موفق‌اند. تست‌ها شامل ثبت بدون خروجی، اجبار همه فرم‌ها، مرز امضا/اتمام، آخرین امضا، تکرار درخواست، rollback خروجی‌های نیمه‌ساخته، نسخه قدیمی، پیوست‌ها، محدودیت عضو/مجوز، ارتباط‌های تاریخی، ترتیب، داده route-bound قدیمی، حفاظت migration، روز کاری و رندر فرانت هستند. تست کلیک واقعی مرورگر و ایجاد رکورد آزمایشی در production انجام نشده‌اند؛ بررسی خواندنی احرازهویت‌شده سرور و HTTPS عمومی پس از انتشار موفق است؛ کل تست‌های نامرتبط پروژه نیز موفق اعلام نمی‌شوند.
 
 آثار اجرای این جلسه در /tmp با پیشوند taskover-execution هستند؛ این مسیر موقت است. فایل JSON کامل، منبع تحویل پایدار قرارداد است.
+
+گزارش انتشار: [meeting-execution-deployment.md](meeting-execution-deployment.md).
 
 ## فایل‌های تغییرکرده
 

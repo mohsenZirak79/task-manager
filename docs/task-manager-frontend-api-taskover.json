@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-11-01.meeting-execution-local-1",
-    "description": "Complete OpenAPI 3.1 API inventory. Local meeting creation rules, staged resolution task/report registration, all-attendee final-signature execution, ordering and personal action indicators. LOCAL CHANGES, NOT DEPLOYED. Publish backend migrations and frontend together."
+    "version": "2026-11-01.meeting-execution-deployed-1",
+    "description": "Complete OpenAPI 3.1 inventory for the deployed TaskOver backend. Meeting participant rules, staged resolution registration, final-signature execution, ordering and action indicators are deployed. Public HTTPS pages and authentication boundaries plus authenticated origin read-only API smoke checks passed. Destructive business-workflow tests were run only on isolated test databases."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -17757,11 +17757,11 @@
   "servers": [
     {
       "url": "https://taskover.ir",
-      "description": "Existing deployment domain; local changes in this specification are not yet deployed."
+      "description": "Deployed TaskOver domain; API prefix /api/v1."
     }
   ],
   "x-deployment": {
-    "status": "local_changes_not_deployed",
+    "status": "deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "base_commit": "d6ead46ec4fd489c2c4839265dffe29960a28a60",
     "previous_deployment": {
@@ -17809,9 +17809,9 @@
     "http_operations": 94,
     "route_fingerprint_sha256": "b9830f60ceed2511669e20ba9076565c40e84e512b6b32bf25cf92beef176fc1",
     "generated_at": "2026-10-31T21:18:31.754605+00:00",
-    "source": "Local Laravel route table, services, resources, requests and verified tests. Not deployed.",
-    "application_commit": null,
-    "deployed_at": null,
+    "source": "Deployed main source and verified route inventory; read-only origin/public smoke checks.",
+    "application_commit": "be0ca22ef7e0b2a66754c3f095aa64b86e09061f",
+    "deployed_at": "2026-10-31T21:33:30.816165+00:00",
     "migration": "2026_10_31_000000_add_duration_to_meetings: not applied to production",
     "previous_live_version": {
       "status": "deployed",
@@ -17838,8 +17838,66 @@
     "local_path_count": 71,
     "local_http_operation_count": 94,
     "local_route_fingerprint_sha256": "b9830f60ceed2511669e20ba9076565c40e84e512b6b32bf25cf92beef176fc1",
-    "local_note": "Not pushed or deployed. Existing nested deployment records are historical.",
-    "branch": "main"
+    "local_note": "Application changes are deployed; local_* fields identify the original pre-deployment validation.",
+    "branch": "main",
+    "frontend": {
+      "branch": "demo-report",
+      "commit": "cf92d9e6087139a90bc6708af4c027a27ed16809",
+      "build_id": "uedMmDTXomoei-C0chLg2",
+      "service": "task-manager-frontend.service",
+      "status": "active"
+    },
+    "current_release": {
+      "status": "deployed",
+      "deployed_at": "2026-10-31T21:33:30.816165+00:00",
+      "domain": "https://taskover.ir",
+      "backend_branch": "main",
+      "backend_application_commit": "be0ca22ef7e0b2a66754c3f095aa64b86e09061f",
+      "frontend_branch": "demo-report",
+      "frontend_application_commit": "cf92d9e6087139a90bc6708af4c027a27ed16809",
+      "frontend_build_id": "uedMmDTXomoei-C0chLg2",
+      "migrations": [
+        "2026_10_31_000000_add_duration_to_meetings",
+        "2026_11_01_000000_add_resolution_execution_plans"
+      ],
+      "services": {
+        "php8.4-fpm": "active",
+        "task-manager-frontend.service": "active"
+      },
+      "public_https": {
+        "pages_http_200": [
+          "/",
+          "/login",
+          "/meetings",
+          "/meetings/create",
+          "/reports",
+          "/tasks"
+        ],
+        "unauthenticated_http_401": [
+          "/api/v1/dashboard",
+          "/api/v1/meetings/eligible-users"
+        ],
+        "new_build_manifest_http_200": "/_next/static/uedMmDTXomoei-C0chLg2/_buildManifest.js"
+      },
+      "authenticated_read_only_origin_smoke": {
+        "via": "Nginx loopback http://127.0.0.1 with Host taskover.ir; server cannot hairpin to public443",
+        "http_200": [
+          "/me",
+          "/dashboard",
+          "/dashboard/projects?page=1&per_page=1",
+          "/meetings/eligible-users",
+          "/meetings?per_page=1",
+          "/meetings/3",
+          "/tasks?per_page=1",
+          "/reports?per_page=1"
+        ],
+        "dashboard_invariants": "passed",
+        "temporary_auth_token_revoked": true
+      },
+      "production_business_records_created_by_test": false,
+      "browser_click_workflow_tested": false,
+      "backup_directory": "/var/www/task-manager/backups/meeting-execution-20261031-212239"
+    }
   },
   "x-frontend-integration": {
     "headers": {
@@ -17911,7 +17969,7 @@
       "activation": "Deactivation preserves exact previous status and timestamps. Inactive reports allow reads and authorized report deletion, but no edits/send/view marking/comment mutations/reactions/mention lookup. Activation needs a stored known previous state; legacy unknown state returns409. Linked report edit/delete still requires scheduled meeting; send/activation/comments retain existing meeting-state rules."
     },
     "verification": {
-      "status": "local_changes_not_deployed",
+      "status": "deployed",
       "prior_deployment_verification": {
         "local_sqlite": {
           "passed": 108,
@@ -18379,6 +18437,57 @@
         "next_build": "passed,24 static pages",
         "lint": "passed,0 warnings",
         "production_tested": false
+      },
+      "current_meeting_execution_release": {
+        "status": "deployed",
+        "deployed_at": "2026-10-31T21:33:30.816165+00:00",
+        "domain": "https://taskover.ir",
+        "backend_branch": "main",
+        "backend_application_commit": "be0ca22ef7e0b2a66754c3f095aa64b86e09061f",
+        "frontend_branch": "demo-report",
+        "frontend_application_commit": "cf92d9e6087139a90bc6708af4c027a27ed16809",
+        "frontend_build_id": "uedMmDTXomoei-C0chLg2",
+        "migrations": [
+          "2026_10_31_000000_add_duration_to_meetings",
+          "2026_11_01_000000_add_resolution_execution_plans"
+        ],
+        "services": {
+          "php8.4-fpm": "active",
+          "task-manager-frontend.service": "active"
+        },
+        "public_https": {
+          "pages_http_200": [
+            "/",
+            "/login",
+            "/meetings",
+            "/meetings/create",
+            "/reports",
+            "/tasks"
+          ],
+          "unauthenticated_http_401": [
+            "/api/v1/dashboard",
+            "/api/v1/meetings/eligible-users"
+          ],
+          "new_build_manifest_http_200": "/_next/static/uedMmDTXomoei-C0chLg2/_buildManifest.js"
+        },
+        "authenticated_read_only_origin_smoke": {
+          "via": "Nginx loopback http://127.0.0.1 with Host taskover.ir; server cannot hairpin to public443",
+          "http_200": [
+            "/me",
+            "/dashboard",
+            "/dashboard/projects?page=1&per_page=1",
+            "/meetings/eligible-users",
+            "/meetings?per_page=1",
+            "/meetings/3",
+            "/tasks?per_page=1",
+            "/reports?per_page=1"
+          ],
+          "dashboard_invariants": "passed",
+          "temporary_auth_token_revoked": true
+        },
+        "production_business_records_created_by_test": false,
+        "browser_click_workflow_tested": false,
+        "backup_directory": "/var/www/task-manager/backups/meeting-execution-20261031-212239"
       }
     },
     "mentions": {
