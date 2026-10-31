@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 
 class MeetingAttendeeResource extends UserSummaryResource
 {
-    public function __construct($resource, private readonly ?MeetingSignature $signature, private readonly string $version, private readonly bool $canSign)
+    public function __construct($resource, private readonly ?MeetingSignature $signature, private readonly string $version, private readonly bool $canSign, private readonly ?string $viewedAt = null)
     {
         parent::__construct($resource);
     }
@@ -18,6 +18,8 @@ class MeetingAttendeeResource extends UserSummaryResource
 
         return [
             ...parent::toArray($request),
+            'is_viewed' => $this->viewedAt !== null,
+            'viewed_at' => $this->viewedAt,
             'signature_status' => $signed ? 'signed' : ($this->signature ? 'outdated' : 'unsigned'),
             'signed_at' => $signed ? $this->signature->signed_at->toISOString() : null,
             'signed_content_version' => $this->signature?->content_version,

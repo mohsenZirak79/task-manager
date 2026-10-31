@@ -12,7 +12,7 @@ class SubmitMeetingRequest extends FormRequest
 
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->can('submit', $this->route('meeting'));
     }
 
     public function rules(): array

@@ -160,27 +160,45 @@ class TaskVisibilityService
         return $query->where(function (Builder $actions) use ($actor, $manageAll): void {
             $hasAction = false;
 
-            if ($actor->hasPermission(Permissions::TASKS_APPROVE)
-                || $actor->hasPermission(Permissions::TASKS_REJECT)
-                || $actor->hasPermission(Permissions::TASKS_UPDATE_STATUS)
-                || $actor->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)) {
-                $actions->where(function (Builder $query) use ($actor): void {
-                    $query->where('submission_type', TaskSubmissionType::Assignment->value)
-                        ->where(function (Builder $query) use ($actor): void {
-                            $query->where(function (Builder $query) use ($actor): void {
-                                $query->whereIn('status', [
-                                    TaskStatus::PendingApproval->value,
-                                    TaskStatus::ReadyToStart->value,
-                                    TaskStatus::InProgress->value,
-                                ])->whereHas('participantRecords', fn (Builder $query) => $query
-                                    ->where('user_id', $actor->id)
-                                    ->where('role', TaskParticipantRole::Assignee->value));
-                            })->orWhere(function (Builder $query) use ($actor): void {
-                                $query->where('status', TaskStatus::PendingCompletionApproval->value)
-                                    ->where('created_by', $actor->id);
-                            });
+            $assignmentStatuses = [];
+            if ($actor->hasPermission(Permissions::TASKS_APPROVE) || $actor->hasPermission(Permissions::TASKS_REJECT)) {
+                $assignmentStatuses[] = TaskStatus::PendingApproval->value;
+            }
+            if ($actor->hasPermission(Permissions::TASKS_UPDATE_STATUS)) {
+                $assignmentStatuses[] = TaskStatus::ReadyToStart->value;
+                $assignmentStatuses[] = TaskStatus::InProgress->value;
+            }
+            if ($actor->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)) {
+                $assignmentStatuses[] = TaskStatus::ReadyToStart->value;
+                $assignmentStatuses[] = TaskStatus::InProgress->value;
+            }
+            if ($assignmentStatuses) {
+                $actions->where(fn (Builder $assignment) => $assignment
+                    ->where('submission_type', TaskSubmissionType::Assignment->value)
+                    ->whereIn('status', array_unique($assignmentStatuses))
+                    ->when(! $actor->hasPermission(Permissions::TASKS_UPDATE_STATUS), fn (Builder $progress) => $progress->where(fn (Builder $states) => $states->where('status', '!=', TaskStatus::ReadyToStart->value)->orWhereHas('planningItems')))
+                    ->whereHas('participantRecords', fn (Builder $participants) => $participants
+                        ->where('user_id', $actor->id)->where('role', TaskParticipantRole::Assignee->value)));
+                $hasAction = true;
+            }
+            if ($actor->hasPermission(Permissions::TASKS_APPROVE) || $actor->hasPermission(Permissions::TASKS_REJECT)) {
+                $method = $hasAction ? 'orWhere' : 'where';
+                $actions->{$method}(fn (Builder $assignment) => $assignment
+                    ->where('submission_type', TaskSubmissionType::Assignment->value)
+                    ->where('status', TaskStatus::PendingCompletionApproval->value)->where('created_by', $actor->id));
+                $hasAction = true;
+            }
+            if ($actor->hasPermission(Permissions::TASKS_UPDATE)) {
+                $method = $hasAction ? 'orWhere' : 'where';
+                $actions->{$method}(fn (Builder $revision) => $revision
+                    ->where('status', TaskStatus::RevisionRequested->value)
+                    ->where(function (Builder $owner) use ($actor): void {
+                        $owner->where(function (Builder $assignment) use ($actor): void {
+                            $assignment->where('submission_type', TaskSubmissionType::Assignment->value)->where('created_by', $actor->id)->where('requester_id', $actor->id);
+                        })->orWhere(function (Builder $request) use ($actor): void {
+                            $request->where('submission_type', TaskSubmissionType::Request->value)->where(fn (Builder $owners) => $owners->where('created_by', $actor->id)->orWhere('requester_id', $actor->id));
                         });
-                });
+                    }));
                 $hasAction = true;
             }
 
@@ -231,7 +249,7 @@ class TaskVisibilityService
                     $query->where(function (Builder $query): void {
                         $query->whereNull('submission_type')
                             ->orWhere('submission_type', '!=', TaskSubmissionType::Assignment->value);
-                    })->where('status', TaskStatus::InProgress->value)
+                    })->where(fn (Builder $states) => $states->where('status', TaskStatus::InProgress->value)->orWhere(fn (Builder $planning) => $planning->where('status', TaskStatus::ReadyToStart->value)->whereHas('planningItems')))
                         ->where(fn (Builder $query) => $this->whereParticipant(
                             $query,
                             $actor,

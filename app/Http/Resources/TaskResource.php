@@ -16,6 +16,8 @@ class TaskResource extends JsonResource
     {
         $request->user()?->loadMissing('accessRoles.permissions');
 
+        $actions = $this->allowedActions($request);
+
         return [
             'id' => $this->id,
             'title' => $this->title,
@@ -67,7 +69,8 @@ class TaskResource extends JsonResource
                 'workflowHistory',
                 fn () => TaskWorkflowHistoryResource::collection($this->workflowHistory),
             ),
-            'allowed_actions' => $this->allowedActions($request),
+            'allowed_actions' => $actions,
+            'requires_action' => ($this->status === TaskStatus::RevisionRequested && $actions['submit']) || in_array(true, array_intersect_key($actions, array_flip(['approve', 'reject', 'request_revision', 'approve_assignment', 'request_assignment_revision', 'start', 'update_progress', 'update_planning_progress', 'request_completion', 'approve_completion', 'reject_completion', 'change_status', 'close'])), true),
             'registered_at' => $this->registered_at?->toISOString(),
             'started_at' => $this->started_at?->toISOString(),
             'completion_requested_at' => $this->completion_requested_at?->toISOString(),

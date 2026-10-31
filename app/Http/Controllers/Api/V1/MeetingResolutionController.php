@@ -8,7 +8,7 @@ use App\Http\Requests\LinkMeetingTaskRequest;
 use App\Http\Requests\StoreMeetingResolutionRequest;
 use App\Http\Requests\UpdateMeetingResolutionRequest;
 use App\Http\Resources\MeetingResolutionResource;
-use App\Http\Resources\TaskResource;
+use App\Http\Resources\MeetingResource;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
 use App\Models\Task;
@@ -50,10 +50,9 @@ class MeetingResolutionController extends Controller
         Gate::authorize('manageResolutions', $meeting);
         $resolution = $this->meetingService->createTask($meeting, $resolution, $request->validated(), $request->user());
 
-        return $this->success('تسک مصوبه با موفقیت ایجاد شد.', [
+        return $this->success('اطلاعات تسک مصوبه ثبت شد؛ ایجاد نهایی پس از اتمام جلسه و امضای تمام اعضاست.', [
             'resolution' => new MeetingResolutionResource($resolution),
-            'task' => new TaskResource($resolution->task),
-        ], 201);
+        ]);
     }
 
     public function linkTask(LinkMeetingTaskRequest $request, Meeting $meeting, MeetingResolution $resolution): JsonResponse
@@ -63,6 +62,15 @@ class MeetingResolutionController extends Controller
         $resolution = $this->meetingService->linkTask($meeting, $resolution, $task, $request->user());
 
         return $this->success('تسک موجود با موفقیت به مصوبه متصل شد.', ['resolution' => new MeetingResolutionResource($resolution)]);
+    }
+
+    public function reorder(Request $request, Meeting $meeting): JsonResponse
+    {
+        Gate::authorize('manageResolutions', $meeting);
+        $data = $request->validate(['resolution_ids' => ['required', 'array', 'min:1'], 'resolution_ids.*' => ['required', 'integer', 'distinct']]);
+        $meeting = $this->meetingService->reorderResolutions($meeting, array_map('intval', $data['resolution_ids']), $request->user());
+
+        return $this->success('ترتیب مصوبات ذخیره شد.', ['meeting' => new MeetingResource($meeting)]);
     }
 
     private function success(string $message, array $data = [], int $status = 200): JsonResponse

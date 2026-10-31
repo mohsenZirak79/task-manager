@@ -46,12 +46,16 @@ class ReportWorkflowTest extends TestCase
         Sanctum::actingAs($this->admin);
     }
 
-    private function createReport(array $extra = []): array
+    private function legacyReport(array $extra = []): array
     {
-        return $this->postJson($this->createUrl, array_replace([
+        $data = $this->postJson('/api/v1/reports', array_replace([
             'title' => 'گزارش', 'short_description' => 'خلاصه', 'description' => 'شرح',
             'recipient_user_id' => $this->recipient->id, 'cc_user_ids' => [$this->cc->id],
         ], $extra))->assertCreated()->json('data.report');
+        $report = Report::findOrFail($data['id']);
+        $report->update(['meeting_resolution_id' => $this->meeting->resolutions()->firstOrFail()->id]);
+
+        return $this->getJson('/api/v1/reports/'.$report->id)->assertOk()->json('data.report');
     }
 
     private function file(User $owner): MediaFile
@@ -120,7 +124,7 @@ class ReportWorkflowTest extends TestCase
                 ->assertJsonPath('data.report.status', 'sent')
                 ->assertJsonPath('data.report.attachments.0.id', $file->id);
         }
-        $this->createReport();
+        $this->legacyReport();
         $this->postJson($this->createUrl, $payload)->assertConflict();
         $migration = require database_path('migrations/2026_10_05_000000_allow_standalone_reports.php');
         try {
@@ -134,7 +138,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_workflow_and_read_only_viewing_after_meeting_ends(): void
     {
-        $report = $this->createReport(['status' => 'draft']);
+        $report = $this->legacyReport(['status' => 'draft']);
         $id = $report['id'];
         $this->assertSame('draft', $report['status']);
         $this->assertNull($report['sent_at']);
@@ -158,7 +162,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_filters_and_server_owned_fields_and_recipient_cc_overlap(): void
     {
-        $report = $this->createReport();
+        $report = $this->legacyReport();
         $id = $report['id'];
         $this->assertSame('sent', $report['status']);
         $this->getJson('/api/v1/reports?status=sent&creator_user_id='.$this->admin->id.'&search='.$report['report_number'])
@@ -178,7 +182,7 @@ class ReportWorkflowTest extends TestCase
     {
         $file = $this->file($this->admin);
         $second = $this->file($this->admin);
-        $id = $this->createReport(['attachment_file_ids' => [$file->id]])['id'];
+        $id = $this->legacyReport(['attachment_file_ids' => [$file->id]])['id'];
         $this->patchJson("/api/v1/reports/$id", ['title' => 'ویرایش'])->assertOk()->assertJsonPath('data.report.attachments.0.original_name', 'test.pdf');
         $this->deleteJson("/api/v1/uploads/files/{$file->id}")->assertConflict();
         $this->patchJson("/api/v1/reports/$id", ['attachment_file_ids' => [$second->id]])->assertOk()->assertJsonPath('data.report.attachments.0.id', $second->id)->assertJsonCount(1, 'data.report.attachments');
@@ -205,7 +209,7 @@ class ReportWorkflowTest extends TestCase
         $role->permissions()->attach($permission);
         $manager->accessRoles()->attach($role);
         $this->meeting->update(['secretary_user_id' => $manager->id]);
-        $id = $this->createReport(['attachment_file_ids' => [$own->id]])['id'];
+        $id = $this->legacyReport(['attachment_file_ids' => [$own->id]])['id'];
         Sanctum::actingAs($manager);
         $this->patchJson("/api/v1/reports/$id", ['attachment_file_ids' => [$own->id]])->assertOk();
         $this->patchJson("/api/v1/reports/$id", ['attachment_file_ids' => [$foreign->id]])->assertForbidden();
@@ -218,7 +222,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_comments_replies_ownership_scope_and_soft_deletion(): void
     {
-        $id = $this->createReport()['id'];
+        $id = $this->legacyReport()['id'];
         $this->meeting->update(['status' => MeetingStatus::Completed]);
         Sanctum::actingAs($this->recipient);
         $url = "/api/v1/reports/$id/comments";
@@ -245,7 +249,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_deleting_resolution_cleans_up_report_threads(): void
     {
-        $report = $this->createReport();
+        $report = $this->legacyReport();
         $url = "/api/v1/reports/{$report['id']}/comments";
         $parent = $this->postJson($url, ['body' => 'والد'])->assertCreated()->json('data.comment.id');
         $this->postJson($url, ['body' => 'پاسخ', 'parent_id' => $parent])->assertCreated();
@@ -257,7 +261,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_migration_backfills_existing_reports_and_can_roll_back_threads(): void
     {
-        $report = $this->createReport();
+        $report = $this->legacyReport();
         $url = "/api/v1/reports/{$report['id']}/comments";
         $parent = $this->postJson($url, ['body' => 'والد'])->assertCreated()->json('data.comment.id');
         $this->postJson($url, ['body' => 'پاسخ', 'parent_id' => $parent])->assertCreated();
@@ -274,7 +278,7 @@ class ReportWorkflowTest extends TestCase
 
     public function test_report_number_is_immutable_at_model_level(): void
     {
-        $id = $this->createReport()['id'];
+        $id = $this->legacyReport()['id'];
         $report = Report::findOrFail($id);
         $report->report_number = 'RPT-999999';
         $this->expectException(\LogicException::class);

@@ -10,7 +10,10 @@ use App\Http\Requests\SubmitMeetingRequest;
 use App\Http\Requests\UpdateMeetingRequest;
 use App\Http\Resources\MeetingResource;
 use App\Http\Resources\MeetingSummaryResource;
+use App\Http\Resources\UserSummaryResource;
 use App\Models\Meeting;
+use App\Models\User;
+use App\Services\MeetingParticipantService;
 use App\Services\MeetingService;
 use App\Services\MeetingSignatureService;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +24,25 @@ use Illuminate\Support\Facades\Gate;
 class MeetingController extends Controller
 {
     public function __construct(private readonly MeetingService $meetingService) {}
+
+    public function eligibleUsers(Request $request, MeetingParticipantService $participants): JsonResponse
+    {
+        $data = $request->validate(['meeting_id' => ['sometimes', 'integer', 'min:1']]);
+        $meeting = isset($data['meeting_id']) ? Meeting::query()->findOrFail($data['meeting_id']) : null;
+        if ($meeting) {
+            Gate::authorize('update', $meeting);
+        } else {
+            Gate::authorize('create', Meeting::class);
+        }
+        $creator = $meeting ? User::query()->findOrFail($meeting->created_by) : $request->user();
+        $users = $participants->descendants($creator)->orderBy('users.id')->get();
+
+        return $this->success('افراد مجاز جلسه', [
+            'chairman' => new UserSummaryResource($meeting?->chairman ?? $creator),
+            'secretaries' => UserSummaryResource::collection(collect([$creator])->concat($users)),
+            'attendees' => UserSummaryResource::collection($users),
+        ]);
+    }
 
     public function index(IndexMeetingRequest $request): JsonResponse
     {

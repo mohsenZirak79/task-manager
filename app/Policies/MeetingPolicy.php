@@ -51,7 +51,7 @@ class MeetingPolicy
     {
         return $meeting->status === MeetingStatus::Scheduled
             && $meeting->started_at === null
-            && in_array($user->id, [$meeting->created_by, $meeting->secretary_user_id], true);
+            && $user->id === $meeting->chairman_user_id;
     }
 
     public function acknowledge(User $user, Meeting $meeting): bool

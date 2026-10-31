@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\AccessRole;
 use App\Models\Meeting;
 use App\Models\Permission;
+use App\Models\Task;
 use App\Models\User;
 use App\Services\MeetingService;
 use App\Support\Permissions;
@@ -58,6 +59,12 @@ class MeetingOfficerAccessTest extends TestCase
         return $meeting->resolutions()->create(['title' => 'مصوبه', 'created_by' => $this->creator->id, 'resolution_type' => 'task']);
     }
 
+    private function markLegacyReady(Meeting $meeting): void
+    {
+        $task = Task::create(['title' => 'قدیمی', 'status' => 'draft', 'submission_type' => 'assignment', 'created_by' => $this->creator->id, 'requester_id' => $this->creator->id]);
+        $meeting->resolutions()->whereNull('task_id')->update(['task_id' => $task->id]);
+    }
+
     public function test_each_active_officer_can_manage_own_resolutions_and_complete_only_with_a_resolution(): void
     {
         foreach ([$this->chairman, $this->secretary] as $officer) {
@@ -70,10 +77,13 @@ class MeetingOfficerAccessTest extends TestCase
             $this->postJson($url.'/complete')->assertUnprocessable()->assertJsonValidationErrors('resolutions');
             $id = $this->postJson($url.'/resolutions', ['title' => 'مصوبه جدید'])->assertCreated()->json('data.resolution.id');
             $this->patchJson($url.'/resolutions/'.$id, ['title' => 'مصوبه اصلاح‌شده'])->assertOk();
+            $this->getJson($url)->assertOk()->assertJsonPath('data.meeting.allowed_actions.complete', false);
+            $this->markLegacyReady($meeting);
             $this->getJson($url)->assertOk()->assertJsonPath('data.meeting.allowed_actions.complete', true);
             $this->deleteJson($url.'/resolutions/'.$id)->assertOk();
             $this->postJson($url.'/complete')->assertUnprocessable();
             $this->postJson($url.'/resolutions', ['title' => 'مصوبه نهایی'])->assertCreated();
+            $this->markLegacyReady($meeting);
             $this->postJson($url.'/complete')->assertOk()
                 ->assertJsonPath('data.meeting.status', 'completed')
                 ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', false)
@@ -113,11 +123,11 @@ class MeetingOfficerAccessTest extends TestCase
         $this->postJson($url.'/complete')->assertForbidden();
     }
 
-    public function test_officers_cannot_modify_finalized_cancelled_or_draft_meetings(): void
+    public function test_officers_cannot_modify_finalized_or_cancelled_meetings(): void
     {
         Sanctum::actingAs($this->secretary);
         $resolution = $this->resolution($this->meeting);
-        foreach (['completed', 'cancelled', 'draft'] as $status) {
+        foreach (['completed', 'cancelled'] as $status) {
             $this->meeting->update(['status' => $status]);
             $url = "/api/v1/meetings/{$this->meeting->id}";
             $this->getJson($url)->assertOk()
@@ -175,6 +185,7 @@ class MeetingOfficerAccessTest extends TestCase
         Sanctum::actingAs(User::factory()->admin()->create());
         $url = "/api/v1/meetings/{$this->meeting->id}";
         $this->postJson($url.'/resolutions', ['title' => 'مصوبه مدیر'])->assertCreated();
+        $this->markLegacyReady($this->meeting);
         $this->postJson($url.'/complete')->assertOk();
     }
 

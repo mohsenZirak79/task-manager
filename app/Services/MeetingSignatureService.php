@@ -34,6 +34,10 @@ class MeetingSignatureService
                 'signed_at' => now(),
             ]);
 
+            $execution = app(MeetingExecutionService::class);
+            $execution->refreshVersion($meeting);
+            $execution->materialize($meeting);
+
             return app(MeetingService::class)->find($meeting);
         });
     }

@@ -61,6 +61,9 @@ class DashboardService
             $data['projects'] = $this->projects->build($assignments, $page, $perPage);
             $data['cards']['active_tasks'] = $this->card((clone $assignments)->whereIn('status', TaskStatus::dashboardValues('active_task', true))->count());
             $data['cards']['active_requests'] = $this->card((clone $visible)->where('submission_type', TaskSubmissionType::Request->value)->whereIn('status', TaskStatus::dashboardValues('active_request', true))->count());
+            $actionTasks = $this->tasks->apply((clone $visible), $actor, TaskVisibilityService::ACTION_REQUIRED);
+            $data['cards']['active_tasks']['action_required_count'] = (clone $actionTasks)->where('submission_type', TaskSubmissionType::Assignment->value)->count();
+            $data['cards']['active_requests']['action_required_count'] = (clone $actionTasks)->where('submission_type', TaskSubmissionType::Request->value)->count();
         } else {
             $data['cards']['active_tasks'] = $unavailable;
             $data['cards']['active_requests'] = $unavailable;
@@ -81,11 +84,16 @@ class DashboardService
                 ], $counts, $total - $unclassified),
             ];
             $data['cards']['registered_reports'] = $this->card($total);
+            $data['cards']['registered_reports']['action_required_count'] = $this->reports->visibleQuery($actor)->where('status', ReportStatus::Sent->value)->where('recipient_user_id', $actor->id)->count();
         } else {
             $data['cards']['registered_reports'] = $unavailable;
         }
         $data['cards']['meetings'] = Gate::forUser($actor)->allows('viewAny', Meeting::class)
             ? $this->card($this->meetings->visibleQuery($actor)->count()) : $unavailable;
+
+        if ($data['cards']['meetings']['available']) {
+            $data['cards']['meetings']['action_required_count'] = $this->meetings->actionRequiredQuery($actor)->count();
+        }
 
         return $data;
     }

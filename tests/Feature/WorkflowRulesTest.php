@@ -317,6 +317,7 @@ class WorkflowRulesTest extends TestCase
         Sanctum::actingAs($creator);
         $id = $this->postJson('/api/v1/meetings', [
             'title' => 'Meeting', 'location' => 'Office', 'meeting_date' => now()->addDay()->toDateString(),
+            'short_description' => 'Meeting summary', 'duration_minutes' => 60,
             'start_time' => '10:00', 'chairman_user_id' => $creator->id, 'secretary_user_id' => $creator->id,
             'agenda_items' => [['title' => 'Agenda', 'sort_order' => 0]],
         ])->assertCreated()->json('data.meeting.id');
@@ -361,11 +362,11 @@ class WorkflowRulesTest extends TestCase
         $admin = User::factory()->create();
         $admin->accessRoles()->attach(AccessRole::where('slug', AccessRoles::ADMIN)->firstOrFail());
         $meeting = $this->meeting($creator);
-        $meeting->update(['meeting_date' => '2026-10-05', 'start_time' => '10:01']);
+        $meeting->update(['status' => 'scheduled', 'meeting_date' => '2026-10-05', 'start_time' => '10:01']);
         $this->patchJson("/api/v1/meetings/{$meeting->id}", ['title' => 'Before'])->assertOk();
         $this->patchJson("/api/v1/meetings/{$meeting->id}", ['start_time' => '09:59'])->assertStatus(409);
         $this->assertSame('10:01', $meeting->fresh()->start_time->format('H:i'));
-        foreach (['draft', 'scheduled', 'completed', 'cancelled'] as $status) {
+        foreach (['scheduled', 'completed', 'cancelled'] as $status) {
             $meeting->update(['status' => $status, 'start_time' => '10:00']);
             foreach ([$creator, $admin] as $actor) {
                 Sanctum::actingAs($actor);

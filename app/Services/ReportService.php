@@ -101,9 +101,13 @@ class ReportService
     public function create(Meeting $meeting, MeetingResolution $resolution, array $data, User $actor): Report
     {
         return DB::transaction(function () use ($meeting, $resolution, $data, $actor): Report {
+            $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
+            Gate::forUser($actor)->authorize('create', Report::class);
             $resolution = MeetingResolution::query()->lockForUpdate()->findOrFail($resolution->id);
             $this->ensureResolution($meeting, $resolution);
-            $this->ensureMeetingEditable($meeting);
+            app(MeetingExecutionService::class)->assertReady($meeting);
+            app(MeetingExecutionService::class)->ensureMembers($meeting, $data, 'report');
 
             if ($resolution->resolution_type !== MeetingResolutionType::Report) {
                 throw new ConflictHttpException('فقط برای مصوبه‌ای با نوع گزارش می‌توان گزارش ثبت کرد.');

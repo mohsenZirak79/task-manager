@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\MediaFile;
+use App\Models\MeetingResolution;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -16,10 +18,11 @@ class MediaUploadService
     {
         $stored = [];
         try {
-            return \Illuminate\Support\Facades\DB::transaction(function () use ($uploads, $uploader, $images, &$stored): array {
+            return DB::transaction(function () use ($uploads, $uploader, $images, &$stored): array {
                 foreach ($uploads as $upload) {
                     $stored[] = $images ? $this->storeImage($upload, $uploader) : $this->storeAttachment($upload, $uploader);
                 }
+
                 return $stored;
             });
         } catch (Throwable $exception) {
@@ -58,6 +61,10 @@ class MediaUploadService
 
         if ($file->reports()->exists()) {
             throw new HttpException(409, 'فایل متصل به گزارش قابل حذف نیست.');
+        }
+
+        if (MeetingResolution::query()->whereHas('meeting')->whereJsonContains('execution_plan->payload->attachment_file_ids', $file->id)->exists()) {
+            throw new HttpException(409, 'پیوست فرم ثبت‌شدهٔ مصوبه قابل حذف نیست.');
         }
 
         $directory = trim((string) config('uploads.files.directory'), '/');

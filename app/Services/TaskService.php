@@ -88,14 +88,21 @@ class TaskService
         return $query->paginate($perPage);
     }
 
+    public function prepareCreation(array $data, User $actor): array
+    {
+        $data = $this->prepareAssignmentData($data, $actor);
+        $this->ensureRequesterCanBeSelected($actor, (int) ($data['requester_id'] ?? $actor->id));
+        $this->ensureOrganizationParticipants($actor, $data);
+
+        return $data;
+    }
+
     public function create(array $data, User $actor): Task
     {
         return DB::transaction(function () use ($data, $actor): Task {
-            $data = $this->prepareAssignmentData($data, $actor);
+            $data = $this->prepareCreation($data, $actor);
             $submit = (bool) ($data['submit'] ?? false);
             $requesterId = (int) ($data['requester_id'] ?? $actor->id);
-            $this->ensureRequesterCanBeSelected($actor, $requesterId);
-            $this->ensureOrganizationParticipants($actor, $data);
 
             $task = Task::query()->create([
                 ...$this->taskAttributes($data),

@@ -180,6 +180,8 @@ class MeetingSignatureTest extends TestCase
         $viewedAt = DB::table('meeting_acknowledgements')->value('viewed_at');
         $this->assertDatabaseCount('meeting_signatures', 0);
         Sanctum::actingAs($this->creator);
+        $legacyTask = Task::create(['title' => 'قدیمی', 'status' => 'draft', 'submission_type' => 'assignment', 'created_by' => $this->creator->id, 'requester_id' => $this->creator->id]);
+        $meeting->resolutions()->update(['task_id' => $legacyTask->id]);
         $this->postJson("/api/v1/meetings/{$meeting->id}/complete")->assertOk()
             ->assertJsonPath('data.meeting.status', 'completed');
         Sanctum::actingAs($this->member);

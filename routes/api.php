@@ -40,6 +40,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('uploads/files', [UploadController::class, 'file']);
             Route::delete('uploads/files/{file}', [UploadController::class, 'destroyFile'])->whereNumber('file');
 
+            Route::get('meetings/eligible-users', [MeetingController::class, 'eligibleUsers']);
             Route::get('meetings', [MeetingController::class, 'index'])->middleware('permission:'.Permissions::MEETINGS_VIEW);
             Route::post('meetings', [MeetingController::class, 'store'])->middleware('permission:'.Permissions::MEETINGS_CREATE);
             Route::get('meetings/{meeting}', [MeetingController::class, 'show'])->middleware('permission:'.Permissions::MEETINGS_VIEW)->whereNumber('meeting');
@@ -51,6 +52,7 @@ Route::prefix('v1')->group(function (): void {
             Route::post('meetings/{meeting}/sign', [MeetingController::class, 'sign'])->middleware('permission:'.Permissions::MEETINGS_VIEW)->whereNumber('meeting');
             Route::post('meetings/{meeting}/view', [MeetingController::class, 'acknowledge'])->whereNumber('meeting');
             Route::post('meetings/{meeting}/resolutions', [MeetingResolutionController::class, 'store'])->middleware('can:manageResolutions,meeting')->whereNumber('meeting');
+            Route::put('meetings/{meeting}/resolutions/order', [MeetingResolutionController::class, 'reorder'])->middleware('can:manageResolutions,meeting')->whereNumber('meeting');
             Route::patch('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'update'])->middleware('can:manageResolutions,meeting')->whereNumber(['meeting', 'resolution']);
             Route::delete('meetings/{meeting}/resolutions/{resolution}', [MeetingResolutionController::class, 'destroy'])->middleware('can:manageResolutions,meeting')->whereNumber(['meeting', 'resolution']);
             Route::post('meetings/{meeting}/resolutions/{resolution}/create-task', [MeetingResolutionController::class, 'createTask'])->middleware(['can:manageResolutions,meeting', 'permission:'.Permissions::TASKS_CREATE])->whereNumber(['meeting', 'resolution']);

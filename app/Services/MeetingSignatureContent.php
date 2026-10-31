@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Meeting;
+use Illuminate\Support\Arr;
 
 /** Content-addressed versions of the minutes, independent of live task/report progress. */
 class MeetingSignatureContent
@@ -15,6 +16,8 @@ class MeetingSignatureContent
             'schema_version' => 1,
             'meeting' => [
                 'id' => (int) $meeting->id,
+                // Keep legacy null-duration signatures valid; new durations are signed content.
+                ...($meeting->duration_minutes === null ? [] : ['duration_minutes' => $meeting->duration_minutes]),
                 'title' => $meeting->title,
                 'short_description' => $meeting->short_description,
                 'location' => $meeting->location,
@@ -33,8 +36,9 @@ class MeetingSignatureContent
                 'agenda_item_id' => $item->agenda_item_id === null ? null : (int) $item->agenda_item_id,
                 'title' => $item->title, 'description' => $item->description,
                 'resolution_type' => $item->resolution_type->value,
-                'task_id' => $item->task_id === null ? null : (int) $item->task_id,
-                'report_id' => $item->report?->id,
+                'task_id' => $item->execution_plan ? null : ($item->task_id === null ? null : (int) $item->task_id),
+                'report_id' => $item->execution_plan ? null : $item->report?->id,
+                ...($item->execution_plan ? ['execution_plan' => ['kind' => $item->execution_plan['kind'], 'actor_id' => $item->execution_plan['actor_id'], 'payload' => Arr::except($item->execution_plan['payload'], ['submission_key', 'submit', 'status'])]] : []),
                 'sort_order' => (int) $item->sort_order,
             ])->values()->all(),
         ];

@@ -18,9 +18,12 @@ class ReportResource extends JsonResource
         $request->user()?->loadMissing(['accessRoles.permissions', 'orgPositions']);
         $canViewTasks = Gate::forUser($request->user())->allows('viewAny', Task::class);
 
+        $actions = $this->allowedActions($request);
+
         return [
             'id' => $this->id,
-            'allowed_actions' => $this->allowedActions($request),
+            'allowed_actions' => $actions,
+            'requires_action' => in_array(true, array_intersect_key($actions, array_flip(['mark_viewed'])), true),
             'report_number' => $this->report_number,
             'status' => $this->status->value,
             'action_type' => $this->action_type,

@@ -7,11 +7,13 @@ use App\Http\Requests\EligibleReportUsersRequest;
 use App\Http\Requests\IndexReportRequest;
 use App\Http\Requests\StoreReportRequest;
 use App\Http\Requests\UpdateReportRequest;
+use App\Http\Resources\MeetingResolutionResource;
 use App\Http\Resources\ReportResource;
 use App\Http\Resources\UserSummaryResource;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
 use App\Models\Report;
+use App\Services\MeetingExecutionService;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -44,10 +46,9 @@ class ReportController extends Controller
 
     public function store(StoreReportRequest $request, Meeting $meeting, MeetingResolution $resolution): JsonResponse
     {
-        Gate::authorize('manageResolutions', $meeting);
-        $report = $this->reportService->create($meeting, $resolution, $request->validated(), $request->user());
+        $resolution = app(MeetingExecutionService::class)->save($meeting, $resolution, $request->validated(), $request->user(), 'report');
 
-        return $this->success('گزارش با موفقیت ثبت شد.', ['report' => new ReportResource($report)], 201);
+        return $this->success('اطلاعات گزارش مصوبه ثبت شد؛ ایجاد نهایی پس از اتمام جلسه و امضای تمام اعضاست.', ['resolution' => new MeetingResolutionResource($resolution)]);
     }
 
     public function storeStandalone(StoreReportRequest $request): JsonResponse

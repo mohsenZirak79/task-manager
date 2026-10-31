@@ -14,13 +14,12 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class MeetingService
 {
-    public function __construct(private readonly TaskService $taskService) {}
+    public function __construct(private readonly TaskService $taskService, private readonly MeetingParticipantService $participants) {}
 
     public function visibleQuery(User $actor): Builder
     {
@@ -35,9 +34,36 @@ class MeetingService
             });
     }
 
+    /** Same signing/acknowledgment rules as MeetingPolicy, restricted to visible records. */
+    public function actionRequiredQuery(User $actor): Builder
+    {
+        $query = $this->visibleQuery($actor);
+        if (! $actor->is_active || ! Gate::forUser($actor)->allows('viewAny', Meeting::class)) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $actions) use ($actor): void {
+            $actions->where(function (Builder $sign) use ($actor): void {
+                $sign->where('status', MeetingStatus::Completed->value)
+                    ->whereHas('attendees', fn (Builder $users) => $users->whereKey($actor->id))
+                    ->whereDoesntHave('signatures', fn (Builder $signatures) => $signatures
+                        ->where('user_id', $actor->id)->whereColumn('content_version', 'meetings.signature_content_version'));
+            })->orWhere(function (Builder $view) use ($actor): void {
+                $view->where('status', MeetingStatus::Scheduled->value)->whereNull('started_at')
+                    ->where('created_by', '!=', $actor->id)->where(fn (Builder $secretary) => $secretary->whereNull('secretary_user_id')->orWhere('secretary_user_id', '!=', $actor->id))
+                    ->where(function (Builder $members) use ($actor): void {
+                        $members->where('chairman_user_id', $actor->id)
+                            ->orWhereHas('attendees', fn (Builder $users) => $users->whereKey($actor->id));
+                    })->whereNotExists(fn ($ack) => $ack->selectRaw('1')->from('meeting_acknowledgements')
+                    ->whereColumn('meeting_id', 'meetings.id')->where('user_id', $actor->id));
+            });
+        });
+    }
+
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
         return $this->visibleQuery($actor)
+            ->select('meetings.*')->selectRaw('meetings.id IN ('.$this->actionRequiredQuery($actor)->select('meetings.id')->toSql().') AS requires_action', $this->actionRequiredQuery($actor)->select('meetings.id')->getBindings())
             ->with(['chairman', 'secretary', 'creator'])
             ->withCount(['attendees', 'agendaItems', 'resolutions'])
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
@@ -58,18 +84,25 @@ class MeetingService
     public function create(array $data, User $actor): Meeting
     {
         return DB::transaction(function () use ($data, $actor): Meeting {
+            $this->participants->validate($data, $actor);
             $meeting = Meeting::query()->create([
                 ...$this->meetingAttributes($data),
                 'status' => MeetingStatus::Draft,
                 'created_by' => $actor->id,
+                'chairman_user_id' => $actor->id,
             ]);
 
             $this->syncAttendees($meeting, $data, true);
             $this->syncAgendaItems($meeting, $data);
+            foreach ($data['initial_resolutions'] ?? [] as $index => $resolution) {
+                $this->createResolution($meeting, [...$resolution, 'resolution_type' => MeetingResolutionType::Task->value, 'sort_order' => $index], $actor);
+            }
 
             if ((bool) ($data['submit'] ?? false)) {
                 $this->markSubmitted($meeting);
             }
+
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
 
             return $this->loadMeeting($meeting);
         });
@@ -80,6 +113,7 @@ class MeetingService
         return DB::transaction(function () use ($meeting, $data): Meeting {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             $this->ensureEditable($meeting);
+            $this->participants->validate($data, User::query()->findOrFail($meeting->created_by), $meeting);
             $meeting->fill($this->meetingAttributes($data));
             $this->ensureEditable($meeting);
             $meeting->save();
@@ -91,6 +125,8 @@ class MeetingService
             } elseif ((bool) ($data['submit'] ?? false)) {
                 $this->markSubmitted($meeting);
             }
+
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
 
             return $this->loadMeeting($meeting);
         });
@@ -106,6 +142,8 @@ class MeetingService
         return DB::transaction(function () use ($meeting): Meeting {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             $this->markSubmitted($meeting);
+
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
 
             return $this->loadMeeting($meeting);
         });
@@ -125,7 +163,13 @@ class MeetingService
                 ]);
             }
 
+            $execution = app(MeetingExecutionService::class);
+            $execution->ensureCompleteForms($meeting);
+            $execution->refreshVersion($meeting);
             $meeting->update(['status' => MeetingStatus::Completed, 'completed_at' => now()]);
+            $execution->materialize($meeting);
+
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
 
             return $this->loadMeeting($meeting);
         });
@@ -147,9 +191,15 @@ class MeetingService
         return DB::transaction(function () use ($meeting, $data, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             Gate::forUser($actor)->authorize('manageResolutions', $meeting);
-            $this->ensureScheduled($meeting);
+            $this->ensureResolutionEditable($meeting);
+            if ($meeting->status === MeetingStatus::Draft && ! empty($data['task_id'])) {
+                throw new HttpException(409, 'اتصال تسک پس از ارسال جلسه مجاز است.');
+            }
             $this->ensureAgendaBelongsToMeeting($meeting, $data['agenda_item_id'] ?? null);
-            $this->authorizeLinkedTask($data['task_id'] ?? null, $actor);
+            if (! empty($data['task_id'])) {
+                throw new HttpException(409, 'اتصال تسک موجود غیرفعال است.');
+            }
+            unset($data['task_id']);
             $this->ensureResolutionTypeMatchesTask(
                 $data['resolution_type'] ?? MeetingResolutionType::Task->value,
                 $data['task_id'] ?? null,
@@ -160,6 +210,8 @@ class MeetingService
                 'created_by' => $actor->id,
             ]);
 
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
+
             return $this->loadResolution($resolution);
         });
     }
@@ -169,14 +221,19 @@ class MeetingService
         return DB::transaction(function () use ($meeting, $resolution, $data, $actor): MeetingResolution {
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             Gate::forUser($actor)->authorize('manageResolutions', $meeting);
+            $resolution = MeetingResolution::query()->where('meeting_id', $meeting->id)->lockForUpdate()->findOrFail($resolution->id);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
-            $this->ensureScheduled($meeting);
+            $this->ensureResolutionEditable($meeting);
+            if ($meeting->status === MeetingStatus::Draft && ! empty($data['task_id'])) {
+                throw new HttpException(409, 'اتصال تسک پس از ارسال جلسه مجاز است.');
+            }
             if (array_key_exists('agenda_item_id', $data)) {
                 $this->ensureAgendaBelongsToMeeting($meeting, $data['agenda_item_id']);
             }
-            if (array_key_exists('task_id', $data)) {
-                $this->authorizeLinkedTask($data['task_id'], $actor);
+            if (! empty($data['task_id'])) {
+                throw new HttpException(409, 'اتصال تسک موجود غیرفعال است.');
             }
+            unset($data['task_id']);
             $this->ensureResolutionTypeMatchesTask(
                 $data['resolution_type'] ?? $resolution->resolution_type->value,
                 array_key_exists('task_id', $data) ? $data['task_id'] : $resolution->task_id,
@@ -186,7 +243,11 @@ class MeetingService
                 && ($resolution->task_id !== null || $resolution->report()->exists())) {
                 throw new HttpException(409, 'نوع مصوبه‌ای که به تسک یا گزارش متصل است قابل تغییر نیست.');
             }
-            $resolution->update(Arr::only($data, ['agenda_item_id', 'task_id', 'title', 'description', 'resolution_type', 'sort_order']));
+            if ($resolution->execution_plan && isset($data['resolution_type']) && $data['resolution_type'] !== $resolution->resolution_type->value) {
+                throw new HttpException(409, 'نوع مصوبه دارای فرم اجرایی قابل تغییر نیست.');
+            }
+            $resolution->update(Arr::only($data, ['agenda_item_id', 'title', 'description', 'resolution_type', 'sort_order']));
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
 
             return $this->loadResolution($resolution);
         });
@@ -198,70 +259,22 @@ class MeetingService
             $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
             Gate::forUser($actor)->authorize('manageResolutions', $meeting);
             $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
-            $this->ensureScheduled($meeting);
+            $this->ensureResolutionEditable($meeting);
             $resolution->delete();
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
         });
     }
 
     public function createTask(Meeting $meeting, MeetingResolution $resolution, array $data, User $actor): MeetingResolution
     {
-        return DB::transaction(function () use ($meeting, $resolution, $data, $actor): MeetingResolution {
-            $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
-            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
-            $resolution = MeetingResolution::query()->lockForUpdate()->findOrFail($resolution->id);
-            $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
-            $this->ensureScheduled($meeting);
-            if ($resolution->task_id !== null) {
-                throw new HttpException(409, 'برای این مصوبه قبلاً تسک ثبت شده است.');
-            }
-            if ($resolution->resolution_type !== MeetingResolutionType::Task) {
-                throw new HttpException(409, 'فقط برای مصوبه‌ای با نوع تسک می‌توان تسک ثبت کرد.');
-            }
-            if ($resolution->report()->exists()) {
-                throw new HttpException(409, 'این مصوبه قبلاً به یک گزارش متصل شده است.');
-            }
-
-            $this->ensureTaskAssigneesAttendMeeting($meeting, $data['assignee_ids'] ?? []);
-
-            Gate::forUser($actor)->authorize('create', Task::class);
-            $task = $this->taskService->create([
-                ...$data,
-                'title' => $data['title'] ?? $resolution->title,
-                'short_description' => ($data['short_description'] ?? null) ?: Str::limit($resolution->title, 100, ''),
-            ], $actor);
-            $resolution->update(['task_id' => $task->id]);
-
-            return $this->loadResolution($resolution);
-        });
+        return app(MeetingExecutionService::class)->save($meeting, $resolution, $data, $actor, 'task');
     }
 
     public function linkTask(Meeting $meeting, MeetingResolution $resolution, Task $task, User $actor): MeetingResolution
     {
-        return DB::transaction(function () use ($meeting, $resolution, $task, $actor): MeetingResolution {
-            $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
-            $resolution = MeetingResolution::query()->lockForUpdate()->findOrFail($resolution->id);
-            $task = Task::query()->lockForUpdate()->findOrFail($task->id);
-            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
-            $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
-            $this->ensureScheduled($meeting);
-            if ($resolution->task_id !== null) {
-                throw new HttpException(409, 'برای این مصوبه قبلاً تسک ثبت شده است.');
-            }
-            if ($resolution->resolution_type !== MeetingResolutionType::Task) {
-                throw new HttpException(409, 'فقط برای مصوبه‌ای با نوع تسک می‌توان تسک متصل کرد.');
-            }
-            Gate::forUser($actor)->authorize('view', $task);
-            if (MeetingResolution::query()->where('task_id', $task->id)->exists()) {
-                throw new HttpException(409, 'این تسک قبلاً به مصوبه دیگری متصل شده است.');
-            }
-            $this->ensureTaskAssigneesAttendMeeting(
-                $meeting,
-                $task->assignees()->pluck('users.id')->map(fn ($id) => (int) $id)->all(),
-            );
-            $resolution->update(['task_id' => $task->id]);
-
-            return $this->loadResolution($resolution);
-        });
+        Gate::forUser($actor)->authorize('manageResolutions', $meeting);
+        $this->ensureResolutionBelongsToMeeting($meeting, $resolution);
+        throw new HttpException(409, 'اتصال تسک موجود به مصوبه غیرفعال شده است؛ فرم اجرایی مصوبه را ثبت کنید.');
     }
 
     public function ensureResolutionBelongsToMeeting(Meeting $meeting, MeetingResolution $resolution): void
@@ -269,6 +282,31 @@ class MeetingService
         if ($resolution->meeting_id !== $meeting->id) {
             abort(404);
         }
+    }
+
+    public function reorderResolutions(Meeting $meeting, array $ids, User $actor): Meeting
+    {
+        return DB::transaction(function () use ($meeting, $ids, $actor): Meeting {
+            $meeting = Meeting::query()->lockForUpdate()->findOrFail($meeting->id);
+            Gate::forUser($actor)->authorize('manageResolutions', $meeting);
+            $this->ensureResolutionEditable($meeting);
+            $actual = $meeting->resolutions()->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if (count($actual) !== count($ids) || array_diff($actual, $ids) || array_diff($ids, $actual)) {
+                throw ValidationException::withMessages(['resolution_ids' => 'فهرست مرتب‌شده باید دقیقاً شامل همهٔ مصوبات همین جلسه باشد.']);
+            }
+            $cases = [];
+            $bindings = [];
+            foreach ($ids as $index => $id) {
+                $cases[] = 'WHEN ? THEN ?';
+                array_push($bindings, $id, $index);
+            }
+            $bindings[] = $meeting->id;
+            $table = DB::connection()->getQueryGrammar()->wrapTable('meeting_resolutions');
+            DB::update('UPDATE '.$table.' SET sort_order = CASE id '.implode(' ', $cases).' END WHERE meeting_id = ?', $bindings);
+            app(MeetingExecutionService::class)->refreshVersion($meeting);
+
+            return $this->loadMeeting($meeting);
+        });
     }
 
     private function markSubmitted(Meeting $meeting): void
@@ -293,6 +331,7 @@ class MeetingService
     {
         $messages = [];
         foreach ([
+            'short_description' => 'توضیح مختصر', 'duration_minutes' => 'مدت جلسه',
             'title' => 'عنوان جلسه', 'location' => 'مکان جلسه', 'meeting_date' => 'تاریخ جلسه',
             'start_time' => 'ساعت جلسه', 'chairman_user_id' => 'رئیس جلسه', 'secretary_user_id' => 'دبیر جلسه',
         ] as $field => $label) {
@@ -377,6 +416,13 @@ class MeetingService
         }
     }
 
+    private function ensureResolutionEditable(Meeting $meeting): void
+    {
+        if (! in_array($meeting->status, [MeetingStatus::Draft, MeetingStatus::Scheduled], true)) {
+            throw new HttpException(409, 'مدیریت مصوبات فقط پیش از اتمام جلسه مجاز است.');
+        }
+    }
+
     private function ensureScheduled(Meeting $meeting): void
     {
         if ($meeting->status !== MeetingStatus::Scheduled) {
@@ -398,7 +444,7 @@ class MeetingService
 
     private function meetingAttributes(array $data): array
     {
-        return Arr::only($data, ['title', 'short_description', 'location', 'meeting_date', 'start_time', 'chairman_user_id', 'secretary_user_id']);
+        return Arr::only($data, ['title', 'short_description', 'location', 'meeting_date', 'start_time', 'duration_minutes', 'chairman_user_id', 'secretary_user_id']);
     }
 
     private function hasAdministrativeAccess(User $actor): bool

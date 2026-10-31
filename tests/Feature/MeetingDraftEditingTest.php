@@ -17,6 +17,7 @@ class MeetingDraftEditingTest extends TestCase
         [$chairman, $secretary, $outsider] = User::factory()->count(3)->create()->all();
         $meeting = Meeting::create([
             'title' => 'جلسه هفتگی', 'status' => 'draft', 'created_by' => $chairman->id,
+            'short_description' => 'خلاصه جلسه', 'duration_minutes' => 60,
             'chairman_user_id' => $chairman->id, 'secretary_user_id' => $secretary->id,
             'meeting_date' => now()->subDay()->toDateString(), 'start_time' => '00:30', 'location' => 'دفتر',
         ]);

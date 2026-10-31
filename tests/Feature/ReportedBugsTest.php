@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\Meeting;
 use App\Models\MediaFile;
+use App\Models\Meeting;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,12 +77,12 @@ class ReportedBugsTest extends TestCase
         $this->assertDatabaseCount('media_files', 2);
     }
 
-    public function test_members_acknowledge_before_start_and_only_creator_or_secretary_start(): void
+    public function test_members_acknowledge_before_start_and_only_chairman_starts(): void
     {
         [$creator, $secretary, $member, $outsider] = User::factory()->count(4)->create()->all();
         $meeting = Meeting::create([
             'title' => 'Meeting', 'status' => 'scheduled', 'created_by' => $creator->id,
-            'secretary_user_id' => $secretary->id, 'chairman_user_id' => $member->id,
+            'secretary_user_id' => $secretary->id, 'chairman_user_id' => $creator->id,
             'meeting_date' => now()->addDay()->toDateString(), 'start_time' => '10:00',
         ]);
         $meeting->attendees()->attach([$creator->id, $secretary->id, $member->id]);
@@ -94,6 +94,8 @@ class ReportedBugsTest extends TestCase
         $this->postJson("/api/v1/meetings/{$meeting->id}/view")->assertOk();
         $this->assertDatabaseCount('meeting_acknowledgements', 1);
         Sanctum::actingAs($secretary);
+        $this->postJson("/api/v1/meetings/{$meeting->id}/start")->assertForbidden();
+        Sanctum::actingAs($creator);
         $this->postJson("/api/v1/meetings/{$meeting->id}/start")->assertOk()
             ->assertJsonPath('data.meeting.allowed_actions.edit', false)
             ->assertJsonPath('data.meeting.allowed_actions.start', false);

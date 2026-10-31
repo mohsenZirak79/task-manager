@@ -6,6 +6,7 @@ use App\Enums\MeetingResolutionType;
 use App\Enums\MeetingStatus;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
+use App\Models\Report;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -22,7 +23,7 @@ class ReportManagementTest extends TestCase
         Artisan::call('access:sync');
     }
 
-    public function test_super_admin_can_create_read_update_and_delete_a_resolution_report(): void
+    public function test_super_admin_can_read_update_and_delete_a_legacy_resolution_report(): void
     {
         $admin = User::factory()->admin()->create();
         $recipient = User::factory()->create();
@@ -30,7 +31,7 @@ class ReportManagementTest extends TestCase
         [$meeting, $resolution] = $this->reportResolution($admin);
         Sanctum::actingAs($admin);
 
-        $create = $this->postJson("/api/v1/meetings/{$meeting->id}/resolutions/{$resolution->id}/report", [
+        $create = $this->postJson('/api/v1/reports', [
             'title' => 'گزارش عملکرد',
             'short_description' => 'خلاصه گزارش عملکرد ماهانه',
             'description' => 'شرح کامل گزارش عملکرد ماهانه',
@@ -44,6 +45,7 @@ class ReportManagementTest extends TestCase
             ->assertJsonCount(2, 'data.report.tags');
 
         $reportId = $create->json('data.report.id');
+        Report::findOrFail($reportId)->update(['meeting_resolution_id' => $resolution->id]);
         $this->getJson("/api/v1/meetings/{$meeting->id}/resolutions/{$resolution->id}/report")
             ->assertOk()
             ->assertJsonPath('data.report.id', $reportId);
@@ -71,12 +73,14 @@ class ReportManagementTest extends TestCase
         $outsider = User::factory()->create();
         [$meeting, $resolution] = $this->reportResolution($admin);
         Sanctum::actingAs($admin);
-        $reportId = $this->postJson("/api/v1/meetings/{$meeting->id}/resolutions/{$resolution->id}/report", [
+        $reportId = $this->postJson('/api/v1/reports', [
             'title' => 'گزارش محرمانه',
             'short_description' => 'خلاصه محرمانه',
             'description' => 'شرح محرمانه',
             'recipient_user_id' => $recipient->id,
         ])->assertCreated()->json('data.report.id');
+
+        Report::findOrFail($reportId)->update(['meeting_resolution_id' => $resolution->id]);
 
         Sanctum::actingAs($recipient);
         $this->getJson('/api/v1/reports')->assertOk()

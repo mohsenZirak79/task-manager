@@ -16,10 +16,11 @@ trait HasMeetingPayloadRules
 
         return [
             'title' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'short_description' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'short_description' => [...($updating ? ['sometimes'] : []), 'required', 'string', 'max:500'],
             'location' => ['sometimes', 'nullable', 'string', 'max:500'],
             'meeting_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'start_time' => ['sometimes', 'nullable', 'date_format:H:i'],
+            'duration_minutes' => ['sometimes', 'nullable', 'integer', 'between:1,4294967295'],
             'chairman_user_id' => ['sometimes', 'nullable', 'integer', $userExists],
             'secretary_user_id' => ['sometimes', 'nullable', 'integer', $userExists],
             'attendee_user_ids' => ['sometimes', 'array'],
@@ -32,6 +33,9 @@ trait HasMeetingPayloadRules
             'agenda_items.*.description' => ['sometimes', 'nullable', 'string'],
             'agenda_items.*.sort_order' => ['required', 'integer', 'min:0', 'distinct'],
             'submit' => ['sometimes', 'boolean'],
+            'initial_resolutions' => $updating ? ['prohibited'] : ['sometimes', 'array', 'max:100'],
+            'initial_resolutions.*.title' => ['required', 'string', 'max:255'],
+            'initial_resolutions.*.description' => ['sometimes', 'nullable', 'string'],
         ];
     }
 
@@ -46,7 +50,8 @@ trait HasMeetingPayloadRules
             'location' => 'مکان جلسه هنگام ارسال اجباری است.',
             'meeting_date' => 'تاریخ جلسه هنگام ارسال اجباری است.',
             'start_time' => 'ساعت جلسه هنگام ارسال اجباری است.',
-            'chairman_user_id' => 'رئیس جلسه هنگام ارسال اجباری است.',
+            'short_description' => 'توضیح مختصر جلسه اجباری است.',
+            'duration_minutes' => 'مدت جلسه هنگام ارسال اجباری است.',
             'secretary_user_id' => 'دبیر جلسه هنگام ارسال اجباری است.',
         ];
 
@@ -68,6 +73,8 @@ trait HasMeetingPayloadRules
     public function messages(): array
     {
         return [
+            'short_description.required' => 'توضیح مختصر جلسه اجباری است.',
+            'duration_minutes.between' => 'مدت جلسه باید به دقیقه و حداقل یک دقیقه باشد.',
             'meeting_date.date_format' => 'تاریخ جلسه باید میلادی و با قالب YYYY-MM-DD باشد.',
             'start_time.date_format' => 'ساعت جلسه باید با قالب HH:MM باشد.',
             '*.exists' => 'شناسه انتخاب‌شده معتبر یا فعال نیست.',

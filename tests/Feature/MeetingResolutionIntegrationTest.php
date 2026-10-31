@@ -68,21 +68,19 @@ class MeetingResolutionIntegrationTest extends TestCase
         return $this->postJson("/api/v1/meetings/{$this->meeting->id}/resolutions/{$resolution->id}/link-task", ['task_id' => $task->id]);
     }
 
-    public function test_secretary_with_permission_can_manage_and_link_existing_visible_task(): void
+    public function test_existing_links_are_preserved_but_new_links_are_disabled(): void
     {
         $resolution = $this->resolution();
         $task = $this->task($this->secretary);
-        $this->getJson("/api/v1/meetings/{$this->meeting->id}")->assertOk()
-            ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', true);
-        $this->link($resolution, $task)->assertOk()->assertJsonPath('data.resolution.task.id', $task->id)
-            ->assertJsonPath('data.resolution.description', 'شرح کامل مصوبه');
+        // A database fixture represents a link made by the old workflow.
+        $resolution->update(['task_id' => $task->id]);
         $this->getJson("/api/v1/tasks/{$task->id}")->assertOk()
             ->assertJsonPath('data.task.meeting_source.resolution_id', $resolution->id);
         $this->getJson("/api/v1/meetings/{$this->meeting->id}")->assertOk()
             ->assertJsonPath('data.meeting.resolutions.0.task.id', $task->id);
-        $this->assertDatabaseCount('tasks', 1);
         $this->link($resolution, $task)->assertConflict();
         $this->link($this->resolution(), $task)->assertConflict();
+        $this->assertDatabaseCount('tasks', 1);
     }
 
     public function test_secretary_can_manage_without_global_permission_but_unrelated_user_cannot(): void
@@ -94,7 +92,7 @@ class MeetingResolutionIntegrationTest extends TestCase
         $this->secretary->unsetRelation('accessRoles');
         $this->getJson("/api/v1/meetings/{$this->meeting->id}")->assertOk()
             ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', true);
-        $this->link($resolution, $task)->assertOk();
+        $this->link($resolution, $task)->assertConflict();
         $outsider = User::factory()->create();
         $outsider->accessRoles()->sync([$role->id]);
         $role->permissions()->syncWithoutDetaching(Permission::where('name', Permissions::MEETINGS_MANAGE_RESOLUTIONS)->pluck('id'));
@@ -102,15 +100,15 @@ class MeetingResolutionIntegrationTest extends TestCase
         $this->link($resolution, $task)->assertForbidden();
     }
 
-    public function test_link_requires_visible_task_and_all_assignees_to_be_meeting_attendees(): void
+    public function test_disabled_link_does_not_bypass_registration_for_admin_or_secretary(): void
     {
         $resolution = $this->resolution();
         $task = $this->task($this->admin);
-        $this->link($resolution, $task)->assertForbidden();
+        $this->link($resolution, $task)->assertConflict();
         Sanctum::actingAs($this->admin);
-        $this->link($resolution, $task)->assertUnprocessable()->assertJsonValidationErrors('assignee_ids');
+        $this->link($resolution, $task)->assertConflict();
         $this->meeting->attendees()->attach($this->admin);
-        $this->link($resolution, $task)->assertOk();
+        $this->link($resolution, $task)->assertConflict();
     }
 
     public function test_link_rejects_report_resolutions_completed_meetings_and_wrong_parent(): void
@@ -121,7 +119,7 @@ class MeetingResolutionIntegrationTest extends TestCase
         foreach (['draft', 'completed', 'cancelled'] as $status) {
             $this->meeting->update(['status' => $status]);
             $this->getJson("/api/v1/meetings/{$this->meeting->id}")->assertOk()
-                ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', false);
+                ->assertJsonPath('data.meeting.allowed_actions.manage_resolutions', $status === 'draft');
             $this->link($resolution, $task)->assertConflict();
         }
         $this->meeting->update(['status' => 'scheduled']);

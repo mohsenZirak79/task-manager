@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-10-29.meeting-officer-access-1",
-    "description": "Current /api/v1 route inventory and FormRequest validation for TaskOver. Includes meeting-scoped active chairman/secretary access, allowed_actions.complete, report-to-task integration and versioned attendee signatures. This revision must be deployed together with the matching frontend; calendar display is Persian while API dates stay Gregorian ISO. Existing administrator and independent task/report permissions are preserved. Contextual validation and authorization remain server-enforced; legacy resource examples are illustrative."
+    "version": "2026-11-01.meeting-execution-local-1",
+    "description": "Complete OpenAPI 3.1 API inventory. Local meeting creation rules, staged resolution task/report registration, all-attendee final-signature execution, ordering and personal action indicators. LOCAL CHANGES, NOT DEPLOYED. Publish backend migrations and frontend together."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -1851,7 +1851,7 @@
             "description": "Current workflow state does not allow this operation."
           }
         },
-        "description": "ایجاد صورت‌جلسه به‌صورت پیش‌نویس یا ارسال‌شده",
+        "description": "ایجاد صورت‌جلسه به‌صورت پیش‌نویس یا ارسال‌شده New meeting-creation rules: chairman fixed, secretary/extra attendees constrained to creator organization descendants; summary required even in drafts; duration required for submission. Partial edits preserve unchanged historical participants; invalid submitted selections are rejected atomically.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1873,17 +1873,10 @@
                     "maxLength": 255
                   },
                   "short_description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "x-laravel-rules": [
-                      "sometimes",
-                      "nullable",
-                      "string",
-                      "max:500"
-                    ],
-                    "maxLength": 500
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Required on creation, including drafts. When updated it must be nonblank. Submission also checks persisted value."
                   },
                   "location": {
                     "type": [
@@ -1922,16 +1915,14 @@
                     ]
                   },
                   "chairman_user_id": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
+                    "type": "integer",
                     "x-laravel-rules": [
                       "sometimes",
                       "nullable",
                       "integer",
                       "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
-                    ]
+                    ],
+                    "description": "New meeting: fixed to authenticated creator; may be omitted, supplied value must equal creator. Update: cannot change existing chairman. Server rechecks under transaction."
                   },
                   "secretary_user_id": {
                     "type": [
@@ -1943,7 +1934,8 @@
                       "nullable",
                       "integer",
                       "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
-                    ]
+                    ],
+                    "description": "Creator or active strict descendant in organization. Not peers/ancestors/unrelated users. No admin exception. Editing is scoped to meeting creator, not current editor."
                   },
                   "attendee_user_ids": {
                     "type": "array",
@@ -1958,7 +1950,8 @@
                         "distinct",
                         "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
                       ]
-                    }
+                    },
+                    "description": "Extra attendees only: active strict organizational descendants of creator. UI excludes chairman/secretary. Server includes officers once in final attendees relation."
                   },
                   "agenda_items": {
                     "type": "array",
@@ -2018,8 +2011,44 @@
                       "sometimes",
                       "boolean"
                     ]
+                  },
+                  "duration_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 4294967295,
+                    "description": "Duration in whole minutes; required and non-null when submitting/scheduled. UI accepts hours and converts (5 hours = 300). Existing stored nulls are not guessed."
+                  },
+                  "initial_resolutions": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "title"
+                      ],
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 255
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "description": "Optional initial task-type resolution text, created atomically with draft meeting through existing resolution service; no linked task is created."
                   }
-                }
+                },
+                "required": [
+                  "short_description"
+                ]
               }
             }
           }
@@ -2120,7 +2149,9 @@
                           "signature_status": "unsigned",
                           "signed_at": null,
                           "signed_content_version": null,
-                          "can_sign": true
+                          "can_sign": true,
+                          "is_viewed": false,
+                          "viewed_at": null
                         },
                         {
                           "id": 8,
@@ -2133,7 +2164,9 @@
                           "signature_status": "signed",
                           "signed_at": "2026-10-27T10:00:00.000000Z",
                           "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
-                          "can_sign": false
+                          "can_sign": false,
+                          "is_viewed": false,
+                          "viewed_at": null
                         }
                       ],
                       "agenda_items": [
@@ -2161,7 +2194,8 @@
                       "submitted_at": "2026-10-27T05:00:00.000000Z",
                       "completed_at": "2026-10-27T09:00:00.000000Z",
                       "created_at": "2026-10-27T04:00:00.000000Z",
-                      "updated_at": "2026-10-27T09:00:00.000000Z"
+                      "updated_at": "2026-10-27T09:00:00.000000Z",
+                      "duration_minutes": null
                     }
                   }
                 }
@@ -2366,7 +2400,7 @@
             "description": "Current workflow state does not allow this operation."
           }
         },
-        "description": "ویرایش جلسه draft یا scheduled. ارسال agenda_items فهرست دستورهای جلسه را کاملاً جایگزین می‌کند؛ اگر agenda_items ارسال نشود، دستورهای قبلی بدون تغییر باقی می‌مانند.",
+        "description": "ویرایش جلسه draft یا scheduled. ارسال agenda_items فهرست دستورهای جلسه را کاملاً جایگزین می‌کند؛ اگر agenda_items ارسال نشود، دستورهای قبلی بدون تغییر باقی می‌مانند. New meeting-creation rules: chairman fixed, secretary/extra attendees constrained to creator organization descendants; summary required even in drafts; duration required for submission. Partial edits preserve unchanged historical participants; invalid submitted selections are rejected atomically.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2388,17 +2422,10 @@
                     "maxLength": 255
                   },
                   "short_description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "x-laravel-rules": [
-                      "sometimes",
-                      "nullable",
-                      "string",
-                      "max:500"
-                    ],
-                    "maxLength": 500
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "description": "Required on creation, including drafts. When updated it must be nonblank. Submission also checks persisted value."
                   },
                   "location": {
                     "type": [
@@ -2437,16 +2464,14 @@
                     ]
                   },
                   "chairman_user_id": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
+                    "type": "integer",
                     "x-laravel-rules": [
                       "sometimes",
                       "nullable",
                       "integer",
                       "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
-                    ]
+                    ],
+                    "description": "New meeting: fixed to authenticated creator; may be omitted, supplied value must equal creator. Update: cannot change existing chairman. Server rechecks under transaction."
                   },
                   "secretary_user_id": {
                     "type": [
@@ -2458,7 +2483,8 @@
                       "nullable",
                       "integer",
                       "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
-                    ]
+                    ],
+                    "description": "Creator or active strict descendant in organization. Not peers/ancestors/unrelated users. No admin exception. Editing is scoped to meeting creator, not current editor."
                   },
                   "attendee_user_ids": {
                     "type": "array",
@@ -2473,7 +2499,8 @@
                         "distinct",
                         "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
                       ]
-                    }
+                    },
+                    "description": "Extra attendees only: active strict organizational descendants of creator. UI excludes chairman/secretary. Server includes officers once in final attendees relation."
                   },
                   "agenda_items": {
                     "type": "array",
@@ -2536,6 +2563,15 @@
                       "sometimes",
                       "boolean"
                     ]
+                  },
+                  "duration_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 4294967295,
+                    "description": "Duration in whole minutes; required and non-null when submitting/scheduled. UI accepts hours and converts (5 hours = 300). Existing stored nulls are not guessed."
                   }
                 }
               }
@@ -2802,7 +2838,7 @@
             "description": "Current workflow state does not allow this operation."
           }
         },
-        "description": "اتمام جلسه scheduled دارای حداقل یک مصوبه و قفل‌کردن جلسه بدون تغییر وضعیت تسک‌ها",
+        "description": "اتمام فقط با حداقل یک مصوبه و تکمیل فرم اجرایی همه مصوبات یا ارتباط‌های تاریخی؛ 422 برای فرم ناقص. اتمام به‌تنهایی تسک/گزارش جدید نمی‌سازد و امضا پس از اتمام مجاز می‌شود.",
         "parameters": [
           {
             "name": "meeting",
@@ -2895,7 +2931,7 @@
             "description": "Current workflow state does not allow this operation."
           }
         },
-        "description": "ثبت مصوبه برای جلسه scheduled؛ برای اتصال یک تسک موجود و قابل مشاهده، task_id را ارسال کنید",
+        "description": "Existing MeetingPolicy.manageResolutions and parent/agenda validation; draft and scheduled text CRUD supported. Completed/cancelled rejected. Draft cannot create/link tasks, including task_id in payload. Other existing validation and linked-entity protections remain. Existing-task linking is disabled: nonempty task_id returns409. Existing historical links are preserved, including when null task_id is submitted. A resolution with an execution plan cannot change its type. Use PUT order endpoint for drag/drop.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2926,7 +2962,8 @@
                       "integer",
                       "exists:tasks,id",
                       "unique:meeting_resolutions,task_id,NULL,id"
-                    ]
+                    ],
+                    "description": "Deprecated, new links rejected409; existing links are not removed by a null value."
                   },
                   "resolution_type": {
                     "type": "string",
@@ -3097,7 +3134,7 @@
             "description": "Current workflow state does not allow this operation."
           }
         },
-        "description": "ویرایش مصوبه متعلق به همان جلسه در وضعیت scheduled؛ task_id تسک موجود را متصل یا با null جدا می‌کند",
+        "description": "Existing MeetingPolicy.manageResolutions and parent/agenda validation; draft and scheduled text CRUD supported. Completed/cancelled rejected. Draft cannot create/link tasks, including task_id in payload. Other existing validation and linked-entity protections remain. Existing-task linking is disabled: nonempty task_id returns409. Existing historical links are preserved, including when null task_id is submitted. A resolution with an execution plan cannot change its type. Use PUT order endpoint for drag/drop.",
         "requestBody": {
           "required": true,
           "content": {
@@ -3128,7 +3165,8 @@
                       "integer",
                       "exists:tasks,id",
                       "unique:meeting_resolutions,task_id,\"1\",id"
-                    ]
+                    ],
+                    "description": "Deprecated, new links rejected409; existing links are not removed by a null value."
                   },
                   "resolution_type": {
                     "type": "string",
@@ -3265,7 +3303,7 @@
             }
           }
         },
-        "description": "حذف مصوبه جلسه scheduled؛ تسک واقعی متصل حذف نمی‌شود",
+        "description": "Existing MeetingPolicy.manageResolutions and parent/agenda validation; draft and scheduled text CRUD supported. Completed/cancelled rejected. Draft cannot create/link tasks, including task_id in payload. Other existing validation and linked-entity protections remain.",
         "parameters": [
           {
             "name": "meeting",
@@ -3291,7 +3329,7 @@
     "/api/v1/meetings/{meeting}/resolutions/{resolution}/create-task": {
       "post": {
         "operationId": "post_api_v1_meetings_meeting_resolutions_resolution_create_task",
-        "summary": "Create task from resolution",
+        "summary": "Register task execution plan for resolution",
         "tags": [
           "meetings"
         ],
@@ -3314,128 +3352,6 @@
         ],
         "x-policy": "MeetingPolicy.manageResolutions for this meeting; tasks:create is still required.",
         "responses": {
-          "201": {
-            "description": "Successful operation; existing resource and policy rules apply.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SuccessEnvelope"
-                },
-                "example": {
-                  "success": true,
-                  "message": "تسک مصوبه با موفقیت ایجاد شد.",
-                  "data": {
-                    "resolution": {
-                      "id": 42,
-                      "agenda_item_id": 12,
-                      "title": "خرید تجهیزات",
-                      "description": "پس از دریافت پیش‌فاکتور انجام شود.",
-                      "sort_order": 1,
-                      "task": {
-                        "id": 80,
-                        "title": "خرید تجهیزات",
-                        "status": "in_progress",
-                        "progress_percentage": 0,
-                        "due_date": "2026-09-30",
-                        "duration_minutes": 120,
-                        "assignees": [
-                          {
-                            "id": 8,
-                            "org_code": "100008",
-                            "first_name": "کریم",
-                            "last_name": "نمونه",
-                            "full_name": "کریم نمونه",
-                            "title": "مدیر فروش",
-                            "avatar_file_id": null
-                          }
-                        ],
-                        "tags": [
-                          {
-                            "id": 1,
-                            "title": "فوری"
-                          },
-                          {
-                            "id": 2,
-                            "title": "مالی"
-                          }
-                        ]
-                      },
-                      "created_at": "2026-09-13T08:30:00.000000Z",
-                      "updated_at": "2026-09-13T08:40:00.000000Z"
-                    },
-                    "task": {
-                      "id": 80,
-                      "title": "تهیه گزارش فروش",
-                      "short_description": "آماده‌سازی گزارش ماهانه",
-                      "request_description": null,
-                      "duration_minutes": 120,
-                      "due_date": "2026-09-30",
-                      "progress_percentage": 0,
-                      "status": "in_progress",
-                      "submission_type": "assignment",
-                      "requester": {
-                        "id": 8,
-                        "org_code": "100008",
-                        "first_name": "کریم",
-                        "last_name": "نمونه",
-                        "full_name": "کریم نمونه",
-                        "title": "مدیر فروش",
-                        "avatar_file_id": null
-                      },
-                      "creator": {
-                        "id": 8,
-                        "org_code": "100008",
-                        "first_name": "کریم",
-                        "last_name": "نمونه",
-                        "full_name": "کریم نمونه",
-                        "title": "مدیر فروش",
-                        "avatar_file_id": null
-                      },
-                      "assignees": [
-                        {
-                          "id": 8,
-                          "org_code": "100008",
-                          "first_name": "کریم",
-                          "last_name": "نمونه",
-                          "full_name": "کریم نمونه",
-                          "title": "مدیر فروش",
-                          "avatar_file_id": null
-                        }
-                      ],
-                      "followers": [],
-                      "supervisors": [],
-                      "financial_resources": null,
-                      "financial_estimated_cost": null,
-                      "financial_provider": null,
-                      "equipment_resources": null,
-                      "equipment_estimated_cost": null,
-                      "equipment_provider": null,
-                      "rejection_reason": null,
-                      "meeting_source": {
-                        "meeting_id": 10,
-                        "meeting_title": "جلسه برنامه‌ریزی فروش",
-                        "resolution_id": 42,
-                        "resolution_title": "خرید تجهیزات"
-                      },
-                      "created_at": "2026-09-13T08:00:00.000000Z",
-                      "updated_at": "2026-09-13T08:10:00.000000Z",
-                      "tags": [
-                        {
-                          "id": 1,
-                          "title": "فوری"
-                        },
-                        {
-                          "id": 2,
-                          "title": "مالی"
-                        }
-                      ],
-                      "report_source": null
-                    }
-                  }
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthenticated",
             "content": {
@@ -3464,9 +3380,61 @@
           },
           "409": {
             "description": "Current workflow state does not allow this operation."
+          },
+          "200": {
+            "description": "Plan registered; no real Task/Report has been created. Repeating equal payload retains the registration/version. Existing linked outputs or completed/cancelled meetings return409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionRegistrationResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "اطلاعات مصوبه ثبت شد.",
+                  "data": {
+                    "resolution": {
+                      "id": 42,
+                      "agenda_item_id": null,
+                      "title": "مصوبه",
+                      "description": null,
+                      "resolution_type": "task",
+                      "sort_order": 0,
+                      "execution_status": "registered",
+                      "execution_plan": {
+                        "kind": "task",
+                        "actor_id": 1,
+                        "registered_at": "2026-11-01T08:00:00.000000Z",
+                        "payload": {
+                          "title": "کار مصوبه",
+                          "short_description": "خلاصه",
+                          "duration_minutes": 720,
+                          "due_date": "2026-11-10",
+                          "assignee_ids": [
+                            1
+                          ],
+                          "follower_ids": [
+                            2
+                          ],
+                          "supervisor_ids": [
+                            2
+                          ],
+                          "submission_type": "assignment",
+                          "submit": true
+                        }
+                      },
+                      "materialized_at": null,
+                      "task": null,
+                      "report": null,
+                      "created_at": "2026-11-01T07:00:00.000000Z",
+                      "updated_at": "2026-11-01T08:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
-        "description": "ساخت تسک واقعی از مصوبه با استفاده از Validation و قوانین سازمانی Task؛ ایجاد مجدد برای همان مصوبه با 409 رد می‌شود",
+        "description": "ثبت/ویرایش فرم اجرایی مصوبه در draft یا scheduled؛ رکورد واقعی ساخته نمی‌شود. تمام فرم‌ها پیش از اتمام لازم‌اند؛ بعد از اتمام و امضای همه، آخرین امضا خروجی‌ها را اتمی و دقیقاً یک‌بار ایجاد می‌کند. فرم ثبت‌شده بعد از اتمام قفل است. مسئول/پیگیری/ناظر تسک و مخاطب/رونوشت گزارش باید اعضای همین جلسه باشند. مجوزهای Task/Report موجود و قواعد سازمانی حفظ می‌شوند.",
         "requestBody": {
           "required": true,
           "content": {
@@ -3477,20 +3445,16 @@
                   "title": {
                     "type": "string",
                     "x-laravel-rules": [
-                      "sometimes",
+                      "required",
                       "string",
                       "max:255"
                     ],
                     "maxLength": 255
                   },
                   "short_description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "x-laravel-rules": [
-                      "sometimes",
-                      "nullable",
+                      "required",
                       "string",
                       "max:100"
                     ],
@@ -3499,13 +3463,13 @@
                   "submission_type": {
                     "type": "string",
                     "x-laravel-rules": [
-                      "required",
-                      "in:assignment,request"
+                      "server-derived"
                     ],
                     "enum": [
                       "assignment",
                       "request"
-                    ]
+                    ],
+                    "description": "Server-derived for this resolution endpoint: submission_type is assignment only for self-assignment, otherwise request; submit is always true. No type/draft/send selector in resolution UI."
                   },
                   "request_description": {
                     "type": [
@@ -3519,10 +3483,7 @@
                     ]
                   },
                   "duration_minutes": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
+                    "type": "integer",
                     "x-laravel-rules": [
                       "sometimes",
                       "nullable",
@@ -3532,10 +3493,7 @@
                     "minimum": 1
                   },
                   "due_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "x-laravel-rules": [
                       "sometimes",
                       "nullable",
@@ -3567,8 +3525,9 @@
                   "assignee_ids": {
                     "type": "array",
                     "x-laravel-rules": [
-                      "sometimes",
-                      "array"
+                      "required",
+                      "array",
+                      "min:1"
                     ],
                     "items": {
                       "type": "integer",
@@ -3577,7 +3536,8 @@
                         "distinct",
                         "exists:users,id,deleted_at,\"NULL\",is_active,\"1\""
                       ]
-                    }
+                    },
+                    "minItems": 1
                   },
                   "follower_ids": {
                     "type": "array",
@@ -3773,14 +3733,19 @@
                   "submit": {
                     "type": "boolean",
                     "x-laravel-rules": [
-                      "sometimes",
-                      "boolean"
-                    ]
+                      "server-normalized:true"
+                    ],
+                    "description": "Server-derived for this resolution endpoint: submission_type is assignment only for self-assignment, otherwise request; submit is always true. No type/draft/send selector in resolution UI."
                   }
                 },
                 "required": [
-                  "submission_type"
-                ]
+                  "title",
+                  "short_description",
+                  "duration_minutes",
+                  "due_date",
+                  "assignee_ids"
+                ],
+                "description": "Full Task validation reused. Duration and due date required on submission; request mode also requires existing request-specific fields, tags, follower and supervisor. Personal assignment is self only. Other task fields, planning, financial/equipment data and attachments remain supported."
               }
             }
           }
@@ -3967,7 +3932,7 @@
       },
       "post": {
         "operationId": "post_api_v1_meetings_meeting_resolutions_resolution_report",
-        "summary": "Create report for resolution",
+        "summary": "Register report execution plan for resolution",
         "tags": [
           "meetings"
         ],
@@ -3990,100 +3955,6 @@
         ],
         "x-policy": "MeetingPolicy.manageResolutions for this meeting; reports:manage is still required.",
         "responses": {
-          "201": {
-            "description": "Illustrative response; IDs and timestamps are examples. Access flags depend on the authenticated user and current state.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message",
-                    "data"
-                  ],
-                  "properties": {
-                    "success": {
-                      "const": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "report"
-                      ],
-                      "properties": {
-                        "report": {
-                          "$ref": "#/components/schemas/ReportApiResource"
-                        }
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "message": "عملیات موفق بود.",
-                  "data": {
-                    "report": {
-                      "id": 18,
-                      "allowed_actions": {
-                        "view": true,
-                        "edit": true,
-                        "delete": true,
-                        "send": false,
-                        "mark_viewed": false,
-                        "comment": true,
-                        "deactivate": true,
-                        "activate": false,
-                        "create_task": false
-                      },
-                      "report_number": "RPT-000018",
-                      "status": "sent",
-                      "action_type": null,
-                      "sent_at": "2026-10-14T09:00:00.000000Z",
-                      "viewed_at": null,
-                      "attachments": [],
-                      "meeting_resolution_id": null,
-                      "meeting": null,
-                      "resolution": null,
-                      "title": "گزارش نمونه",
-                      "short_description": "خلاصه گزارش",
-                      "description": "شرح گزارش",
-                      "recipient": {
-                        "id": 8,
-                        "org_code": "USR-007",
-                        "first_name": "کاربر",
-                        "last_name": "نمونه",
-                        "full_name": "کاربر نمونه",
-                        "title": null,
-                        "avatar_file_id": null
-                      },
-                      "cc_users": [],
-                      "tags": [],
-                      "creator": {
-                        "id": 7,
-                        "org_code": "USR-007",
-                        "first_name": "کاربر",
-                        "last_name": "نمونه",
-                        "full_name": "کاربر نمونه",
-                        "title": null,
-                        "avatar_file_id": null
-                      },
-                      "created_at": "2026-10-14T09:00:00.000000Z",
-                      "updated_at": "2026-10-14T09:00:00.000000Z",
-                      "tasks_url": "/api/v1/reports/18/tasks",
-                      "task_suggestions": {
-                        "title": "گزارش نمونه",
-                        "short_description": "خلاصه گزارش",
-                        "request_description": "شرح گزارش"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
           "401": {
             "description": "Unauthenticated",
             "content": {
@@ -4112,9 +3983,55 @@
           },
           "409": {
             "description": "Current workflow state does not allow this operation."
+          },
+          "200": {
+            "description": "Plan registered; no real Task/Report has been created. Repeating equal payload retains the registration/version. Existing linked outputs or completed/cancelled meetings return409.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolutionRegistrationResponse"
+                },
+                "example": {
+                  "success": true,
+                  "message": "اطلاعات مصوبه ثبت شد.",
+                  "data": {
+                    "resolution": {
+                      "id": 42,
+                      "agenda_item_id": null,
+                      "title": "مصوبه",
+                      "description": null,
+                      "resolution_type": "report",
+                      "sort_order": 0,
+                      "execution_status": "registered",
+                      "execution_plan": {
+                        "kind": "report",
+                        "actor_id": 1,
+                        "registered_at": "2026-11-01T08:00:00.000000Z",
+                        "payload": {
+                          "title": "گزارش مصوبه",
+                          "short_description": "خلاصه",
+                          "description": "شرح گزارش",
+                          "recipient_user_id": 2,
+                          "cc_user_ids": [
+                            1
+                          ],
+                          "action_type": "needs_review",
+                          "status": "sent"
+                        }
+                      },
+                      "materialized_at": null,
+                      "task": null,
+                      "report": null,
+                      "created_at": "2026-11-01T07:00:00.000000Z",
+                      "updated_at": "2026-11-01T08:00:00.000000Z"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
-        "description": "ایجاد گزارش برای مصوبه",
+        "description": "ثبت/ویرایش فرم اجرایی مصوبه در draft یا scheduled؛ رکورد واقعی ساخته نمی‌شود. تمام فرم‌ها پیش از اتمام لازم‌اند؛ بعد از اتمام و امضای همه، آخرین امضا خروجی‌ها را اتمی و دقیقاً یک‌بار ایجاد می‌کند. فرم ثبت‌شده بعد از اتمام قفل است. مسئول/پیگیری/ناظر تسک و مخاطب/رونوشت گزارش باید اعضای همین جلسه باشند. مجوزهای Task/Report موجود و قواعد سازمانی حفظ می‌شوند.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4148,7 +4065,8 @@
                       "max:100"
                     ],
                     "minLength": 16,
-                    "maxLength": 100
+                    "maxLength": 100,
+                    "description": "Client key may be omitted; staged plan uses a deterministic internal key. Same payload retry does not create any Report."
                   },
                   "status": {
                     "type": "string",
@@ -4160,7 +4078,8 @@
                     "enum": [
                       "draft",
                       "sent"
-                    ]
+                    ],
+                    "description": "Accepted for compatibility but normalized to sent for eventual materialization. This call only saves a plan."
                   },
                   "title": {
                     "type": "string",
@@ -4356,7 +4275,8 @@
               "minimum": 1
             }
           }
-        ]
+        ],
+        "description": "Starts a scheduled, unstarted meeting. Only fixed chairman; secretary/admin cannot start on someone else’s behalf. Stores server started_at; does not sign or mark anyone viewed."
       }
     },
     "/api/v1/meetings/{meeting}/submit": {
@@ -14676,7 +14596,9 @@
                           "signature_status": "signed",
                           "signed_at": "2026-10-27T10:00:00.000000Z",
                           "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
-                          "can_sign": false
+                          "can_sign": false,
+                          "is_viewed": false,
+                          "viewed_at": null
                         },
                         {
                           "id": 8,
@@ -14689,7 +14611,9 @@
                           "signature_status": "signed",
                           "signed_at": "2026-10-27T10:00:00.000000Z",
                           "signed_content_version": "7a1975dfaadd0bf01dd0e6859d868caedfaee90f3c078e5614934e17213124ca",
-                          "can_sign": false
+                          "can_sign": false,
+                          "is_viewed": false,
+                          "viewed_at": null
                         }
                       ],
                       "agenda_items": [
@@ -14717,7 +14641,8 @@
                       "submitted_at": "2026-10-27T05:00:00.000000Z",
                       "completed_at": "2026-10-27T09:00:00.000000Z",
                       "created_at": "2026-10-27T04:00:00.000000Z",
-                      "updated_at": "2026-10-27T09:00:00.000000Z"
+                      "updated_at": "2026-10-27T09:00:00.000000Z",
+                      "duration_minutes": null
                     }
                   }
                 }
@@ -14758,7 +14683,7 @@
             }
           }
         ],
-        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again. Meeting-scoped officer management and completion are independent of signing; read the corresponding allowed_actions flags.",
+        "description": "Authenticated acknowledgment, not certificate-based digital signing. Only active attendees with meetings:view may sign after status=completed, including admins only when personally attending. Exact retries preserve first signed_at. Content mismatch409; refresh GET and ask for consent again. Meeting-scoped officer management and completion are independent of signing; read the corresponding allowed_actions flags. After completion, all current-version attendee signatures are required. The final signature atomically creates all registered tasks and sent reports as their original plan authors, rechecking policies/membership. Any materialization failure rolls back that final signature and all new outputs; fix the cause and retry the same version. Repeated signing never duplicates outputs. Generated output IDs and changing live progress do not alter signed plan content.",
         "x-validation-source": "App\\Http\\Requests\\SignMeetingRequest",
         "requestBody": {
           "required": true,
@@ -15292,8 +15217,8 @@
     "/api/v1/meetings/{meeting}/resolutions/{resolution}/link-task": {
       "post": {
         "operationId": "post_api_v1_meetings_meeting_resolutions_resolution_link_task",
-        "summary": "Link an existing task to a meeting resolution",
-        "description": "MeetingPolicy.manageResolutions permits this meeting's active chairman/secretary or an existing authorized manager. Correct parent, scheduled meeting, task-type empty resolution, tasks:view, TaskPolicy.view and assignees among meeting attendees are required. One task may belong to only one resolution. Does not create tasks or convert report resolutions. Meeting/resolution/task rows locked, manager policy rechecked. Existing occupied/repeated link returns409, no duplicate row.",
+        "summary": "Disabled legacy task-link operation",
+        "description": "New existing-task links are disabled; authorized valid requests return409. Historical links remain readable. Use plan registration. Parent scope and permissions are still enforced; invalid IDs may return422.",
         "tags": [
           "meetings"
         ],
@@ -15336,77 +15261,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful operation",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "success",
-                    "message",
-                    "data"
-                  ],
-                  "properties": {
-                    "success": {
-                      "const": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "resolution"
-                      ],
-                      "properties": {
-                        "resolution": {
-                          "type": "object"
-                        }
-                      }
-                    }
-                  }
-                },
-                "example": {
-                  "success": true,
-                  "message": "تسک موجود با موفقیت به مصوبه متصل شد.",
-                  "data": {
-                    "resolution": {
-                      "id": 42,
-                      "agenda_item_id": null,
-                      "title": "مصوبه",
-                      "description": "شرح کامل مصوبه",
-                      "resolution_type": "task",
-                      "sort_order": 0,
-                      "task": {
-                        "id": 801,
-                        "title": "پیگیری گزارش",
-                        "status": "draft",
-                        "progress_percentage": 0,
-                        "due_date": "2026-11-05",
-                        "duration_minutes": 60,
-                        "assignees": [
-                          {
-                            "id": 8,
-                            "org_code": "100008",
-                            "first_name": "کریم",
-                            "last_name": "نمونه",
-                            "full_name": "کریم نمونه",
-                            "title": "مدیر فروش",
-                            "avatar_file_id": null
-                          }
-                        ],
-                        "tags": []
-                      },
-                      "report": null,
-                      "created_at": "2026-10-28T09:00:00.000000Z",
-                      "updated_at": "2026-10-28T09:00:00.000000Z"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "401": {
             "description": "Authentication required.",
             "content": {
@@ -15438,14 +15292,7 @@
             }
           },
           "409": {
-            "description": "Conflicting idempotency payload or workflow state.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiError"
-                }
-              }
-            }
+            "description": "Existing-task linking is disabled."
           },
           "422": {
             "description": "Existing task validation or malformed submission_key / pagination.",
@@ -15478,6 +15325,201 @@
                 "task_id": 801
               }
             }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/api/v1/meetings/eligible-users": {
+      "get": {
+        "operationId": "get_api_v1_meetings_eligible_users",
+        "tags": [
+          "meetings"
+        ],
+        "summary": "Authorized meeting participant choices",
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\MeetingController@eligibleUsers",
+        "x-middleware": [
+          "api",
+          "auth:sanctum",
+          "last.activity",
+          "active"
+        ],
+        "description": "Without meeting_id requires MeetingPolicy.create; with meeting_id requires update on editable meeting. Returns active strict organizational descendants of original creator, all depths. No peers, ancestors, unrelated users or admin bypass. Chairman fixed; secretary may also be creator. Frontend filters selected officers out of extra attendees. No broad directory permission needed.",
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing success envelope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "chairman",
+                        "secretaries",
+                        "attendees"
+                      ],
+                      "properties": {
+                        "chairman": {
+                          "$ref": "#/components/schemas/MentionUser"
+                        },
+                        "secretaries": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MentionUser"
+                          }
+                        },
+                        "attendees": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MentionUser"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Create/update Policy or active-user check failed"
+          },
+          "404": {
+            "description": "Meeting not found"
+          },
+          "422": {
+            "description": "Invalid meeting_id"
+          }
+        }
+      }
+    },
+    "/api/v1/meetings/{meeting}/resolutions/order": {
+      "put": {
+        "operationId": "put_api_v1_meetings_meeting_resolutions_order",
+        "summary": "Reorder all meeting resolutions",
+        "description": "Atomic ordering in draft/scheduled using existing manageResolutions policy. IDs must be distinct and exactly all resolutions of this meeting. Returns full fresh meeting. Numeric sort-order controls are removed from UI.",
+        "tags": [
+          "meetings"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meeting",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resolution_ids"
+                ],
+                "properties": {
+                  "resolution_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              },
+              "example": {
+                "resolution_ids": [
+                  43,
+                  42
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ordered full meeting in data.meeting.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "meeting": {
+                          "$ref": "#/components/schemas/MeetingWithSignatures"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "MeetingPolicy.manageResolutions denied"
+          },
+          "404": {
+            "description": "Meeting not found"
+          },
+          "409": {
+            "description": "Completed/cancelled meeting is frozen"
+          },
+          "422": {
+            "description": "Incomplete, duplicate, foreign or invalid resolution IDs"
           }
         }
       }
@@ -15515,7 +15557,8 @@
             "additionalProperties": false,
             "required": [
               "available",
-              "count"
+              "count",
+              "action_required_count"
             ],
             "properties": {
               "available": {
@@ -15524,6 +15567,11 @@
               "count": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "action_required_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Visible items awaiting the current actor; independent of the active/registered count. No module access => Unavailable."
               }
             }
           },
@@ -16285,7 +16333,8 @@
           "created_at",
           "updated_at",
           "tasks_url",
-          "task_suggestions"
+          "task_suggestions",
+          "requires_action"
         ],
         "properties": {
           "id": {
@@ -16445,6 +16494,10 @@
                 "type": "string"
               }
             }
+          },
+          "requires_action": {
+            "type": "boolean",
+            "description": "True only for a pending workflow action authorized for the current actor; not a substitute for server authorization."
           }
         }
       },
@@ -16534,7 +16587,9 @@
               "signature_status",
               "signed_at",
               "signed_content_version",
-              "can_sign"
+              "can_sign",
+              "is_viewed",
+              "viewed_at"
             ],
             "properties": {
               "signature_status": {
@@ -16564,6 +16619,17 @@
               "can_sign": {
                 "type": "boolean",
                 "description": "True only for the current authenticated attendee, completed meeting, meetings:view permission and no signature for current content."
+              },
+              "is_viewed": {
+                "type": "boolean",
+                "description": "True only when existing acknowledgment has a real timestamp; independent of signature."
+              },
+              "viewed_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
               }
             }
           }
@@ -16576,7 +16642,12 @@
           "status",
           "signature_content_version",
           "attendees",
-          "allowed_actions"
+          "allowed_actions",
+          "duration_minutes",
+          "requires_action",
+          "execution_files",
+          "execution_readiness",
+          "resolutions"
         ],
         "properties": {
           "id": {
@@ -16616,7 +16687,8 @@
                 "type": "boolean"
               },
               "start": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Scheduled, unstarted meeting; only its fixed chairman may start, including when secretary is different. No administrator bypass."
               },
               "acknowledge": {
                 "type": "boolean"
@@ -16626,16 +16698,96 @@
               },
               "manage_resolutions": {
                 "type": "boolean",
-                "description": "Scheduled meeting AND MeetingPolicy.manageResolutions. Active chairman/secretary of this meeting do not need global meetings:manage_resolutions. Existing authorized managers retain their access."
+                "description": "Existing MeetingPolicy.manageResolutions plus draft/scheduled status. Registration of task/report plans requires the corresponding module create permission."
               },
               "complete": {
                 "type": "boolean",
-                "description": "Scheduled meeting, at least one resolution and MeetingPolicy.complete. Active chairman/secretary of this meeting do not need global meetings:complete."
+                "description": "Scheduled, at least one resolution, all resolution forms registered (or historical links), and MeetingPolicy.complete. No signatures needed before completion."
+              }
+            }
+          },
+          "duration_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "requires_action": {
+            "type": "boolean",
+            "description": "True only for a pending workflow action authorized for the current actor; not a substitute for server authorization."
+          },
+          "resolutions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeetingResolutionApiResource"
+            }
+          },
+          "execution_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "original_name": {
+                  "type": "string"
+                },
+                "mime_type": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer"
+                },
+                "category": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Batched attachment metadata for the registered plans, available to authorized meeting viewers."
+          },
+          "execution_readiness": {
+            "type": "object",
+            "required": [
+              "forms_complete",
+              "members_count",
+              "signed_count",
+              "all_signed",
+              "ready"
+            ],
+            "properties": {
+              "forms_complete": {
+                "type": "boolean",
+                "description": "Every resolution has a registered plan or an existing historical task/report link."
+              },
+              "members_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "signed_count": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Signatures matching the current content version."
+              },
+              "all_signed": {
+                "type": "boolean",
+                "description": "All pivot attendees are active, not deleted, and have signed the current content version."
+              },
+              "ready": {
+                "type": "boolean",
+                "description": "Meeting is completed and all_signed. Pending plans materialize in the final signature transaction."
               }
             }
           }
         },
-        "description": "Additive signature fields; all existing MeetingResource fields remain available. Existing meeting list summaries are unchanged."
+        "description": "Meeting detail includes existing fields, signature information, stored execution plans, and execution readiness. List summaries include requires_action."
       },
       "MeetingSignResponse": {
         "type": "object",
@@ -16700,7 +16852,8 @@
           "completed_at",
           "closed_at",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "requires_action"
         ],
         "properties": {
           "id": {
@@ -16994,6 +17147,10 @@
             "items": {
               "type": "object"
             }
+          },
+          "requires_action": {
+            "type": "boolean",
+            "description": "True only for a pending workflow action authorized for the current actor; not a substitute for server authorization."
           }
         }
       },
@@ -17436,19 +17593,177 @@
           "report_submission_key",
           "report_request_hash"
         ]
+      },
+      "ResolutionExecutionPlan": {
+        "type": "object",
+        "required": [
+          "kind",
+          "actor_id",
+          "registered_at",
+          "payload"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "task",
+              "report"
+            ]
+          },
+          "actor_id": {
+            "type": "integer"
+          },
+          "registered_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Validated task or report input. Immutable after meeting completion; business fields are covered by signature_content_version. Client must render these fields for informed consent."
+          }
+        }
+      },
+      "MeetingResolutionApiResource": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "resolution_type",
+          "sort_order",
+          "execution_plan",
+          "execution_status",
+          "materialized_at",
+          "task",
+          "report"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "agenda_item_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "resolution_type": {
+            "type": "string",
+            "enum": [
+              "task",
+              "report"
+            ]
+          },
+          "sort_order": {
+            "type": "integer",
+            "description": "Internal ordering; frontend uses drag/drop, not a numeric input."
+          },
+          "execution_plan": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ResolutionExecutionPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "execution_status": {
+            "type": "string",
+            "enum": [
+              "unregistered",
+              "registered",
+              "created"
+            ]
+          },
+          "materialized_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "task": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "report": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReportApiResource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ResolutionRegistrationResponse": {
+        "type": "object",
+        "required": [
+          "success",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "success": {
+            "const": true
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "resolution"
+            ],
+            "properties": {
+              "resolution": {
+                "$ref": "#/components/schemas/MeetingResolutionApiResource"
+              }
+            },
+            "description": "Registration returns only resolution; there is no real data.task or data.report yet."
+          }
+        }
       }
     }
   },
   "servers": [
     {
       "url": "https://taskover.ir",
-      "description": "Verified public deployment; API base is https://taskover.ir/api/v1"
+      "description": "Existing deployment domain; local changes in this specification are not yet deployed."
     }
   ],
   "x-deployment": {
-    "status": "deployed",
+    "status": "local_changes_not_deployed",
     "api_base_url": "https://taskover.ir/api/v1",
-    "base_commit": "231954cb3d3c8c1dc0dd7fe7df2be0636d366d9f",
+    "base_commit": "d6ead46ec4fd489c2c4839265dffe29960a28a60",
     "previous_deployment": {
       "status": "deployed",
       "api_base_url": "https://taskover.ir/api/v1",
@@ -17490,14 +17805,14 @@
         "api_base_url": "/api/v1"
       }
     },
-    "route_definitions": 90,
-    "http_operations": 92,
-    "route_fingerprint_sha256": "cbf9118ba184da00a302d4d529436a6069de983a33440d5b4c658233e99ba45d",
-    "generated_at": "2026-10-28T10:54:00.654011+00:00",
-    "source": "Deployed main Laravel route table and reviewed signature resources. Server schema and read-only API smoke verified.",
-    "application_commit": "2be8c9b3417eb6d46a130e36ad309e3f98e5b0bd",
-    "deployed_at": "2026-10-28T10:49:37.236397+00:00",
-    "migration": "2026_10_28_000000_add_report_source_to_tasks_table: applied",
+    "route_definitions": 92,
+    "http_operations": 94,
+    "route_fingerprint_sha256": "b9830f60ceed2511669e20ba9076565c40e84e512b6b32bf25cf92beef176fc1",
+    "generated_at": "2026-10-31T21:18:31.754605+00:00",
+    "source": "Local Laravel route table, services, resources, requests and verified tests. Not deployed.",
+    "application_commit": null,
+    "deployed_at": null,
+    "migration": "2026_10_31_000000_add_duration_to_meetings: not applied to production",
     "previous_live_version": {
       "status": "deployed",
       "api_base_url": "https://taskover.ir/api/v1",
@@ -17511,7 +17826,20 @@
       "deployed_at": "2026-10-27T13:26:50.257596+00:00",
       "migration": "2026_10_27_000000_create_meeting_signatures_table"
     },
-    "local_base_commit": "514714dd703d84d5ce78463b91feb5954ccd10f4"
+    "local_base_commit": "d6ead46ec4fd489c2c4839265dffe29960a28a60",
+    "previous_contract_release": {
+      "status": "deployed",
+      "application_commit": "2be8c9b3417eb6d46a130e36ad309e3f98e5b0bd",
+      "deployed_at": "2026-10-28T10:49:37.236397+00:00",
+      "migration": "2026_10_28_000000_add_report_source_to_tasks_table: applied"
+    },
+    "local_backend_base_commit": "d6ead46",
+    "local_frontend_base_commit": "6165993",
+    "local_path_count": 71,
+    "local_http_operation_count": 94,
+    "local_route_fingerprint_sha256": "b9830f60ceed2511669e20ba9076565c40e84e512b6b32bf25cf92beef176fc1",
+    "local_note": "Not pushed or deployed. Existing nested deployment records are historical.",
+    "branch": "main"
   },
   "x-frontend-integration": {
     "headers": {
@@ -17583,7 +17911,7 @@
       "activation": "Deactivation preserves exact previous status and timestamps. Inactive reports allow reads and authorized report deletion, but no edits/send/view marking/comment mutations/reactions/mention lookup. Activation needs a stored known previous state; legacy unknown state returns409. Linked report edit/delete still requires scheduled meeting; send/activation/comments retain existing meeting-state rules."
     },
     "verification": {
-      "status": "deployed",
+      "status": "local_changes_not_deployed",
       "prior_deployment_verification": {
         "local_sqlite": {
           "passed": 108,
@@ -17979,6 +18307,78 @@
             }
           ]
         }
+      },
+      "meeting_creation_rules": {
+        "state": "local_changes_not_deployed",
+        "sqlite": {
+          "tests": 152,
+          "assertions": 1929,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 2,
+          "passed": 150
+        },
+        "mysql_meeting_regression": {
+          "tests": 55,
+          "assertions": 721,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "passed": 55
+        },
+        "mysql_additional_disjoint_reported_regression": {
+          "tests": 4,
+          "assertions": 32,
+          "errors": 0,
+          "failures": 0,
+          "skipped": 0,
+          "passed": 4
+        },
+        "mysql_unique_passed": 59,
+        "frontend_tests": {
+          "tests": 323,
+          "passed": 323,
+          "failed": 0,
+          "runtime": "Node 22.23.4"
+        },
+        "frontend_build": "Next.js optimized build passed, 24 static pages",
+        "validation": "Internal refs and JSON schemas checked; all 70 paths / 93 operations match Laravel; dashboard paths unchanged.",
+        "limits": [
+          "Selected related backend suites, not full project suite.",
+          "Two MySQL-only dashboard tests skipped on SQLite; this MySQL run covers meeting and ReportedBugs suites.",
+          "No browser click test and no production test/deployment for these changes."
+        ]
+      },
+      "meeting_execution_local": {
+        "sqlite": {
+          "tests": 166,
+          "passed": 164,
+          "skipped": 2,
+          "failed": 0,
+          "assertions": 2126
+        },
+        "mysql_main": {
+          "tests": 153,
+          "passed": 152,
+          "skipped": 1,
+          "failed": 0,
+          "assertions": 1971
+        },
+        "mysql_additional_disjoint": {
+          "tests": 3,
+          "passed": 3,
+          "skipped": 0,
+          "failed": 0,
+          "assertions": 36
+        },
+        "frontend": {
+          "tests": 330,
+          "passed": 330,
+          "failed": 0
+        },
+        "next_build": "passed,24 static pages",
+        "lint": "passed,0 warnings",
+        "production_tested": false
       }
     },
     "mentions": {
@@ -18010,7 +18410,8 @@
       "content_scope": "Meeting text/date/time/chairman/secretary, attendee IDs, agenda text/order, resolution text/type/order and task/report link IDs. Excludes live linked task/report content/progress, user profile/signature image, view state and lifecycle timestamps.",
       "independent": "Viewing does not sign. Signing does not view or complete. Completion does not require signatures. Existing edit/complete locks remain unchanged.",
       "cryptographic_signing": false,
-      "frontend_source_changed": false
+      "frontend_source_changed": false,
+      "execution": "Sign only after completion. All attendees sign the same immutable plan version; last signature creates outputs once and rolls back entirely on error. These are authenticated acknowledgments, not cryptographic signatures."
     },
     "report_tasks": {
       "deployment": "DEPLOYED on https://taskover.ir/api/v1; migration applied. Frontend may now integrate the documented routes.",
@@ -18038,17 +18439,37 @@
       }
     },
     "meeting_resolution_integration": {
-      "link_existing": {
-        "method": "POST",
-        "path": "/api/v1/meetings/{meeting}/resolutions/{resolution}/link-task",
-        "body": {
-          "task_id": 801
-        }
-      },
-      "secretary_permission": "Read data.meeting.allowed_actions.manage_resolutions and complete. Active chairman/secretary of this meeting may manage scheduled resolutions without global management/complete permissions. Completion requires at least one resolution. This exception does not grant task/report module permissions or authority over unrelated meetings.",
-      "resolution_data": "GET /api/v1/meetings/{meeting}: data.meeting.resolutions contains id, agenda_item_id, title, description, resolution_type, sort_order, task summary/report, created_at, updated_at. Join agenda_item_id to agenda_items in same response. GET /api/v1/tasks/{id} for full linked task (separate authorization).",
-      "completion": "Existing POST /api/v1/meetings/{meeting}/complete remains; meeting status completed enables attendee acknowledgments via existing sign endpoint. No extra completion status introduced.",
-      "missing_source_text": "Requirement sections between the partial section 1 and final deliverables were not supplied. No extra workflow or permission inferred."
+      "registration_task": "POST /api/v1/meetings/{meeting}/resolutions/{resolution}/create-task => 200 data.resolution, no data.task",
+      "registration_report": "POST /api/v1/meetings/{meeting}/resolutions/{resolution}/report => 200 data.resolution, no data.report",
+      "steps": [
+        "Create/edit meeting and resolutions using existing policy rules.",
+        "Register every task/report form. Return UI to meeting detail; preserve plan on reopen.",
+        "Complete meeting only when execution_readiness.forms_complete is true and allowed_actions.complete is true.",
+        "Display signed business plan fields and attachments, obtain explicit consent, POST sign with current content_version.",
+        "Final signature materializes all outputs atomically; refresh meetings, tasks, reports and dashboard queries."
+      ],
+      "link_existing_task": "Disabled409; historical associations remain readable.",
+      "reorder": "PUT /api/v1/meetings/{meeting}/resolutions/order with every resolution_id once; fixed output order.",
+      "members": "Task assignees/followers/supervisors and report recipients/CC must be meeting attendees AND satisfy existing module/organizational validation.",
+      "submission_type": "No selector in resolution UI. Backend derives assignment for a single self assignee, otherwise request. Generic task/report-to-task APIs retain their existing submission_type requirement."
+    },
+    "meeting_creation_rules": {
+      "status": "local_not_deployed",
+      "chairman": "Authenticated creator, fixed at creation; existing historical chairmen not rewritten. Only chairman can start.",
+      "secretary": "Creator or strict organizational descendant; all depths; active users only.",
+      "attendees": "Strict descendants, excluding selected officers in UI. Officer memberships remain once for signing/view lists.",
+      "eligibility": "GET /api/v1/meetings/eligible-users; editing passes meeting_id and always uses original creator scope.",
+      "duration": "Integer minutes unchanged on API; one displayed workday =480min. 1 day4h=720min. No historical duration conversion.",
+      "summary": "Required, nonblank, max500 on creation, including draft; mandatory on publish.",
+      "resolutions": "Optional initial_resolutions title/description on POST meetings. Draft/scheduled text CRUD through existing resolution endpoints. Tasks/reports created only once scheduled.",
+      "views": "attendees[].is_viewed + viewed_at from existing meeting_acknowledgements; explicit existing POST view behavior retained. Reading metadata or signing does not manufacture views.",
+      "signatures": "Non-null new duration included in content hash; historical null duration omitted from snapshot to preserve old versions. No legacy data backfill.",
+      "missing_item_9": "User item9 was blank; no extra rule inferred."
+    },
+    "action_indicators": {
+      "resources": "requires_action on tasks, reports and meeting details/list summaries; only current actor actions. Reduced-motion users see a static red dot.",
+      "dashboard": "cards.*.action_required_count is independent from existing count and denominators. Meetings: pending signature/explicit acknowledgment. Reports: sent report where actor is recipient. Tasks: pending authorized review/start/progress/completion/revision/close actions.",
+      "date_display": "Render weekdays on saved dates, using Asia/Tehran for timestamps; API Gregorian date/time formats remain unchanged."
     }
   }
 }

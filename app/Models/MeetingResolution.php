@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MeetingResolution extends Model
 {
-    protected $fillable = ['meeting_id', 'agenda_item_id', 'title', 'description', 'resolution_type', 'task_id', 'created_by', 'sort_order'];
+    protected $fillable = ['meeting_id', 'agenda_item_id', 'title', 'description', 'resolution_type', 'task_id', 'created_by', 'sort_order', 'execution_plan', 'materialized_at'];
 
     protected static function booted(): void
     {
@@ -45,6 +45,6 @@ class MeetingResolution extends Model
 
     protected function casts(): array
     {
-        return ['resolution_type' => MeetingResolutionType::class];
+        return ['resolution_type' => MeetingResolutionType::class, 'execution_plan' => 'array', 'materialized_at' => 'datetime'];
     }
 }

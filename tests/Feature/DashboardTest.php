@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Models\AccessRole;
 use App\Models\Meeting;
 use App\Models\MeetingResolution;
+use App\Models\MeetingSignature;
 use App\Models\Permission;
 use App\Models\Report;
 use App\Models\Tag;
@@ -14,6 +15,7 @@ use App\Models\User;
 use App\Services\DashboardProjectStatistics;
 use App\Services\DashboardReadSnapshot;
 use App\Services\DashboardScheduleStatistics;
+use App\Services\MeetingExecutionService;
 use App\Services\TaskVisibilityService;
 use App\Support\Permissions;
 use Carbon\CarbonImmutable;
@@ -102,7 +104,7 @@ class DashboardTest extends TestCase
             }
         }
         foreach ($data['cards'] as $card) {
-            $this->assertSame(['available' => true, 'count' => 0], $card);
+            $this->assertSame(['available' => true, 'count' => 0, 'action_required_count' => 0], $card);
         }
         $this->getJson('/api/v1/dashboard?projects_page=0&projects_per_page=101')->assertUnprocessable();
     }
@@ -302,8 +304,9 @@ class DashboardTest extends TestCase
         $meeting = $this->meeting($actor, ['status' => 'scheduled']);
         $resolution = MeetingResolution::create(['meeting_id' => $meeting->id, 'title' => 'Report resolution',
             'resolution_type' => 'report', 'created_by' => $actor->id, 'sort_order' => 1]);
+        $meeting->attendees()->attach($actor);
         $this->postJson("/api/v1/meetings/{$meeting->id}/resolutions/{$resolution->id}/report",
-            [...$payload, 'action_type' => 'needs_action'])->assertCreated()->assertJsonPath('data.report.action_type', 'needs_action');
+            [...$payload, 'action_type' => 'needs_action'])->assertOk()->assertJsonPath('data.resolution.execution_plan.payload.action_type', 'needs_action');
         $this->postJson('/api/v1/reports', [...$payload, 'action_type' => 'sent'])->assertUnprocessable()->assertJsonValidationErrors('action_type');
         $this->patchJson("/api/v1/reports/$id", ['action_type' => 'invalid'])->assertUnprocessable()->assertJsonValidationErrors('action_type');
     }
@@ -692,5 +695,19 @@ class DashboardTest extends TestCase
             $this->assertSame(0, $item['count']);
             $this->assertEquals(0, $item['percentage']);
         }
+    }
+
+    public function test_pending_signature_counter_uses_current_content_and_actor_visibility(): void
+    {
+        $actor = User::factory()->create();
+        $meeting = $this->meeting($actor, ['status' => 'completed']);
+        $meeting->attendees()->sync([$actor->id]);
+        $version = app(MeetingExecutionService::class)->refreshVersion($meeting);
+        Sanctum::actingAs($actor);
+        $this->getJson('/api/v1/dashboard')->assertOk()->assertJsonPath('data.cards.meetings.action_required_count', 1);
+        MeetingSignature::create(['meeting_id' => $meeting->id, 'user_id' => $actor->id, 'content_version' => $version, 'signed_at' => now(), 'content_snapshot' => []]);
+        $this->getJson('/api/v1/dashboard')->assertOk()->assertJsonPath('data.cards.meetings.action_required_count', 0);
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson('/api/v1/dashboard')->assertOk()->assertJsonPath('data.cards.meetings.action_required_count', 0);
     }
 }

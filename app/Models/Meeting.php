@@ -15,7 +15,7 @@ class Meeting extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'title', 'short_description', 'location', 'meeting_date', 'start_time', 'status',
+        'title', 'short_description', 'location', 'meeting_date', 'start_time', 'duration_minutes', 'status',
         'chairman_user_id', 'secretary_user_id', 'created_by',
         'submitted_at', 'completed_at', 'started_at',
     ];
@@ -81,6 +81,7 @@ class Meeting extends Model
     protected function casts(): array
     {
         return [
+            'duration_minutes' => 'integer',
             'meeting_date' => 'date',
             'start_time' => 'datetime:H:i',
             'status' => MeetingStatus::class,

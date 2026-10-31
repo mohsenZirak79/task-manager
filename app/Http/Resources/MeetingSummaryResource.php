@@ -13,11 +13,13 @@ class MeetingSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'requires_action' => (bool) $this->requires_action,
             'title' => $this->title,
             'short_description' => $this->short_description,
             'location' => $this->location,
             'meeting_date' => $this->meeting_date?->toDateString(),
             'start_time' => $this->start_time?->format('H:i'),
+            'duration_minutes' => $this->duration_minutes,
             'status' => $this->status->value,
             'chairman' => $this->chairman ? new UserSummaryResource($this->chairman) : null,
             'secretary' => $this->secretary ? new UserSummaryResource($this->secretary) : null,
