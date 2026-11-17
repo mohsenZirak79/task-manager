@@ -3,11 +3,14 @@
 namespace App\Http\Requests;
 
 use App\Enums\MeetingStatus;
+use App\Http\Requests\Concerns\ValidatesListFilters;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class IndexMeetingRequest extends FormRequest
 {
+    use ValidatesListFilters;
+
     public function authorize(): bool
     {
         return true;
@@ -16,11 +19,10 @@ class IndexMeetingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['sometimes', Rule::enum(MeetingStatus::class)],
-            'from_date' => ['sometimes', 'date_format:Y-m-d'],
-            'to_date' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:from_date'],
-            'search' => ['sometimes', 'string', 'max:255'],
-            'per_page' => ['sometimes', 'integer', 'between:1,100'],
+            ...$this->textFilterRules(['search', 'title', 'location']),
+            'status' => ['nullable', Rule::enum(MeetingStatus::class)],
+            ...$this->dateRangeRules('from_date', 'to_date'),
+            ...$this->paginationRules(),
         ];
     }
 }

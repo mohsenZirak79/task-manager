@@ -9,6 +9,7 @@ use App\Models\MeetingResolution;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\AccessRoles;
+use App\Support\ListFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
@@ -62,23 +63,25 @@ class MeetingService
 
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
-        return $this->visibleQuery($actor)
-            ->select('meetings.*')->selectRaw('meetings.id IN ('.$this->actionRequiredQuery($actor)->select('meetings.id')->toSql().') AS requires_action', $this->actionRequiredQuery($actor)->select('meetings.id')->getBindings())
-            ->with(['chairman', 'secretary', 'creator'])
-            ->withCount(['attendees', 'agendaItems', 'resolutions'])
-            ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
-            ->when($filters['from_date'] ?? null, fn ($query, string $date) => $query->whereDate('meeting_date', '>=', $date))
-            ->when($filters['to_date'] ?? null, fn ($query, string $date) => $query->whereDate('meeting_date', '<=', $date))
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('short_description', 'like', "%{$search}%")
-                        ->orWhere('location', 'like', "%{$search}%");
-                });
-            })
-            ->orderByDesc('meeting_date')
-            ->latest('id')
-            ->paginate((int) ($filters['per_page'] ?? 15));
+        $actions = $this->actionRequiredQuery($actor)->select('meetings.id');
+        $query = $this->visibleQuery($actor)
+            ->select('meetings.*')->selectRaw('meetings.id IN ('.$actions->toSql().') AS requires_action', $actions->getBindings())
+            ->with(['chairman', 'secretary', 'creator'])->withCount(['attendees', 'agendaItems', 'resolutions']);
+        if (ListFilters::has($filters, 'status')) {
+            $query->where('meetings.status', $filters['status']);
+        }
+        ListFilters::textColumns($query, $filters, ['title' => 'meetings.title', 'location' => 'meetings.location']);
+        ListFilters::dateRange($query, $filters, 'meetings.meeting_date', 'from_date', 'to_date');
+        if (ListFilters::has($filters, 'search')) {
+            $query->where(function (Builder $text) use ($filters): void {
+                foreach (['meetings.title', 'meetings.short_description', 'meetings.location'] as $column) {
+                    ListFilters::contains($text, $column, $filters['search'], 'or');
+                }
+            });
+        }
+
+        return $query->orderByDesc('meeting_date')->latest('meetings.id')
+            ->paginate((int) ($filters['per_page'] ?? 15), ['*'], 'page', (int) ($filters['page'] ?? 1));
     }
 
     public function create(array $data, User $actor): Meeting

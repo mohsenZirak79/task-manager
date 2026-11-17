@@ -6,9 +6,11 @@ use App\Models\AccessRole;
 use App\Models\OrgPosition;
 use App\Models\User;
 use App\Support\AccessRoles;
+use App\Support\ListFilters;
 use App\Support\MobileNumber;
 use App\Support\Permissions;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,32 +20,60 @@ class UserService
 {
     private const RELATIONS = ['avatar', 'specialDates', 'accessRoles.permissions', 'orgPositions'];
 
+    public function visibleQuery(User $actor): Builder
+    {
+        return User::query()->when(! $actor->isSuperAdmin(), fn (Builder $users) => $users->whereDoesntHave(
+            'accessRoles', fn (Builder $roles) => $roles->where('slug', AccessRoles::SUPER_ADMIN)->where('is_system', true),
+        ));
+    }
+
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
-        $hasActiveFilter = array_key_exists('is_active', $filters) && $filters['is_active'] !== null && $filters['is_active'] !== '';
-        $isActive = $hasActiveFilter ? filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null;
-        $perPage = min(100, max(1, (int) ($filters['per_page'] ?? 15)));
+        $query = $this->visibleQuery($actor)->with(self::RELATIONS)->withCount(['assignedTasks as tasks_count']);
+        if (ListFilters::has($filters, 'search')) {
+            $query->where(function (Builder $text) use ($filters): void {
+                foreach (['first_name', 'last_name', 'username', 'mobile', 'email', 'org_code'] as $column) {
+                    ListFilters::contains($text, 'users.'.$column, $filters['search'], 'or');
+                }
+                ListFilters::fullName($text, $filters['search'], 'or');
+                $parts = preg_split('/\s+/u', trim($filters['search']), -1, PREG_SPLIT_NO_EMPTY);
+                if (count($parts) > 1) {
+                    $text->orWhere(function (Builder $name) use ($parts): void {
+                        foreach ($parts as $part) {
+                            $name->where(function (Builder $piece) use ($part): void {
+                                ListFilters::contains($piece, 'users.first_name', $part);
+                                ListFilters::contains($piece, 'users.last_name', $part, 'or');
+                            });
+                        }
+                    });
+                }
+            });
+        }
+        ListFilters::textColumns($query, $filters, ['username' => 'users.username', 'email' => 'users.email', 'mobile' => 'users.mobile']);
+        if (ListFilters::has($filters, 'full_name')) {
+            ListFilters::fullName($query, $filters['full_name']);
+        }
+        if (ListFilters::has($filters, 'org_position_id')) {
+            $query->whereHas('orgPositions', fn (Builder $positions) => $positions->whereKey($filters['org_position_id']));
+        }
+        if (ListFilters::has($filters, 'org_position_title')) {
+            $query->whereHas('orgPositions', fn (Builder $positions) => ListFilters::contains($positions, 'org_positions.title', $filters['org_position_title']));
+        }
+        if (ListFilters::has($filters, 'is_active')) {
+            $query->where('users.is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOLEAN));
+        }
+        foreach (['last_login', 'last_activity'] as $prefix) {
+            ListFilters::dateRange($query, $filters, 'users.'.$prefix.'_at', $prefix.'_from', $prefix.'_to', true);
+        }
+        if (ListFilters::has($filters, 'tasks_count_min')) {
+            $query->has('assignedTasks', '>=', (int) $filters['tasks_count_min']);
+        }
+        if (ListFilters::has($filters, 'tasks_count_max')) {
+            $query->has('assignedTasks', '<=', (int) $filters['tasks_count_max']);
+        }
 
-        return User::query()
-            ->with(self::RELATIONS)
-            ->withCount(['assignedTasks as tasks_count'])
-            ->when(! $actor->isSuperAdmin(), fn ($query) => $query->whereDoesntHave(
-                'accessRoles',
-                fn ($query) => $query->where('slug', AccessRoles::SUPER_ADMIN)->where('is_system', true),
-            ))
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('first_name', 'like', "%{$search}%")
-                        ->orWhere('username', 'like', "%{$search}%")
-                        ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('mobile', 'like', "%{$search}%")
-                        ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('org_code', 'like', "%{$search}%");
-                });
-            })
-            ->when($isActive !== null, fn ($query) => $query->where('is_active', $isActive))
-            ->latest()
-            ->paginate($perPage);
+        return $query->latest('users.created_at')->latest('users.id')
+            ->paginate((int) ($filters['per_page'] ?? 15), ['*'], 'page', (int) ($filters['page'] ?? 1));
     }
 
     public function register(array $data): User

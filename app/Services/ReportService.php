@@ -13,6 +13,7 @@ use App\Models\Tag;
 use App\Models\Task;
 use App\Models\User;
 use App\Support\AccessRoles;
+use App\Support\ListFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Arr;
@@ -47,31 +48,40 @@ class ReportService
 
     public function paginate(array $filters, User $actor): LengthAwarePaginator
     {
-        $query = $this->visibleQuery($actor)
-            ->with($this->relations())
-            ->latest('reports.id');
+        $query = $this->visibleQuery($actor)->with($this->relations())->latest('reports.id');
         $this->withVisibleTaskCount($query, $actor);
-
-        $query->when($filters['search'] ?? null, function ($query, string $search): void {
-            $query->where(function ($query) use ($search): void {
-                $query->where('title', 'like', "%{$search}%")
-                    ->orWhere('report_number', 'like', "%{$search}%")
-                    ->orWhere('short_description', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhereHas('resolution', fn ($query) => $query->where('title', 'like', "%{$search}%"));
+        if (ListFilters::has($filters, 'search')) {
+            $query->where(function (Builder $text) use ($filters): void {
+                foreach (['reports.title', 'reports.report_number', 'reports.short_description', 'reports.description'] as $column) {
+                    ListFilters::contains($text, $column, $filters['search'], 'or');
+                }
+                $text->orWhereHas('resolution', fn (Builder $resolution) => ListFilters::contains($resolution, 'meeting_resolutions.title', $filters['search']));
             });
-        });
+        }
+        ListFilters::textColumns($query, $filters, ['title' => 'reports.title']);
+        if (ListFilters::has($filters, 'report_number')) {
+            $cast = $query->getConnection()->getDriverName() === 'mysql' ? 'CHAR' : 'TEXT';
+            ListFilters::containsExpression($query, 'COALESCE(reports.report_number, CAST(reports.id AS '.$cast.'))', $filters['report_number']);
+        }
+        foreach (['recipient_search' => 'recipient', 'creator_search' => 'creator'] as $parameter => $relation) {
+            if (ListFilters::has($filters, $parameter)) {
+                $query->whereHas($relation, fn (Builder $users) => ListFilters::fullName($users, $filters[$parameter]));
+            }
+        }
+        foreach (['status' => 'status', 'creator_user_id' => 'created_by', 'recipient_user_id' => 'recipient_user_id', 'resolution_id' => 'meeting_resolution_id'] as $parameter => $column) {
+            if (ListFilters::has($filters, $parameter)) {
+                $query->where('reports.'.$column, $filters[$parameter]);
+            }
+        }
+        if (ListFilters::has($filters, 'meeting_id')) {
+            $query->whereHas('resolution', fn (Builder $resolution) => $resolution->where('meeting_id', $filters['meeting_id']));
+        }
+        if (ListFilters::has($filters, 'tag_id')) {
+            $query->whereHas('tags', fn (Builder $tags) => $tags->whereKey($filters['tag_id']));
+        }
+        ListFilters::dateRange($query, $filters, 'reports.created_at', 'created_from', 'created_to', true);
 
-        $query->when($filters['status'] ?? null, fn ($query, $status) => $query->where('status', $status));
-        $query->when($filters['creator_user_id'] ?? null, fn ($query, $id) => $query->where('created_by', $id));
-        $query->when($filters['meeting_id'] ?? null, fn ($query, $id) => $query
-            ->whereHas('resolution', fn ($query) => $query->where('meeting_id', $id)));
-        $query->when($filters['resolution_id'] ?? null, fn ($query, $id) => $query->where('meeting_resolution_id', $id));
-        $query->when($filters['recipient_user_id'] ?? null, fn ($query, $id) => $query->where('recipient_user_id', $id));
-        $query->when($filters['tag_id'] ?? null, fn ($query, $id) => $query
-            ->whereHas('tags', fn ($query) => $query->whereKey($id)));
-
-        return $query->paginate($filters['per_page'] ?? 15);
+        return $query->paginate((int) ($filters['per_page'] ?? 15), ['*'], 'page', (int) ($filters['page'] ?? 1));
     }
 
     public function find(Report $report): Report

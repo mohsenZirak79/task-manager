@@ -12,7 +12,9 @@ use App\Models\Tag;
 use App\Models\Task;
 use App\Models\TaskPlanningItem;
 use App\Models\User;
+use App\Support\ListFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -24,68 +26,83 @@ class TaskService
 {
     public function __construct(private readonly TaskVisibilityService $visibility) {}
 
+    public function listingQuery(array $filters, User $actor): Builder
+    {
+        $scope = $this->visibility->resolveScope($filters['scope'] ?? null, $filters['submission_type'] ?? null);
+        $query = $this->visibility->apply($this->visibility->visibleQuery($actor), $actor, $scope);
+        if (ListFilters::has($filters, 'submission_type')) {
+            $query->where('submission_type', $filters['submission_type']);
+        }
+
+        return $query;
+    }
+
     public function paginate(array $filters, User $actor, ?Report $sourceReport = null): LengthAwarePaginator
     {
-        $perPage = (int) ($filters['per_page'] ?? 15);
-        $sort = $filters['sort'] ?? 'newest';
-
-        $scope = $this->visibility->resolveScope($filters['scope'] ?? null, $filters['submission_type'] ?? null);
-        $base = $this->visibility->visibleQuery($actor)->with($this->summaryRelations());
-        $query = ($sourceReport === null
-            ? $this->visibility->apply($base, $actor, $scope)
-            : $base->where('source_report_id', $sourceReport->id))
-            ->when($filters['search'] ?? null, function ($query, string $search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('title', 'like', "%{$search}%")
-                        ->orWhere('short_description', 'like', "%{$search}%")
-                        ->orWhere('request_description', 'like', "%{$search}%");
+        $query = ($sourceReport === null ? $this->listingQuery($filters, $actor)
+            : $this->visibility->visibleQuery($actor)->where('source_report_id', $sourceReport->id))
+            ->with($this->summaryRelations());
+        if (ListFilters::has($filters, 'search')) {
+            $query->where(function (Builder $text) use ($filters): void {
+                foreach (['tasks.title', 'tasks.short_description', 'tasks.request_description'] as $column) {
+                    ListFilters::contains($text, $column, $filters['search'], 'or');
+                }
+            });
+        }
+        ListFilters::textColumns($query, $filters, ['title' => 'tasks.title']);
+        if (ListFilters::has($filters, 'description')) {
+            $grammar = $query->getQuery()->getGrammar();
+            ListFilters::containsExpression($query, 'COALESCE('.$grammar->wrap('tasks.short_description').', '.$grammar->wrap('tasks.request_description').", '')", $filters['description']);
+        }
+        if (ListFilters::has($filters, 'status')) {
+            $query->where('tasks.status', $filters['status']);
+        }
+        if (ListFilters::has($filters, 'user_id')) {
+            $query->where(function (Builder $people) use ($filters): void {
+                foreach (['created_by', 'requester_id', 'financial_provider_user_id', 'equipment_provider_user_id'] as $column) {
+                    $people->orWhere('tasks.'.$column, $filters['user_id']);
+                }
+                $people->orWhereHas('participantRecords', fn (Builder $person) => $person->where('user_id', $filters['user_id']));
+            });
+        }
+        foreach (['assignee_id' => TaskParticipantRole::Assignee, 'follower_id' => TaskParticipantRole::Follower, 'supervisor_id' => TaskParticipantRole::Supervisor] as $parameter => $role) {
+            if (ListFilters::has($filters, $parameter)) {
+                $query->whereHas('participantRecords', fn (Builder $person) => $person->where('user_id', $filters[$parameter])->where('role', $role->value));
+            }
+        }
+        if (ListFilters::has($filters, 'assignee_search')) {
+            $query->whereHas('assignees', fn (Builder $users) => ListFilters::fullName($users, $filters['assignee_search']));
+        }
+        foreach (['financial' => 'financialProvider', 'equipment' => 'equipmentProvider'] as $prefix => $relation) {
+            $search = $prefix.'_search';
+            if (ListFilters::has($filters, $search)) {
+                $query->where(function (Builder $combined) use ($filters, $search, $prefix, $relation): void {
+                    ListFilters::contains($combined, 'tasks.'.$prefix.'_resources', $filters[$search]);
+                    $combined->orWhereHas($relation, fn (Builder $users) => ListFilters::fullName($users, $filters[$search]));
                 });
-            })
-            ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
-            ->when(
-                $filters['submission_type'] ?? null,
-                fn ($query, string $submissionType) => $query->where('submission_type', $submissionType),
-            )
-            ->when($filters['user_id'] ?? null, function ($query, int|string $userId): void {
-                $query->where(function ($query) use ($userId): void {
-                    $query->where('created_by', $userId)
-                        ->orWhere('requester_id', $userId)
-                        ->orWhere('financial_provider_user_id', $userId)
-                        ->orWhere('equipment_provider_user_id', $userId)
-                        ->orWhereHas('participantRecords', fn ($query) => $query->where('user_id', $userId));
-                });
-            })
-            ->when($filters['assignee_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
-                'participantRecords',
-                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Assignee->value),
-            ))
-            ->when($filters['follower_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
-                'participantRecords',
-                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Follower->value),
-            ))
-            ->when($filters['supervisor_id'] ?? null, fn ($query, int|string $id) => $query->whereHas(
-                'participantRecords',
-                fn ($query) => $query->where('user_id', $id)->where('role', TaskParticipantRole::Supervisor->value),
-            ))
-            ->when($filters['tag'] ?? null, fn ($query, string $tag) => $query->whereHas(
-                'tags',
-                fn ($query) => $query->where('title', 'like', "%{$tag}%"),
-            ))
-            ->when($filters['due_from'] ?? null, fn ($query, string $date) => $query->whereDate('due_date', '>=', $date))
-            ->when($filters['due_to'] ?? null, fn ($query, string $date) => $query->whereDate('due_date', '<=', $date))
-            ->when($filters['created_from'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['created_to'] ?? null, fn ($query, string $date) => $query->whereDate('created_at', '<=', $date));
-
-        match ($sort) {
-            'oldest' => $query->oldest()->oldest('id'),
-            'longest_duration' => $query->orderByDesc('duration_minutes')->latest('id'),
-            'shortest_duration' => $query->orderBy('duration_minutes')->latest('id'),
-            'highest_progress' => $query->orderByDesc('progress_percentage')->latest('id'),
-            'lowest_progress' => $query->orderBy('progress_percentage')->latest('id'),
-            default => $query->latest()->latest('id'),
+            }
+            $id = $prefix.'_provider_user_id';
+            if (ListFilters::has($filters, $id)) {
+                $query->where('tasks.'.$id, $filters[$id]);
+            }
+            ListFilters::numberRange($query, $filters, 'tasks.'.$prefix.'_estimated_cost', $prefix.'_estimated_cost_min', $prefix.'_estimated_cost_max');
+        }
+        if (ListFilters::has($filters, 'tag')) {
+            $query->whereHas('tags', fn (Builder $tags) => ListFilters::contains($tags, 'tags.title', $filters['tag']));
+        }
+        ListFilters::numberRange($query, $filters, 'tasks.duration_minutes', 'duration_minutes_min', 'duration_minutes_max');
+        ListFilters::dateRange($query, $filters, 'tasks.due_date', 'due_from', 'due_to');
+        ListFilters::dateRange($query, $filters, 'tasks.created_at', 'created_from', 'created_to', true);
+        match ($filters['sort'] ?? 'newest') {
+            'oldest' => $query->oldest('tasks.created_at')->oldest('tasks.id'),
+            'longest_duration' => $query->orderByDesc('duration_minutes')->latest('tasks.id'),
+            'shortest_duration' => $query->orderBy('duration_minutes')->latest('tasks.id'),
+            'highest_progress' => $query->orderByDesc('progress_percentage')->latest('tasks.id'),
+            'lowest_progress' => $query->orderBy('progress_percentage')->latest('tasks.id'),
+            default => $query->latest('tasks.created_at')->latest('tasks.id'),
         };
 
-        return $query->paginate($perPage);
+        return $query->paginate((int) ($filters['per_page'] ?? 15), ['*'], 'page', (int) ($filters['page'] ?? 1));
     }
 
     public function prepareCreation(array $data, User $actor): array

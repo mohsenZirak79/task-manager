@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\ListFilterOptionsController;
 use App\Http\Controllers\Api\V1\MeetingController;
 use App\Http\Controllers\Api\V1\MeetingResolutionController;
 use App\Http\Controllers\Api\V1\OrgPositionController;
@@ -64,6 +65,7 @@ Route::prefix('v1')->group(function (): void {
             Route::get('reports/{report}/tasks', [ReportTaskController::class, 'index'])->middleware(['permission:'.Permissions::REPORTS_VIEW, 'permission:'.Permissions::TASKS_VIEW])->whereNumber('report');
             Route::get('reports', [ReportController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
             Route::post('reports', [ReportController::class, 'storeStandalone'])->middleware('permission:'.Permissions::REPORTS_MANAGE);
+            Route::get('reports/filter-options/users', [ListFilterOptionsController::class, 'reportUsers'])->middleware('permission:'.Permissions::REPORTS_VIEW);
             Route::get('reports/eligible-users', [ReportController::class, 'eligibleUsers'])->middleware('permission:'.Permissions::REPORTS_MANAGE);
             Route::get('report-tags', [ReportTagController::class, 'index'])->middleware('permission:'.Permissions::REPORTS_VIEW);
             Route::post('reports/{report}/send', [ReportController::class, 'send'])->middleware('permission:'.Permissions::REPORTS_MANAGE)->whereNumber('report');
@@ -82,6 +84,7 @@ Route::prefix('v1')->group(function (): void {
 
             Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:'.Permissions::TASKS_CREATE);
+            Route::get('tasks/filter-options/users', [ListFilterOptionsController::class, 'taskUsers'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('tasks/eligible-users', [TaskController::class, 'eligibleUsers']);
             Route::get('task-tags', [TaskTagController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('tasks/{task}', [TaskController::class, 'show'])->middleware('permission:'.Permissions::TASKS_VIEW);
@@ -111,6 +114,7 @@ Route::prefix('v1')->group(function (): void {
             Route::match(['put', 'patch'], 'org-positions/{org_position}', [OrgPositionController::class, 'update'])->middleware('permission:'.Permissions::ORG_POSITIONS_UPDATE)->whereNumber('org_position');
             Route::delete('org-positions/{org_position}', [OrgPositionController::class, 'destroy'])->middleware('permission:'.Permissions::ORG_POSITIONS_DELETE)->whereNumber('org_position');
 
+            Route::get('users/filter-options/org-positions', [ListFilterOptionsController::class, 'userPositions'])->middleware('permission:'.Permissions::USERS_VIEW);
             Route::get('users', [UserController::class, 'index'])->middleware('permission:'.Permissions::USERS_VIEW);
             Route::post('users', [UserController::class, 'store'])->middleware('permission:'.Permissions::USERS_CREATE);
             Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:'.Permissions::USERS_VIEW);

@@ -2,10 +2,13 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesListFilters;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexUsersRequest extends FormRequest
 {
+    use ValidatesListFilters;
+
     public function authorize(): bool
     {
         return true;
@@ -14,10 +17,13 @@ class IndexUsersRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'search' => ['nullable', 'string', 'max:255'],
+            ...$this->textFilterRules(['search', 'username', 'full_name', 'email', 'mobile', 'org_position_title']),
+            'org_position_id' => ['nullable', 'integer', 'min:1', 'exists:org_positions,id'],
             'is_active' => ['nullable', 'boolean'],
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            ...$this->dateRangeRules('last_login_from', 'last_login_to'),
+            ...$this->dateRangeRules('last_activity_from', 'last_activity_to'),
+            ...$this->numberRangeRules('tasks_count_min', 'tasks_count_max'),
+            ...$this->paginationRules(),
         ];
     }
 }

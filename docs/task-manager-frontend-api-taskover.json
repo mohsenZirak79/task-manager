@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-11-01.meeting-execution-deployed-1",
-    "description": "Complete OpenAPI 3.1 inventory for the deployed TaskOver backend. Meeting participant rules, staged resolution registration, final-signature execution, ordering and action indicators are deployed. Public HTTPS pages and authentication boundaries plus authenticated origin read-only API smoke checks passed. Destructive business-workflow tests were run only on isolated test databases."
+    "version": "2026-11-17.column-filters-local-1",
+    "description": "Complete OpenAPI 3.1 inventory including independent column filters for tasks/requests, reports, meetings and users, scoped historical filter-option lookups, and prior local report-task metadata. New changes are local and not deployed. Existing envelopes, module permissions and scopes are preserved."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -1648,79 +1648,103 @@
             }
           }
         },
-        "description": "فهرست صفحه‌بندی‌شده جلساتی که کاربر عضو، سازنده، رئیس یا دبیر آن‌هاست؛ مدیران همه را می‌بینند",
+        "description": "فهرست صفحه‌بندی‌شده جلساتی که کاربر عضو، سازنده، رئیس یا دبیر آن‌هاست؛ مدیران همه را می‌بینند فیلتر ستون‌های مستقل و search با AND و ORهای داخل ستون گروه‌بندی می‌شوند؛ اعتبارسنجی پیش از SQL؛ فیلتر بر رکوردهای مجاز پیش از pagination؛ envelope قبلی حفظ شده است.",
         "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "جستجوی عمومی عنوان، خلاصه و مکان؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "فقط عنوان جلسه؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "description": "فقط مکان جلسه؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
           {
             "name": "status",
             "in": "query",
             "required": false,
+            "description": "وضعیت فعلی جلسه. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:draft,scheduled,completed,cancelled"
-              ],
               "enum": [
                 "draft",
                 "scheduled",
                 "completed",
                 "cancelled"
               ]
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "from_date",
             "in": "query",
             "required": false,
+            "description": "meeting_date؛ شامل هر دو روز؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date_format:Y-m-d"
-              ],
               "format": "date"
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "to_date",
             "in": "query",
             "required": false,
+            "description": "meeting_date؛ شامل هر دو روز؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date_format:Y-m-d",
-                "after_or_equal:from_date"
-              ],
               "format": "date"
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
-            "name": "search",
+            "name": "page",
             "in": "query",
             "required": false,
+            "description": "شماره صفحه؛ پیش‌فرض ۱؛ total و last_page پس از فیلتر محاسبه می‌شوند. این پارامتر قبلاً توسط Paginator مصرف می‌شد؛ اکنون اعتبارسنجی صریح هم دارد. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "string",
-                "max:255"
-              ],
-              "maxLength": 255
-            }
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "per_page",
             "in": "query",
             "required": false,
+            "description": "تعداد نتیجه در صفحه؛ پیش‌فرض ۱۵. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "between:1,100"
-              ]
-            }
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            },
+            "x-implementation": "existing_hardened"
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexMeetingRequest"
@@ -5694,131 +5718,180 @@
             }
           }
         },
-        "description": "فهرست گزارش‌های قابل مشاهده کاربر Report resources include task_suggestions, authorization-aware allowed_actions.create_task, tasks_url and visible tasks_count (null without tasks:view). Follow tasks_url for a paginated TaskResource list.",
+        "description": "فهرست گزارش‌های قابل مشاهده کاربر Report resources include task_suggestions, authorization-aware allowed_actions.create_task, tasks_url and visible tasks_count (null without tasks:view). Follow tasks_url for a paginated TaskResource list. فیلتر ستون‌های مستقل و search با AND و ORهای داخل ستون گروه‌بندی می‌شوند؛ اعتبارسنجی پیش از SQL؛ فیلتر بر رکوردهای مجاز پیش از pagination؛ envelope قبلی حفظ شده است.",
         "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "جستجوی عمومی عنوان، شماره، خلاصه، شرح و عنوان مصوبه؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "report_number",
+            "in": "query",
+            "required": false,
+            "description": "شماره نمایشی COALESCE(report_number, CAST(id AS text))؛ fallback فقط برای null؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "فقط عنوان گزارش؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "recipient_search",
+            "in": "query",
+            "required": false,
+            "description": "نام کامل مخاطب اصلی؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "creator_search",
+            "in": "query",
+            "required": false,
+            "description": "نام کامل سازنده؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "recipient_user_id",
+            "in": "query",
+            "required": false,
+            "description": "شناسه مخاطب اصلی مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "creator_user_id",
+            "in": "query",
+            "required": false,
+            "description": "شناسه سازنده مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "meeting_id",
+            "in": "query",
+            "required": false,
+            "description": "جلسه مرتبط مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "resolution_id",
+            "in": "query",
+            "required": false,
+            "description": "مصوبه مرتبط مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "tag_id",
+            "in": "query",
+            "required": false,
+            "description": "تگ مرتبط مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
           {
             "name": "status",
             "in": "query",
             "required": false,
+            "description": "status گردش گزارش، مستقل از action_type. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:draft,sent,viewed,inactive"
-              ],
               "enum": [
                 "draft",
                 "sent",
                 "viewed",
                 "inactive"
               ]
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
-            "name": "creator_user_id",
+            "name": "created_from",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "required": false,
+            "description": "created_at؛ روز شامل دو سر بر اساس Asia/Tehran و انتهای انحصاری ابتدای روز بعد؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "string",
-                "max:255"
-              ],
-              "maxLength": 255
-            }
+              "format": "date"
+            },
+            "x-implementation": "added"
           },
           {
-            "name": "meeting_id",
+            "name": "created_to",
             "in": "query",
             "required": false,
+            "description": "created_at؛ روز شامل دو سر بر اساس Asia/Tehran و انتهای انحصاری ابتدای روز بعد؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:meetings,id,deleted_at,\"NULL\""
-              ]
-            }
-          },
-          {
-            "name": "resolution_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:meeting_resolutions,id"
-              ]
-            }
-          },
-          {
-            "name": "recipient_user_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "tag_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:tags,id"
-              ]
-            }
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "added"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
+            "description": "شماره صفحه؛ پیش‌فرض ۱؛ total و last_page پس از فیلتر محاسبه می‌شوند. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "min:1"
-              ],
-              "minimum": 1
-            }
+              "minimum": 1,
+              "default": 1
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "per_page",
             "in": "query",
             "required": false,
+            "description": "تعداد نتیجه در صفحه؛ پیش‌فرض ۱۵. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "between:1,100"
-              ]
-            }
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            },
+            "x-implementation": "existing_hardened"
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexReportRequest"
@@ -8082,32 +8155,268 @@
             }
           }
         },
-        "description": "Default scope: request => created_by_me, assignment => assigned_to_me, no type => involved. involved requires a participant responsibility or financial provider relationship; creator/requester/equipment provider alone is insufficient for that list. The detail and dashboard visibility use the shared canView-equivalent query. Oldest/newest pagination uses id to break created_at ties.",
+        "description": "Default scope: request => created_by_me, assignment => assigned_to_me, no type => involved. involved requires a participant responsibility or financial provider relationship; creator/requester/equipment provider alone is insufficient for that list. The detail and dashboard visibility use the shared canView-equivalent query. Oldest/newest pagination uses id to break created_at ties. فیلتر ستون‌های مستقل و search با AND و ORهای داخل ستون گروه‌بندی می‌شوند؛ اعتبارسنجی پیش از SQL؛ فیلتر بر رکوردهای مجاز پیش از pagination؛ envelope قبلی حفظ شده است.",
         "parameters": [
           {
             "name": "search",
             "in": "query",
             "required": false,
+            "description": "جستجوی عمومی عنوان، short_description و request_description با OR گروه‌بندی‌شده و AND با فیلتر ستون‌ها؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "string",
-                "max:255"
-              ],
               "maxLength": 255
-            }
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "title",
+            "in": "query",
+            "required": false,
+            "description": "فقط tasks.title؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "description",
+            "in": "query",
+            "required": false,
+            "description": "مقدار نمایشی COALESCE(short_description, request_description, '')؛ رشتهٔ خالی short_description به متن درخواست fallback نمی‌شود؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "assignee_search",
+            "in": "query",
+            "required": false,
+            "description": "نام کامل حداقل یکی از مسئولان انجام؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "financial_search",
+            "in": "query",
+            "required": false,
+            "description": "financial_resources یا نام کامل financialProvider با OR گروه‌بندی‌شده؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "equipment_search",
+            "in": "query",
+            "required": false,
+            "description": "equipment_resources یا نام کامل equipmentProvider با OR گروه‌بندی‌شده؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "description": "عنوان یکی از تگ‌ها؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "required": false,
+            "description": "معنای قبلی: سازنده یا درخواست‌کننده یا تأمین‌کنندهٔ مالی/تجهیزات یا هر participant؛ جایگزین assignee_id نیست مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "assignee_id",
+            "in": "query",
+            "required": false,
+            "description": "یکی از مسئولان انجام، با role=assignee مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "follower_id",
+            "in": "query",
+            "required": false,
+            "description": "یکی از مسئولان پیگیری، با role=follower مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "supervisor_id",
+            "in": "query",
+            "required": false,
+            "description": "یکی از ناظران، با role=supervisor مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "financial_provider_user_id",
+            "in": "query",
+            "required": false,
+            "description": "تأمین‌کننده مالی مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "equipment_provider_user_id",
+            "in": "query",
+            "required": false,
+            "description": "تأمین‌کننده تجهیزات مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "duration_minutes_min",
+            "in": "query",
+            "required": false,
+            "description": "مدت بر حسب دقیقه؛ یک روز کاری ۴۸۰ دقیقه؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "duration_minutes_max",
+            "in": "query",
+            "required": false,
+            "description": "مدت بر حسب دقیقه؛ یک روز کاری ۴۸۰ دقیقه؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "financial_estimated_cost_min",
+            "in": "query",
+            "required": false,
+            "description": "هزینه بر حسب تومان؛ مقدار ذخیره‌شده decimal(18,2)، بدون تبدیل ریال یا گردکردن فیلتر؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "financial_estimated_cost_max",
+            "in": "query",
+            "required": false,
+            "description": "هزینه بر حسب تومان؛ مقدار ذخیره‌شده decimal(18,2)، بدون تبدیل ریال یا گردکردن فیلتر؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "equipment_estimated_cost_min",
+            "in": "query",
+            "required": false,
+            "description": "هزینه بر حسب تومان؛ مقدار ذخیره‌شده decimal(18,2)، بدون تبدیل ریال یا گردکردن فیلتر؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "equipment_estimated_cost_max",
+            "in": "query",
+            "required": false,
+            "description": "هزینه بر حسب تومان؛ مقدار ذخیره‌شده decimal(18,2)، بدون تبدیل ریال یا گردکردن فیلتر؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "due_from",
+            "in": "query",
+            "required": false,
+            "description": "due_date؛ تاریخ موعد، مستقل از completed_at؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "due_to",
+            "in": "query",
+            "required": false,
+            "description": "due_date؛ تاریخ موعد، مستقل از completed_at؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "created_from",
+            "in": "query",
+            "required": false,
+            "description": "created_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to، تبدیل به timezone ذخیره‌سازی؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "created_to",
+            "in": "query",
+            "required": false,
+            "description": "created_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to، تبدیل به timezone ذخیره‌سازی؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "status",
             "in": "query",
             "required": false,
+            "description": "وضعیت فعلی تسک؛ بدون ادغام enumها. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:draft,pending_approval,revision_requested,ready_to_start,in_progress,pending_completion_approval,completed,not_completed,rejected,closed"
-              ],
               "enum": [
                 "draft",
                 "pending_approval",
@@ -8120,34 +8429,30 @@
                 "rejected",
                 "closed"
               ]
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "submission_type",
             "in": "query",
             "required": false,
+            "description": "request برای درخواست‌ها، assignment برای تسک‌ها؛ رفتار قبلی حفظ شده. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:assignment,request"
-              ],
               "enum": [
                 "assignment",
                 "request"
               ]
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "scope",
             "in": "query",
             "required": false,
+            "description": "محدوده قبلی؛ پیش‌فرض برای request برابر created_by_me، برای assignment برابر assigned_to_me و بدون نوع برابر involved؛ all فقط طبق مجوز واقعی. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:\"created_by_me\",\"assigned_to_me\",\"involved\",\"action_required\",\"all\""
-              ],
               "enum": [
                 "created_by_me",
                 "assigned_to_me",
@@ -8155,137 +8460,16 @@
                 "action_required",
                 "all"
               ]
-            }
-          },
-          {
-            "name": "user_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "assignee_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "follower_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "supervisor_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "exists:users,id"
-              ]
-            }
-          },
-          {
-            "name": "tag",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "string",
-                "max:100"
-              ],
-              "maxLength": 100
-            }
-          },
-          {
-            "name": "due_from",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date"
-              ],
-              "format": "date"
-            }
-          },
-          {
-            "name": "due_to",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date",
-                "after_or_equal:due_from"
-              ],
-              "format": "date"
-            }
-          },
-          {
-            "name": "created_from",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date"
-              ],
-              "format": "date"
-            }
-          },
-          {
-            "name": "created_to",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "date"
-              ],
-              "format": "date"
-            }
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "sort",
             "in": "query",
             "required": false,
+            "description": "مرتب‌سازی قبلی؛ ترتیب پایدار شناسه در حالت تساوی. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "string",
-              "x-laravel-rules": [
-                "sometimes",
-                "in:\"newest\",\"oldest\",\"longest_duration\",\"shortest_duration\",\"highest_progress\",\"lowest_progress\""
-              ],
               "enum": [
                 "newest",
                 "oldest",
@@ -8293,35 +8477,35 @@
                 "shortest_duration",
                 "highest_progress",
                 "lowest_progress"
-              ]
-            }
-          },
-          {
-            "name": "per_page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "between:1,100"
-              ]
-            }
+              ],
+              "default": "newest"
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
+            "description": "شماره صفحه؛ پیش‌فرض ۱؛ total و last_page پس از فیلتر محاسبه می‌شوند. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "min:1"
-              ],
-              "minimum": 1
-            }
+              "minimum": 1,
+              "default": 1
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "description": "تعداد نتیجه در صفحه؛ پیش‌فرض ۱۵. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            },
+            "x-implementation": "existing_hardened"
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexTaskRequest"
@@ -12124,69 +12308,189 @@
             }
           }
         },
-        "description": "فهرست صفحه‌بندی‌شده کاربران با نقش‌های دسترسی، جایگاه‌های سازمانی، تصویر، آخرین فعالیت و تعداد تسک‌های تخصیص‌یافته",
+        "description": "فهرست صفحه‌بندی‌شده کاربران با نقش‌های دسترسی، جایگاه‌های سازمانی، تصویر، آخرین فعالیت و تعداد تسک‌های تخصیص‌یافته فیلتر ستون‌های مستقل و search با AND و ORهای داخل ستون گروه‌بندی می‌شوند؛ اعتبارسنجی پیش از SQL؛ فیلتر بر رکوردهای مجاز پیش از pagination؛ envelope قبلی حفظ شده است.",
         "parameters": [
           {
             "name": "search",
             "in": "query",
             "required": false,
+            "description": "جستجوی عمومی نام، نام خانوادگی، نام کاربری، موبایل، ایمیل، کد سازمانی و نام کامل؛ رفتار نام چندبخشی قبلی حفظ شده؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "x-laravel-rules": [
-                "nullable",
-                "string",
-                "max:255"
-              ],
+              "type": "string",
               "maxLength": 255
-            }
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "username",
+            "in": "query",
+            "required": false,
+            "description": "نام کاربری؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "full_name",
+            "in": "query",
+            "required": false,
+            "description": "ترکیب first_name و last_name؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "description": "ایمیل بدون حساسیت به حروف بزرگ/کوچک؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "mobile",
+            "in": "query",
+            "required": false,
+            "description": "موبایل به‌صورت رشته؛ صفر ابتدایی حفظ می‌شود؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "org_position_title",
+            "in": "query",
+            "required": false,
+            "description": "عنوان حداقل یکی از org_positions؛ ستون نقش جدول، access_roles نیست؛ contains، trim، حداکثر ۲۵۵ کاراکتر، % و _ literal و ی/ي و ک/ك معادل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "org_position_id",
+            "in": "query",
+            "required": false,
+            "description": "عضویت در حداقل یکی از جایگاه‌های سازمانی، نه نقش دسترسی مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "x-implementation": "added"
           },
           {
             "name": "is_active",
             "in": "query",
             "required": false,
+            "description": "۱ فعال، ۰ غیرفعال؛ صفر یک مقدار معتبر است و حذف نمی‌شود. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "x-laravel-rules": [
-                "nullable",
-                "boolean"
+              "type": "integer",
+              "enum": [
+                0,
+                1
               ]
-            }
+            },
+            "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "last_login_from",
+            "in": "query",
+            "required": false,
+            "description": "last_login_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to؛ null تطبیق ندارد؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "last_login_to",
+            "in": "query",
+            "required": false,
+            "description": "last_login_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to؛ null تطبیق ندارد؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "last_activity_from",
+            "in": "query",
+            "required": false,
+            "description": "last_activity_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to؛ null تطبیق ندارد؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "last_activity_to",
+            "in": "query",
+            "required": false,
+            "description": "last_activity_at؛ روز تهران از ابتدای from تا ابتدای روز بعد از to؛ null تطبیق ندارد؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "tasks_count_min",
+            "in": "query",
+            "required": false,
+            "description": "تعداد همان assignedTasks با role=assignee که UserResource برمی‌گرداند؛ بدون تغییر scope/وضعیت شمارنده؛ حد پایین شامل. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "x-implementation": "added"
+          },
+          {
+            "name": "tasks_count_max",
+            "in": "query",
+            "required": false,
+            "description": "تعداد همان assignedTasks با role=assignee که UserResource برمی‌گرداند؛ بدون تغییر scope/وضعیت شمارنده؛ حد بالا شامل؛ در صورت وجود حد پایین، کوچک‌تر از آن نیست. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "x-implementation": "added"
           },
           {
             "name": "page",
             "in": "query",
             "required": false,
+            "description": "شماره صفحه؛ پیش‌فرض ۱؛ total و last_page پس از فیلتر محاسبه می‌شوند. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "min:1"
-              ],
-              "minimum": 1
-            }
+              "minimum": 1,
+              "default": 1
+            },
+            "x-implementation": "existing_hardened"
           },
           {
             "name": "per_page",
             "in": "query",
             "required": false,
+            "description": "تعداد نتیجه در صفحه؛ پیش‌فرض ۱۵. مقدار خالی یا نبودن پارامتر یعنی نبود شرط.",
             "schema": {
               "type": "integer",
-              "x-laravel-rules": [
-                "sometimes",
-                "integer",
-                "min:1",
-                "max:100"
-              ],
               "minimum": 1,
-              "maximum": 100
-            }
+              "maximum": 100,
+              "default": 15
+            },
+            "x-implementation": "existing_hardened"
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexUsersRequest"
@@ -15523,6 +15827,493 @@
           }
         }
       }
+    },
+    "/api/v1/tasks/filter-options/users": {
+      "get": {
+        "operationId": "get_api_v1_tasks_filter_options_users",
+        "summary": "Lookup گزینه‌های فیلتر tasks",
+        "tags": [
+          "filters"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ListFilterOptionsController@taskUsers",
+        "x-required-permissions": [
+          "tasks:view"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "contains literal روی نام کامل افراد یا عنوان جایگاه؛ trim و معادل‌سازی حروف فارسی."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "assignee_id",
+                "follower_id",
+                "supervisor_id",
+                "user_id",
+                "financial_provider_user_id",
+                "equipment_provider_user_id"
+              ],
+              "default": "assignee_id"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_by_me",
+                "assigned_to_me",
+                "involved",
+                "action_required",
+                "all"
+              ]
+            },
+            "description": "محدوده قبلی؛ پیش‌فرض برای request برابر created_by_me، برای assignment برابر assigned_to_me و بدون نوع برابر involved؛ all فقط طبق مجوز واقعی."
+          },
+          {
+            "name": "submission_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "assignment",
+                "request"
+              ]
+            },
+            "description": "request برای درخواست‌ها، assignment برای تسک‌ها؛ رفتار قبلی حفظ شده."
+          }
+        ],
+        "description": "گزینه‌ها از تمام رکوردهای مجاز همان ماژول و scope به صورت SQL و صفحه‌بندی‌شده استخراج می‌شوند، مستقل از صفحهٔ فعلی جدول و eligible-users ساخت/ویرایش. کاربران غیرفعال مرتبط با سوابق حفظ می‌شوند. Users lookup جایگاه فقط users:view می‌خواهد و جایگاه‌های دارای کاربر قابل مشاهده را برمی‌گرداند. کاربران soft-deleted مطابق رابطه فعلی User از گزینه‌ها خارج‌اند.",
+        "responses": {
+          "200": {
+            "description": "Envelope فعلی success/message/data با items/meta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "meta"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "full_name",
+                              "is_active"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "full_name": {
+                                "type": "string"
+                              },
+                              "is_active": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "required": [
+                            "current_page",
+                            "last_page",
+                            "per_page",
+                            "total"
+                          ],
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "نبود مجوز مشاهده همان جدول یا scope غیرمجاز"
+          },
+          "422": {
+            "description": "پارامتر نامعتبر؛ errors به نام همان پارامتر"
+          }
+        }
+      }
+    },
+    "/api/v1/reports/filter-options/users": {
+      "get": {
+        "operationId": "get_api_v1_reports_filter_options_users",
+        "summary": "Lookup گزینه‌های فیلتر reports",
+        "tags": [
+          "filters"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ListFilterOptionsController@reportUsers",
+        "x-required-permissions": [
+          "reports:view"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "contains literal روی نام کامل افراد یا عنوان جایگاه؛ trim و معادل‌سازی حروف فارسی."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          },
+          {
+            "name": "field",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "recipient_user_id",
+                "creator_user_id"
+              ],
+              "default": "recipient_user_id"
+            }
+          }
+        ],
+        "description": "گزینه‌ها از تمام رکوردهای مجاز همان ماژول و scope به صورت SQL و صفحه‌بندی‌شده استخراج می‌شوند، مستقل از صفحهٔ فعلی جدول و eligible-users ساخت/ویرایش. کاربران غیرفعال مرتبط با سوابق حفظ می‌شوند. Users lookup جایگاه فقط users:view می‌خواهد و جایگاه‌های دارای کاربر قابل مشاهده را برمی‌گرداند. کاربران soft-deleted مطابق رابطه فعلی User از گزینه‌ها خارج‌اند.",
+        "responses": {
+          "200": {
+            "description": "Envelope فعلی success/message/data با items/meta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "meta"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "full_name",
+                              "is_active"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "full_name": {
+                                "type": "string"
+                              },
+                              "is_active": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "required": [
+                            "current_page",
+                            "last_page",
+                            "per_page",
+                            "total"
+                          ],
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "نبود مجوز مشاهده همان جدول یا scope غیرمجاز"
+          },
+          "422": {
+            "description": "پارامتر نامعتبر؛ errors به نام همان پارامتر"
+          }
+        }
+      }
+    },
+    "/api/v1/users/filter-options/org-positions": {
+      "get": {
+        "operationId": "get_api_v1_users_filter_options_org_positions",
+        "summary": "Lookup گزینه‌های فیلتر users",
+        "tags": [
+          "filters"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "x-controller": "App\\Http\\Controllers\\Api\\V1\\ListFilterOptionsController@userPositions",
+        "x-required-permissions": [
+          "users:view"
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "contains literal روی نام کامل افراد یا عنوان جایگاه؛ trim و معادل‌سازی حروف فارسی."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 15
+            }
+          }
+        ],
+        "description": "گزینه‌ها از تمام رکوردهای مجاز همان ماژول و scope به صورت SQL و صفحه‌بندی‌شده استخراج می‌شوند، مستقل از صفحهٔ فعلی جدول و eligible-users ساخت/ویرایش. کاربران غیرفعال مرتبط با سوابق حفظ می‌شوند. Users lookup جایگاه فقط users:view می‌خواهد و جایگاه‌های دارای کاربر قابل مشاهده را برمی‌گرداند. کاربران soft-deleted مطابق رابطه فعلی User از گزینه‌ها خارج‌اند.",
+        "responses": {
+          "200": {
+            "description": "Envelope فعلی success/message/data با items/meta.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "message",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "const": true
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "items",
+                        "meta"
+                      ],
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "title"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "title": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "meta": {
+                          "type": "object",
+                          "required": [
+                            "current_page",
+                            "last_page",
+                            "per_page",
+                            "total"
+                          ],
+                          "properties": {
+                            "current_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "last_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "per_page": {
+                              "type": "integer",
+                              "minimum": 1
+                            },
+                            "total": {
+                              "type": "integer",
+                              "minimum": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "نبود مجوز مشاهده همان جدول یا scope غیرمجاز"
+          },
+          "422": {
+            "description": "پارامتر نامعتبر؛ errors به نام همان پارامتر"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -16498,6 +17289,44 @@
           "requires_action": {
             "type": "boolean",
             "description": "True only for a pending workflow action authorized for the current actor; not a substitute for server authorization."
+          },
+          "task_creation": {
+            "type": "object",
+            "readOnly": true,
+            "required": [
+              "allowed",
+              "reason",
+              "message"
+            ],
+            "description": "Supplemental creation availability derived from the same ReportPolicy as allowed_actions.create_task. Use the exact allowed_actions boolean to authorize UI actions.",
+            "properties": {
+              "allowed": {
+                "type": "boolean"
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "inactive_user",
+                  "not_report_recipient",
+                  "report_not_sent",
+                  "report_not_viewed",
+                  "report_inactive",
+                  "report_not_visible",
+                  "task_creation_not_allowed",
+                  null
+                ]
+              },
+              "message": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Persian explanation for the current actor; null when allowed."
+              }
+            }
           }
         }
       },
@@ -17761,7 +18590,7 @@
     }
   ],
   "x-deployment": {
-    "status": "deployed",
+    "status": "local_changes_not_deployed",
     "api_base_url": "https://taskover.ir/api/v1",
     "base_commit": "d6ead46ec4fd489c2c4839265dffe29960a28a60",
     "previous_deployment": {
@@ -17835,9 +18664,9 @@
     },
     "local_backend_base_commit": "d6ead46",
     "local_frontend_base_commit": "6165993",
-    "local_path_count": 71,
-    "local_http_operation_count": 94,
-    "local_route_fingerprint_sha256": "b9830f60ceed2511669e20ba9076565c40e84e512b6b32bf25cf92beef176fc1",
+    "local_path_count": 74,
+    "local_http_operation_count": 97,
+    "local_route_fingerprint_sha256": "ede14f2dd2a617e794303581b24e527500a5aa1ecbd899e55db2b978d4ef2e9e",
     "local_note": "Application changes are deployed; local_* fields identify the original pre-deployment validation.",
     "branch": "main",
     "frontend": {
@@ -17897,6 +18726,27 @@
       "production_business_records_created_by_test": false,
       "browser_click_workflow_tested": false,
       "backup_directory": "/var/www/task-manager/backups/meeting-execution-20261031-212239"
+    },
+    "pending_changes": {
+      "feature": "report task creation availability and inline related-task creation entry",
+      "requires_migration": false,
+      "status": "local_changes_not_deployed",
+      "note": "Server SSH/public HTTPS were unavailable at the last connection check. Existing deployed-release records are historical.",
+      "column_filters": {
+        "status": "local_changes_not_deployed",
+        "requires_migration": false,
+        "endpoints": [
+          "/api/v1/tasks",
+          "/api/v1/reports",
+          "/api/v1/meetings",
+          "/api/v1/users"
+        ],
+        "lookup_endpoints": [
+          "/api/v1/tasks/filter-options/users",
+          "/api/v1/reports/filter-options/users",
+          "/api/v1/users/filter-options/org-positions"
+        ]
+      }
     }
   },
   "x-frontend-integration": {
@@ -17969,7 +18819,7 @@
       "activation": "Deactivation preserves exact previous status and timestamps. Inactive reports allow reads and authorized report deletion, but no edits/send/view marking/comment mutations/reactions/mention lookup. Activation needs a stored known previous state; legacy unknown state returns409. Linked report edit/delete still requires scheduled meeting; send/activation/comments retain existing meeting-state rules."
     },
     "verification": {
-      "status": "deployed",
+      "status": "local_changes_not_deployed",
       "prior_deployment_verification": {
         "local_sqlite": {
           "passed": 108,
@@ -18545,6 +19395,14 @@
         "duration_minutes": 60,
         "due_date": "2026-11-05",
         "submit": false
+      },
+      "creation_availability": {
+        "field": "data.report.task_creation",
+        "authority": "allowed_actions.create_task === true remains authoritative; supplementary task_creation.allowed must not grant access on its own.",
+        "rule": "Only the active primary recipient of a viewed report with TaskPolicy.create; no creator/admin bypass.",
+        "related_tasks": "GET /api/v1/reports/{report}/tasks; only with task module view permission.",
+        "ui": "Task registration action appears inside the related-task section. Denied actions display the server reason. List queries are disabled when the task module cannot be viewed.",
+        "compatibility": "New optional read-only metadata; existing creation/list endpoints, request fields and response codes unchanged."
       }
     },
     "meeting_resolution_integration": {
@@ -18579,6 +19437,96 @@
       "resources": "requires_action on tasks, reports and meeting details/list summaries; only current actor actions. Reduced-motion users see a static red dot.",
       "dashboard": "cards.*.action_required_count is independent from existing count and denominators. Meetings: pending signature/explicit acknowledgment. Reports: sent report where actor is recipient. Tasks: pending authorized review/start/progress/completion/revision/close actions.",
       "date_display": "Render weekdays on saved dates, using Asia/Tehran for timestamps; API Gregorian date/time formats remain unchanged."
+    },
+    "column_filters": {
+      "all_optional": true,
+      "combination": "AND across columns and general search; OR within a combined column is grouped.",
+      "empty": "Missing, null or blank strings add no condition; preserve numeric0/is_active=0.",
+      "text": "trim, maximum255 Unicode characters, contains, literal%/_/!, Persian ي/ی and ك/ک normalized on both DB and input.",
+      "date": "Gregorian YYYY-MM-DD, includes both endpoint dates; timestamps use Asia/Tehran day boundaries converted to configured storage timezone, next-day upper bound exclusive.",
+      "currency": "Toman, existing decimal(18,2) values, no conversion.",
+      "whitelists": {
+        "tasks": [
+          "search",
+          "title",
+          "description",
+          "assignee_search",
+          "financial_search",
+          "equipment_search",
+          "tag",
+          "user_id",
+          "assignee_id",
+          "follower_id",
+          "supervisor_id",
+          "financial_provider_user_id",
+          "equipment_provider_user_id",
+          "duration_minutes_min",
+          "duration_minutes_max",
+          "financial_estimated_cost_min",
+          "financial_estimated_cost_max",
+          "equipment_estimated_cost_min",
+          "equipment_estimated_cost_max",
+          "due_from",
+          "due_to",
+          "created_from",
+          "created_to",
+          "status",
+          "submission_type",
+          "scope",
+          "sort",
+          "page",
+          "per_page"
+        ],
+        "reports": [
+          "search",
+          "report_number",
+          "title",
+          "recipient_search",
+          "creator_search",
+          "recipient_user_id",
+          "creator_user_id",
+          "meeting_id",
+          "resolution_id",
+          "tag_id",
+          "status",
+          "created_from",
+          "created_to",
+          "page",
+          "per_page"
+        ],
+        "meetings": [
+          "search",
+          "title",
+          "location",
+          "status",
+          "from_date",
+          "to_date",
+          "page",
+          "per_page"
+        ],
+        "users": [
+          "search",
+          "username",
+          "full_name",
+          "email",
+          "mobile",
+          "org_position_title",
+          "org_position_id",
+          "is_active",
+          "last_login_from",
+          "last_login_to",
+          "last_activity_from",
+          "last_activity_to",
+          "tasks_count_min",
+          "tasks_count_max",
+          "page",
+          "per_page"
+        ]
+      },
+      "report_service_change": "Extend LIST_FILTERS in frontend/src/features/reports/services/report.service.js; unknown keys are currently dropped.",
+      "user_service_change": "Extend destructured getUsers arguments and outgoing removeEmptyParams object in frontend/src/features/users/services/user.service.js; keep0.",
+      "lookups": "Use new filter-options endpoints with same module view permission; do not use create/edit eligible-users or current table page.",
+      "page_reset": "Reset page to1 whenever a column/search filter changes; use returned meta.total/last_page."
     }
   }
 }
