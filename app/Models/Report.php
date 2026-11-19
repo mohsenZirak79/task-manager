@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ReportStatus;
+use App\Models\Concerns\HasRecordNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -11,6 +12,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class Report extends Model
 {
+    use HasRecordNumber;
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class, 'source_report_id');
@@ -34,15 +37,6 @@ class Report extends Model
             }
             // Remove self references before the report FK cascades to comments.
             $report->comments()->withTrashed()->update(['parent_id' => null]);
-        });
-        static::created(function (Report $report): void {
-            $report->report_number = 'RPT-'.str_pad((string) $report->id, 6, '0', STR_PAD_LEFT);
-            $report->saveQuietly();
-        });
-        static::updating(function (Report $report): void {
-            if ($report->isDirty('report_number')) {
-                throw new \LogicException('شماره گزارش قابل تغییر نیست.');
-            }
         });
     }
 

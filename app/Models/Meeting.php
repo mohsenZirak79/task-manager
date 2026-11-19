@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MeetingStatus;
+use App\Models\Concerns\HasRecordNumber;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -12,6 +13,7 @@ use Illuminate\Support\Carbon;
 
 class Meeting extends Model
 {
+    use HasRecordNumber;
     use SoftDeletes;
 
     protected $fillable = [

@@ -41,6 +41,7 @@ class MeetingResource extends JsonResource
             'requires_action' => $requiresAction,
             'execution_readiness' => ['forms_complete' => $formsReady, 'members_count' => $membersCount, 'signed_count' => $signaturesCount, 'all_signed' => $allSigned, 'ready' => $this->status === MeetingStatus::Completed && $allSigned],
             'id' => $this->id,
+            'meeting_number' => $this->meeting_number,
             'title' => $this->title,
             'short_description' => $this->short_description,
             'location' => $this->location,

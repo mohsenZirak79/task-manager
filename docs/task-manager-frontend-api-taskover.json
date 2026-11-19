@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-11-17.column-filters-local-1",
+    "version": "2026-11-19.record-numbers-local-1",
     "description": "Complete OpenAPI 3.1 inventory including independent column filters for tasks/requests, reports, meetings and users, scoped historical filter-option lookups, and prior local report-task metadata. New changes are local and not deployed. Existing envelopes, module permissions and scopes are preserved."
   },
   "paths": {
@@ -17135,7 +17135,10 @@
             "$ref": "#/components/schemas/ReportAllowedActions"
           },
           "report_number": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^rpt[0-9]{9,}$",
+            "example": "rpt050528001",
+            "description": "Immutable prefix + Jalali YYMMDD creation date in Asia/Tehran + daily sequence. Legacy records are backfilled using their original creation date."
           },
           "status": {
             "type": "string",
@@ -17476,7 +17479,8 @@
           "requires_action",
           "execution_files",
           "execution_readiness",
-          "resolutions"
+          "resolutions",
+          "meeting_number"
         ],
         "properties": {
           "id": {
@@ -17614,6 +17618,11 @@
                 "description": "Meeting is completed and all_signed. Pending plans materialize in the final signature transaction."
               }
             }
+          },
+          "meeting_number": {
+            "type": "string",
+            "pattern": "^mtg[0-9]{9,}$",
+            "example": "mtg050528001"
           }
         },
         "description": "Meeting detail includes existing fields, signature information, stored execution plans, and execution readiness. List summaries include requires_action."
@@ -17682,7 +17691,8 @@
           "closed_at",
           "created_at",
           "updated_at",
-          "requires_action"
+          "requires_action",
+          "task_number"
         ],
         "properties": {
           "id": {
@@ -17980,6 +17990,12 @@
           "requires_action": {
             "type": "boolean",
             "description": "True only for a pending workflow action authorized for the current actor; not a substitute for server authorization."
+          },
+          "task_number": {
+            "type": "string",
+            "pattern": "^rqst[0-9]{9,}$",
+            "example": "rqst050528001",
+            "description": "Immutable number: prefix + Jalali YYMMDD of creation in Asia/Tehran + daily sequence (at least 3 digits). Shared counter for tasks and requests."
           }
         }
       },
@@ -18580,6 +18596,19 @@
             "description": "Registration returns only resolution; there is no real data.task or data.report yet."
           }
         }
+      },
+      "MeetingListUserRoles": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "creator",
+            "chairman",
+            "secretary",
+            "attendee"
+          ]
+        },
+        "description": "Meeting list current_user_roles contains every actual relationship of the authenticated user with the meeting; it grants no new permissions."
       }
     }
   },

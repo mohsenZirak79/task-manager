@@ -13,6 +13,7 @@ class MeetingTaskSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'task_number' => $this->task_number,
             'title' => $this->title,
             'status' => $this->status->value,
             'progress_percentage' => $this->progress_percentage,

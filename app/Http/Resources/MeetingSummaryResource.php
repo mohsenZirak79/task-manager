@@ -13,6 +13,13 @@ class MeetingSummaryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'meeting_number' => $this->meeting_number,
+            'current_user_roles' => array_keys(array_filter([
+                'creator' => $this->created_by === $request->user()?->id,
+                'chairman' => $this->chairman_user_id === $request->user()?->id,
+                'secretary' => $this->secretary_user_id === $request->user()?->id,
+                'attendee' => (bool) $this->actor_is_attendee,
+            ])),
             'requires_action' => (bool) $this->requires_action,
             'title' => $this->title,
             'short_description' => $this->short_description,

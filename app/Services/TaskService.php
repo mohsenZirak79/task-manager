@@ -44,7 +44,7 @@ class TaskService
             ->with($this->summaryRelations());
         if (ListFilters::has($filters, 'search')) {
             $query->where(function (Builder $text) use ($filters): void {
-                foreach (['tasks.title', 'tasks.short_description', 'tasks.request_description'] as $column) {
+                foreach (['tasks.title', 'tasks.task_number', 'tasks.short_description', 'tasks.request_description'] as $column) {
                     ListFilters::contains($text, $column, $filters['search'], 'or');
                 }
             });

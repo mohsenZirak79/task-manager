@@ -66,7 +66,8 @@ class MeetingService
         $actions = $this->actionRequiredQuery($actor)->select('meetings.id');
         $query = $this->visibleQuery($actor)
             ->select('meetings.*')->selectRaw('meetings.id IN ('.$actions->toSql().') AS requires_action', $actions->getBindings())
-            ->with(['chairman', 'secretary', 'creator'])->withCount(['attendees', 'agendaItems', 'resolutions']);
+            ->with(['chairman', 'secretary', 'creator'])->withCount(['attendees', 'agendaItems', 'resolutions'])
+            ->withExists(['attendees as actor_is_attendee' => fn (Builder $users) => $users->whereKey($actor->id)]);
         if (ListFilters::has($filters, 'status')) {
             $query->where('meetings.status', $filters['status']);
         }
@@ -74,7 +75,7 @@ class MeetingService
         ListFilters::dateRange($query, $filters, 'meetings.meeting_date', 'from_date', 'to_date');
         if (ListFilters::has($filters, 'search')) {
             $query->where(function (Builder $text) use ($filters): void {
-                foreach (['meetings.title', 'meetings.short_description', 'meetings.location'] as $column) {
+                foreach (['meetings.title', 'meetings.meeting_number', 'meetings.short_description', 'meetings.location'] as $column) {
                     ListFilters::contains($text, $column, $filters['search'], 'or');
                 }
             });

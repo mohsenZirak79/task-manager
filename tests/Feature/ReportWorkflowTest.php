@@ -142,7 +142,7 @@ class ReportWorkflowTest extends TestCase
         $id = $report['id'];
         $this->assertSame('draft', $report['status']);
         $this->assertNull($report['sent_at']);
-        $this->assertSame('RPT-'.str_pad((string) $id, 6, '0', STR_PAD_LEFT), $report['report_number']);
+        $this->assertMatchesRegularExpression('/^rpt\d{9,}$/', $report['report_number']);
         $this->postJson("/api/v1/reports/$id/view")->assertOk()->assertJsonPath('data.report.status', 'draft');
         $this->meeting->update(['status' => MeetingStatus::Completed]);
         $this->patchJson("/api/v1/reports/$id", ['title' => 'تغییر'])->assertConflict();
@@ -270,7 +270,7 @@ class ReportWorkflowTest extends TestCase
         $this->assertDatabaseMissing('task_comments', ['id' => $parent]);
         $migration->up();
         $this->getJson("/api/v1/reports/{$report['id']}")->assertOk()
-            ->assertJsonPath('data.report.report_number', $report['report_number'])
+            ->assertJsonPath('data.report.report_number', 'RPT-'.str_pad((string) $report['id'], 6, '0', STR_PAD_LEFT))
             ->assertJsonPath('data.report.status', 'sent')
             ->assertJsonPath('data.report.sent_at', $report['created_at'])
             ->assertJsonPath('data.report.viewed_at', null);
