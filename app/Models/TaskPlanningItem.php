@@ -12,11 +12,17 @@ class TaskPlanningItem extends Model
         'weight',
         'progress_percentage',
         'sort_order',
+        'assignee_user_id',
     ];
 
     public function task(): BelongsTo
     {
         return $this->belongsTo(Task::class);
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assignee_user_id');
     }
 
     protected function casts(): array
@@ -25,6 +31,7 @@ class TaskPlanningItem extends Model
             'weight' => 'decimal:2',
             'progress_percentage' => 'integer',
             'sort_order' => 'integer',
+            'assignee_user_id' => 'integer',
         ];
     }
 }

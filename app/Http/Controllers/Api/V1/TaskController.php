@@ -178,7 +178,8 @@ class TaskController extends Controller
         Task $task,
         TaskPlanningItem $planningItem,
     ): JsonResponse {
-        Gate::authorize('updatePlanningProgress', $task);
+        abort_unless($planningItem->task_id === $task->id, 404);
+        Gate::authorize('updatePlanningProgress', [$task, $planningItem]);
         $task = $this->taskService->updatePlanningProgress(
             $task,
             $planningItem,

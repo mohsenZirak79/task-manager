@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Task Manager — Frontend API / taskover.ir",
-    "version": "2026-11-19.record-numbers-local-1",
-    "description": "Complete OpenAPI 3.1 inventory including independent column filters for tasks/requests, reports, meetings and users, scoped historical filter-option lookups, and prior local report-task metadata. New changes are local and not deployed. Existing envelopes, module permissions and scopes are preserved."
+    "version": "2026-11-19.task-execution-teams-local-1",
+    "description": "Complete OpenAPI 3.1 inventory including independent column filters for tasks/requests, reports, meetings and users, scoped historical filter-option lookups, and prior local report-task metadata. New changes are local and not deployed. Existing envelopes, module permissions and scopes are preserved. Local execution-team and pre-approval transfer workflows are included; these changes are not deployed yet."
   },
   "paths": {
     "/api/v1/auth/password/change": {
@@ -3673,6 +3673,12 @@
                             "min:0"
                           ],
                           "minimum": 0
+                        },
+                        "assignee_user_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -3760,6 +3766,14 @@
                       "server-normalized:true"
                     ],
                     "description": "Server-derived for this resolution endpoint: submission_type is assignment only for self-assignment, otherwise request; submit is always true. No type/draft/send selector in resolution UI."
+                  },
+                  "team_member_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    }
                   }
                 },
                 "required": [
@@ -8863,6 +8877,12 @@
                             "min:0"
                           ],
                           "minimum": 0
+                        },
+                        "assignee_user_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -8950,6 +8970,14 @@
                       "sometimes",
                       "boolean"
                     ]
+                  },
+                  "team_member_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    }
                   }
                 },
                 "required": [
@@ -9609,6 +9637,12 @@
                             "min:0"
                           ],
                           "minimum": 0
+                        },
+                        "assignee_user_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -9696,6 +9730,14 @@
                       "sometimes",
                       "boolean"
                     ]
+                  },
+                  "team_member_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
@@ -11029,6 +11071,12 @@
                             "min:0"
                           ],
                           "minimum": 0
+                        },
+                        "assignee_user_id": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -16314,6 +16362,295 @@
           }
         }
       }
+    },
+    "/api/v1/tasks/team-users": {
+      "get": {
+        "summary": "Eligible execution team users",
+        "description": "Active users from all strict descendant organizational levels of the selected leader. The leader must be self, a subordinate, an eligible request target, or an attendee of a meeting whose resolutions the actor may manage. Requires tasks:view and tasks:create or tasks:update.",
+        "tags": [
+          "tasks"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/MentionUser"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted for this user and task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid hierarchy or team membership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "leader_user_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{task}/acknowledge": {
+      "post": {
+        "summary": "Acknowledge task viewing",
+        "description": "Execution team members and the transferred principal assignee record their own observation. Repeated calls preserve the original timestamp and do not append duplicate history. Does not approve or start the task.",
+        "tags": [
+          "tasks"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted for this user and task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid hierarchy or team membership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/tasks/{task}/transfer": {
+      "post": {
+        "summary": "Transfer a pending task before approval",
+        "description": "Only the current active principal assignee may transfer a pending_approval task to an active organizational descendant at any depth. The new user becomes the sole assignee, the previous assignee becomes a follower, creator/requester/record number/source and work rows remain unchanged. Status becomes ready_to_start, rejection and revision are unavailable, and the recipient must acknowledge before starting. New team members must be descendants of the new leader. Work ownership outside the new team is cleared while retaining each work row.",
+        "tags": [
+          "tasks"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted for this user and task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid hierarchy or team membership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assignee_user_id"
+                ],
+                "properties": {
+                  "assignee_user_id": {
+                    "type": "integer"
+                  },
+                  "team_member_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task}/team": {
+      "patch": {
+        "summary": "Update execution team",
+        "description": "Only the current principal assignee with tasks:update can change the team of a pending, ready or in-progress task. Preserves existing members observation timestamps. Reassign or clear work ownership before removing its member.",
+        "tags": [
+          "tasks"
+        ],
+        "security": [
+          {
+            "sanctum": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskApiResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not permitted for this user and task",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid hierarchy or team membership",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "task",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "team_member_ids"
+                ],
+                "properties": {
+                  "team_member_ids": {
+                    "type": "array",
+                    "maxItems": 100,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -17842,6 +18179,30 @@
                 },
                 "sort_order": {
                   "type": "integer"
+                },
+                "assignee_user_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "assignee": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/MentionUser"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "allowed_actions": {
+                  "type": "object",
+                  "properties": {
+                    "update_progress": {
+                      "type": "boolean"
+                    }
+                  }
                 }
               }
             }
@@ -17930,6 +18291,17 @@
             "type": "object",
             "additionalProperties": {
               "type": "boolean"
+            },
+            "properties": {
+              "acknowledge": {
+                "type": "boolean"
+              },
+              "transfer": {
+                "type": "boolean"
+              },
+              "manage_team": {
+                "type": "boolean"
+              }
             }
           },
           "registered_at": {
@@ -17996,6 +18368,48 @@
             "pattern": "^rqst[0-9]{9,}$",
             "example": "rqst050528001",
             "description": "Immutable number: prefix + Jalali YYMMDD of creation in Asia/Tehran + daily sequence (at least 3 digits). Shared counter for tasks and requests."
+          },
+          "team_members": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/MentionUser"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "viewed_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "transferred_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "assignee_viewed_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "transferred_by_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         }
       },
@@ -18334,6 +18748,12 @@
                     "min:0"
                   ],
                   "minimum": 0
+                },
+                "assignee_user_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
                 }
               },
               "required": [
@@ -18426,6 +18846,14 @@
             "type": "string",
             "format": "uuid",
             "description": "Required fresh UUID for each intended new task. Reuse unchanged key/body for transport retries. Scope is report + authenticated creator; uppercase UUID normalized to lowercase."
+          },
+          "team_member_ids": {
+            "type": "array",
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "integer"
+            }
           }
         },
         "required": [

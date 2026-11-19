@@ -6,6 +6,7 @@ use App\Enums\TaskStatus;
 use App\Enums\TaskSubmissionType;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 
 class TaskResource extends JsonResource
@@ -29,6 +30,13 @@ class TaskResource extends JsonResource
             'progress_percentage' => $this->progress_percentage,
             'status' => $this->status->value,
             'submission_type' => $this->submission_type?->value,
+            'transferred_at' => $this->transferred_at?->toISOString(),
+            'transferred_by_user_id' => $this->transferred_by_user_id,
+            'assignee_viewed_at' => $this->assignee_viewed_at?->toISOString(),
+            'team_members' => $this->teamMembers->map(fn ($member) => [
+                ...(new UserSummaryResource($member))->toArray($request),
+                'viewed_at' => $member->pivot->viewed_at ? Carbon::parse($member->pivot->viewed_at)->toISOString() : null,
+            ])->values(),
             'requester' => new UserSummaryResource($this->requester),
             'creator' => new UserSummaryResource($this->creator),
             'assignees' => UserSummaryResource::collection($this->assignees),
@@ -41,6 +49,9 @@ class TaskResource extends JsonResource
             'attachments' => MediaFileResource::collection($this->attachments),
             'planning_items' => $this->planningItems->map(fn ($item) => [
                 'id' => $item->id,
+                'assignee_user_id' => $item->assignee_user_id,
+                'assignee' => $item->assignee ? new UserSummaryResource($item->assignee) : null,
+                'allowed_actions' => ['update_progress' => in_array($this->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true) && Gate::forUser($request->user())->allows('updatePlanningProgress', [$this->resource, $item])],
                 'title' => $item->title,
                 'weight' => $item->weight,
                 'progress_percentage' => $item->progress_percentage,
@@ -71,7 +82,7 @@ class TaskResource extends JsonResource
                 fn () => TaskWorkflowHistoryResource::collection($this->workflowHistory),
             ),
             'allowed_actions' => $actions,
-            'requires_action' => ($this->status === TaskStatus::RevisionRequested && $actions['submit']) || in_array(true, array_intersect_key($actions, array_flip(['approve', 'reject', 'request_revision', 'approve_assignment', 'request_assignment_revision', 'start', 'update_progress', 'update_planning_progress', 'request_completion', 'approve_completion', 'reject_completion', 'change_status', 'close'])), true),
+            'requires_action' => $actions['acknowledge'] || ($this->status === TaskStatus::RevisionRequested && $actions['submit']) || in_array(true, array_intersect_key($actions, array_flip(['approve', 'reject', 'request_revision', 'approve_assignment', 'request_assignment_revision', 'start', 'update_progress', 'update_planning_progress', 'request_completion', 'approve_completion', 'reject_completion', 'change_status', 'close'])), true),
             'registered_at' => $this->registered_at?->toISOString(),
             'started_at' => $this->started_at?->toISOString(),
             'completion_requested_at' => $this->completion_requested_at?->toISOString(),
@@ -95,6 +106,9 @@ class TaskResource extends JsonResource
 
         return [
             'view' => $gate->allows('view', $this->resource),
+            'acknowledge' => $gate->allows('acknowledge', $this->resource),
+            'transfer' => $gate->allows('transfer', $this->resource),
+            'manage_team' => $gate->allows('manageTeam', $this->resource),
             'edit' => $gate->allows('update', $this->resource),
             'update_planning' => $gate->allows('updatePlanning', $this->resource),
             'delete' => $gate->allows('delete', $this->resource),

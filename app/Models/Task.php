@@ -18,6 +18,11 @@ class Task extends Model
 
     protected $hidden = ['report_submission_key', 'report_request_hash'];
 
+    public function teamMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'task_team_members')->withPivot('viewed_at')->withTimestamps();
+    }
+
     public function sourceReport(): BelongsTo
     {
         return $this->belongsTo(Report::class, 'source_report_id');
@@ -128,6 +133,8 @@ class Task extends Model
     {
         return [
             'due_date' => 'date',
+            'transferred_at' => 'datetime',
+            'assignee_viewed_at' => 'datetime',
             'duration_minutes' => 'integer',
             'progress_percentage' => 'integer',
             'financial_estimated_cost' => 'decimal:2',

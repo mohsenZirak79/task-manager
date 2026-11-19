@@ -21,6 +21,7 @@ class TaskCommentPolicy
     {
         return $user->is_active
             && $user->hasPermission(Permissions::TASKS_COMMENT)
+            && $this->visibility->canViewDirectly($user, $task)
             && $this->viewAny($user, $task);
     }
 
@@ -33,7 +34,8 @@ class TaskCommentPolicy
 
     public function delete(User $user, TaskComment $comment): bool
     {
-        if ($comment->trashed() || ! $this->viewAny($user, $comment->task)) {
+        if ($comment->trashed() || ! $this->viewAny($user, $comment->task)
+            || ! $this->visibility->canViewDirectly($user, $comment->task)) {
             return false;
         }
 

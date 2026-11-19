@@ -16,11 +16,12 @@ class UpdateTaskPlanningRequest extends FormRequest
     {
         return [
             'planning_items' => ['sometimes', 'array', 'max:100'],
-            'planning_items.*' => ['array:id,title,weight,sort_order'],
+            'planning_items.*' => ['array:id,title,weight,sort_order,assignee_user_id'],
             'planning_items.*.id' => ['sometimes', 'integer', 'distinct', 'min:1'],
             'planning_items.*.title' => ['required', 'string', 'max:255'],
             'planning_items.*.weight' => ['required', 'numeric', 'min:0'],
             'planning_items.*.sort_order' => ['sometimes', 'integer', 'min:0'],
+            'planning_items.*.assignee_user_id' => ['sometimes', 'nullable', 'integer', 'exists:users,id'],
             'delete_planning_item_ids' => ['sometimes', 'array', 'max:100'],
             'delete_planning_item_ids.*' => ['integer', 'distinct', 'min:1'],
         ];

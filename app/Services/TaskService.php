@@ -110,6 +110,7 @@ class TaskService
         $data = $this->prepareAssignmentData($data, $actor);
         $this->ensureRequesterCanBeSelected($actor, (int) ($data['requester_id'] ?? $actor->id));
         $this->ensureOrganizationParticipants($actor, $data);
+        app(TaskTeamService::class)->validate($data);
 
         return $data;
     }
@@ -130,6 +131,7 @@ class TaskService
             ]);
 
             $this->syncParticipants($task, $data, true);
+            $task->teamMembers()->sync($data['team_member_ids'] ?? []);
             $this->syncTags($task, $data, true);
             $this->syncAttachments($task, $data, $actor, true);
             $this->syncPlanningItems($task, $data, true);
@@ -168,6 +170,7 @@ class TaskService
                 'assignee_ids' => $data['assignee_ids'] ?? $task->participantRecords()->where('role', TaskParticipantRole::Assignee->value)->pluck('user_id')->all(),
             ]);
             $this->ensureMeetingAssignees($task, $data);
+            app(TaskTeamService::class)->validate($data, $task);
 
             if ($task->submission_type !== TaskSubmissionType::Assignment
                 && in_array($task->status, [TaskStatus::RevisionRequested, TaskStatus::Rejected], true)) {
@@ -187,6 +190,9 @@ class TaskService
                 ]);
             }
             $this->syncParticipants($task, $data);
+            if (array_key_exists('team_member_ids', $data)) {
+                $task->teamMembers()->sync($data['team_member_ids']);
+            }
             $this->syncTags($task, $data);
             $this->syncAttachments($task, $data, $actor);
             $this->syncPlanningItems($task, $data);
@@ -206,6 +212,7 @@ class TaskService
             Gate::forUser($actor)->authorize('updatePlanning', $task);
             $items = $data['planning_items'] ?? [];
             $deleteIds = $data['delete_planning_item_ids'] ?? [];
+            app(TaskTeamService::class)->validate($data, $task, false);
             $updateIds = array_column($items, 'id');
             $ids = array_values(array_unique([...$updateIds, ...$deleteIds]));
             if ($task->planningItems()->whereKey($ids)->count() !== count($ids)) {
@@ -215,7 +222,7 @@ class TaskService
                 throw ValidationException::withMessages(['delete_planning_item_ids' => 'ویرایش و حذف هم‌زمان یک آیتم مجاز نیست.']);
             }
             foreach ($items as $index => $item) {
-                $attributes = Arr::only($item, ['title', 'weight', 'sort_order']);
+                $attributes = Arr::only($item, ['title', 'weight', 'sort_order', 'assignee_user_id']);
                 if (isset($item['id'])) {
                     $task->planningItems()->whereKey($item['id'])->firstOrFail()->update($attributes);
                 } else {
@@ -395,6 +402,7 @@ class TaskService
                 return $this->loadTask($task);
             }
 
+            Gate::forUser($actor)->authorize('changeStatus', $task);
             if ($task->submission_type === TaskSubmissionType::Assignment) {
                 if ($task->status !== TaskStatus::ReadyToStart || $status !== TaskStatus::InProgress) {
                     throw new HttpException(409, 'تغییر وضعیت در این مرحله از گردش کار مجاز نیست.');
@@ -472,6 +480,7 @@ class TaskService
                 ->where('task_id', $task->id)
                 ->lockForUpdate()
                 ->findOrFail($planningItem->id);
+            Gate::forUser($actor)->authorize('updatePlanningProgress', [$task, $planningItem]);
 
             if (! in_array($task->status, [TaskStatus::ReadyToStart, TaskStatus::InProgress], true)) {
                 throw new HttpException(409, 'در این مرحله امکان ثبت پیشرفت آیتم برنامه‌ریزی وجود ندارد.');
@@ -981,6 +990,7 @@ class TaskService
         foreach (array_values($data['planning_items'] ?? []) as $index => $item) {
             $task->planningItems()->create([
                 'title' => $item['title'],
+                'assignee_user_id' => $item['assignee_user_id'] ?? null,
                 'weight' => $item['weight'],
                 'progress_percentage' => $task->submission_type === TaskSubmissionType::Assignment
                     ? 0
@@ -1032,7 +1042,7 @@ class TaskService
     private function taskAttributes(array $data): array
     {
         return Arr::except($data, [
-            'assignee_ids', 'follower_ids', 'supervisor_ids', 'tags',
+            'assignee_ids', 'follower_ids', 'supervisor_ids', 'tags', 'team_member_ids',
             'attachment_file_ids', 'planning_items', 'submit',
         ]);
     }
@@ -1093,7 +1103,7 @@ class TaskService
     {
         return [
             'requester', 'creator', 'assignees', 'followers', 'supervisors',
-            'participantRecords', 'tags', 'attachments', 'planningItems',
+            'participantRecords', 'teamMembers', 'tags', 'attachments', 'planningItems.assignee',
             'financialProvider', 'equipmentProvider', 'meetingResolution.meeting',
             'sourceReport.ccUsers', 'sourceReport.resolution.meeting.attendees',
         ];

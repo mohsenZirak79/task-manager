@@ -61,7 +61,9 @@ class TaskVisibilityService
             self::CREATED_BY_ME => $query->where(fn (Builder $query) => $query
                 ->where('created_by', $actor->id)
                 ->orWhere('requester_id', $actor->id)),
-            self::ASSIGNED_TO_ME => $this->whereParticipant($query, $actor, [TaskParticipantRole::Assignee]),
+            self::ASSIGNED_TO_ME => $query->where(fn (Builder $assigned) => $assigned
+                ->whereHas('participantRecords', fn (Builder $p) => $p->where('user_id', $actor->id)->where('role', TaskParticipantRole::Assignee->value))
+                ->orWhere(fn (Builder $team) => $this->whereTeamMember($team, $actor))),
             self::INVOLVED => $this->applyInvolved($query, $actor),
             self::ACTION_REQUIRED => $this->applyActionRequired($query, $actor),
             self::ALL => $this->applyAll($query, $actor),
@@ -82,11 +84,19 @@ class TaskVisibilityService
                 ->orWhere('requester_id', $actor->id)
                 ->orWhere('financial_provider_user_id', $actor->id)
                 ->orWhere('equipment_provider_user_id', $actor->id)
-                ->orWhereHas('participantRecords', fn (Builder $query) => $query->where('user_id', $actor->id));
+                ->orWhereHas('participantRecords', fn (Builder $query) => $query->where('user_id', $actor->id))
+                ->orWhere(fn (Builder $team) => $this->whereTeamMember($team, $actor));
         });
     }
 
     public function canView(User $actor, Task $task): bool
+    {
+        return $this->canViewDirectly($actor, $task) || ($actor->is_active
+            && ! in_array($task->status, [TaskStatus::Draft, TaskStatus::RevisionRequested, TaskStatus::Rejected, TaskStatus::Closed], true)
+            && app(TaskTeamService::class)->isMember($actor, $task));
+    }
+
+    public function canViewDirectly(User $actor, Task $task): bool
     {
         if ($this->canManageAll($actor)) {
             return true;
@@ -143,6 +153,7 @@ class TaskVisibilityService
     {
         return $query->where(function (Builder $query) use ($actor): void {
             $query->where('financial_provider_user_id', $actor->id)
+                ->orWhere(fn (Builder $team) => $this->whereTeamMember($team, $actor))
                 ->orWhereHas('participantRecords', fn (Builder $query) => $query
                     ->where('user_id', $actor->id)
                     ->whereIn('role', [
@@ -227,6 +238,8 @@ class TaskVisibilityService
                         TaskStatus::InProgress->value,
                         TaskStatus::NotCompleted->value,
                     ]);
+                    $query->where(fn (Builder $transfer) => $transfer->whereNull('transferred_at')
+                        ->orWhereHas('participantRecords', fn (Builder $p) => $p->where('user_id', $actor->id)->where('role', TaskParticipantRole::Assignee->value)));
                     if (! $manageAll) {
                         $query->where(function (Builder $query) use ($actor): void {
                             $query->where('created_by', $actor->id)
@@ -268,10 +281,31 @@ class TaskVisibilityService
                 $hasAction = true;
             }
 
+            if ($actor->hasPermission(Permissions::TASKS_VIEW)) {
+                $method = $hasAction ? 'orWhere' : 'where';
+                $actions->{$method}(function (Builder $team) use ($actor): void {
+                    $team->whereIn('status', [TaskStatus::PendingApproval->value, TaskStatus::ReadyToStart->value, TaskStatus::InProgress->value, TaskStatus::PendingCompletionApproval->value])
+                        ->whereHas('teamMembers', fn (Builder $users) => $users->whereKey($actor->id)->whereNull('task_team_members.viewed_at'));
+                });
+                $hasAction = true;
+            }
+            if ($actor->hasPermission(Permissions::TASKS_UPDATE_PROGRESS)) {
+                $method = $hasAction ? 'orWhere' : 'where';
+                $actions->{$method}(fn (Builder $team) => $team->where('status', TaskStatus::InProgress->value)
+                    ->whereHas('teamMembers', fn (Builder $users) => $users->whereKey($actor->id)->whereNotNull('task_team_members.viewed_at'))
+                    ->whereHas('planningItems', fn (Builder $items) => $items->where('assignee_user_id', $actor->id)));
+                $hasAction = true;
+            }
             if (! $hasAction) {
                 $actions->whereRaw('1 = 0');
             }
         });
+    }
+
+    private function whereTeamMember(Builder $query, User $actor): Builder
+    {
+        return $query->whereNotIn('status', [TaskStatus::Draft->value, TaskStatus::RevisionRequested->value, TaskStatus::Rejected->value, TaskStatus::Closed->value])
+            ->whereHas('teamMembers', fn (Builder $users) => $users->whereKey($actor->id));
     }
 
     private function applyAll(Builder $query, User $actor): Builder

@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\ReportTagController;
 use App\Http\Controllers\Api\V1\ReportTaskController;
 use App\Http\Controllers\Api\V1\TaskCommentController;
 use App\Http\Controllers\Api\V1\TaskController;
+use App\Http\Controllers\Api\V1\TaskExecutionController;
 use App\Http\Controllers\Api\V1\TaskTagController;
 use App\Http\Controllers\Api\V1\UploadController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -85,6 +86,10 @@ Route::prefix('v1')->group(function (): void {
             Route::get('tasks', [TaskController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::post('tasks', [TaskController::class, 'store'])->middleware('permission:'.Permissions::TASKS_CREATE);
             Route::get('tasks/filter-options/users', [ListFilterOptionsController::class, 'taskUsers'])->middleware('permission:'.Permissions::TASKS_VIEW);
+            Route::get('tasks/team-users', [TaskExecutionController::class, 'users']);
+            Route::post('tasks/{task}/acknowledge', [TaskExecutionController::class, 'acknowledge'])->whereNumber('task');
+            Route::post('tasks/{task}/transfer', [TaskExecutionController::class, 'transfer'])->whereNumber('task');
+            Route::patch('tasks/{task}/team', [TaskExecutionController::class, 'update'])->whereNumber('task');
             Route::get('tasks/eligible-users', [TaskController::class, 'eligibleUsers']);
             Route::get('task-tags', [TaskTagController::class, 'index'])->middleware('permission:'.Permissions::TASKS_VIEW);
             Route::get('tasks/{task}', [TaskController::class, 'show'])->middleware('permission:'.Permissions::TASKS_VIEW);
