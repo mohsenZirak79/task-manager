@@ -23,7 +23,7 @@ class CreateAdminCommandTest extends TestCase
         $this->artisan('app:create-admin', $options)->assertSuccessful();
 
         $admin = User::query()->firstOrFail();
-        $this->assertTrue($admin->is_admin);
+        $this->assertTrue($admin->isSuperAdmin());
         $this->assertTrue($admin->is_active);
 
         $this->artisan('app:create-admin', $options)->assertFailed();

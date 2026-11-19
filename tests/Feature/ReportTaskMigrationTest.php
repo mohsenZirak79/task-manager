@@ -16,6 +16,13 @@ class ReportTaskMigrationTest extends TestCase
     // MySQL DDL commits transactions, so do not use RefreshDatabase here.
     use DatabaseTruncation;
 
+    protected function beforeTruncatingDatabase(): void
+    {
+        // Truncation does not restore RefreshDatabase's cached SQLite :memory:
+        // connection. Always migrate this test's own connection before DDL.
+        RefreshDatabaseState::$migrated = false;
+    }
+
     protected function tearDown(): void
     {
         // Force the next test to migrate fresh; do not run unrelated legacy downs.

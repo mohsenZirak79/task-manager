@@ -27,7 +27,9 @@ class ApiAuthenticationTest extends TestCase
 
         $this->postJson('/api/v1/auth/register', $this->registrationPayload())
             ->assertCreated()
-            ->assertJsonPath('data.user.is_admin', false);
+            ->assertJsonPath('data.user.access_roles.0.slug', 'user');
+
+        $this->assertFalse(User::query()->firstOrFail()->isSuperAdmin());
 
         $this->postJson('/api/v1/auth/login', [
             'identifier' => '09121111111',
@@ -37,7 +39,7 @@ class ApiAuthenticationTest extends TestCase
             ->assertJsonStructure(['data' => ['token', 'user']]);
 
         $user = User::query()->where('mobile', '09121111111')->firstOrFail();
-        $this->assertFalse($user->is_admin);
+        $this->assertFalse($user->isSuperAdmin());
 
         Sanctum::actingAs($user);
         $this->getJson('/api/v1/users')->assertForbidden();

@@ -34,11 +34,33 @@ class ReportPolicy
 
     public function createTask(User $user, Report $report): bool
     {
-        return $user->is_active
-            && $report->recipient_user_id === $user->id
-            && $report->status === ReportStatus::Viewed
-            && $this->view($user, $report)
-            && Gate::forUser($user)->allows('create', Task::class);
+        return $this->taskCreationBlockReason($user, $report) === null;
+    }
+
+    public function taskCreationBlockReason(User $user, Report $report): ?string
+    {
+        if (! $user->is_active) {
+            return 'inactive_user';
+        }
+        if ($report->recipient_user_id !== $user->id) {
+            return 'not_report_recipient';
+        }
+        if ($report->status !== ReportStatus::Viewed) {
+            return match ($report->status) {
+                ReportStatus::Draft => 'report_not_sent',
+                ReportStatus::Sent => 'report_not_viewed',
+                ReportStatus::Inactive => 'report_inactive',
+                default => 'report_not_viewed',
+            };
+        }
+        if (! $this->view($user, $report)) {
+            return 'report_not_visible';
+        }
+        if (! Gate::forUser($user)->allows('create', Task::class)) {
+            return 'task_creation_not_allowed';
+        }
+
+        return null;
     }
 
     public function view(User $user, Report $report): bool

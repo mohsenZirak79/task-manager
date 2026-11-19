@@ -360,4 +360,53 @@ class ReportTaskTest extends TestCase
         }
         $this->assertSame($one, $queries());
     }
+
+    public function test_report_creation_viewing_task_creation_and_related_listing_work_end_to_end(): void
+    {
+        Sanctum::actingAs($this->creator);
+        $report = $this->postJson('/api/v1/reports', [
+            'title' => 'گزارش پیگیری', 'short_description' => 'خلاصه گزارش',
+            'description' => 'شرح اقدام لازم', 'recipient_user_id' => $this->recipient->id,
+        ])->assertCreated()->assertJsonPath('data.report.task_creation.allowed', false)
+            ->assertJsonPath('data.report.task_creation.reason', 'not_report_recipient')->json('data.report');
+        $id = $report['id'];
+        Sanctum::actingAs($this->recipient);
+        $this->getJson("/api/v1/reports/$id")->assertOk()
+            ->assertJsonPath('data.report.task_creation.allowed', false)
+            ->assertJsonPath('data.report.task_creation.reason', 'report_not_viewed');
+        $this->postJson("/api/v1/reports/$id/create-task", $this->payload())->assertForbidden();
+        $this->postJson("/api/v1/reports/$id/view")->assertOk()
+            ->assertJsonPath('data.report.allowed_actions.create_task', true)
+            ->assertJsonPath('data.report.task_creation.allowed', true)
+            ->assertJsonPath('data.report.task_creation.reason', null);
+        $payload = $this->payload(['title' => 'پیگیری گزارش ثبت‌شده']);
+        $task = $this->postJson("/api/v1/reports/$id/create-task", $payload)->assertCreated()
+            ->assertJsonPath('data.task.report_source.id', $id)->json('data.task');
+        $this->postJson("/api/v1/reports/$id/create-task", $payload)->assertOk()
+            ->assertJsonPath('data.replayed', true)->assertJsonPath('data.task.id', $task['id']);
+        $this->getJson("/api/v1/reports/$id/tasks")->assertOk()
+            ->assertJsonPath('data.meta.total', 1)->assertJsonPath('data.items.0.id', $task['id']);
+        $this->getJson("/api/v1/tasks/{$task['id']}")->assertOk()
+            ->assertJsonPath('data.task.report_source.id', $id)
+            ->assertJsonPath('data.task.report_source.title', 'گزارش پیگیری');
+        $this->getJson("/api/v1/reports/$id")->assertOk()->assertJsonPath('data.report.tasks_count', 1);
+    }
+
+    public function test_task_creation_context_explains_existing_policy_without_granting_access(): void
+    {
+        $report = $this->report();
+        foreach (['draft' => 'report_not_sent', 'sent' => 'report_not_viewed', 'inactive' => 'report_inactive'] as $status => $reason) {
+            $report->update(['status' => $status]);
+            $this->getJson("/api/v1/reports/{$report->id}")->assertOk()
+                ->assertJsonPath('data.report.allowed_actions.create_task', false)
+                ->assertJsonPath('data.report.task_creation.allowed', false)
+                ->assertJsonPath('data.report.task_creation.reason', $reason);
+        }
+        $report->update(['status' => 'viewed']);
+        $this->permissions($this->recipient, [Permissions::REPORTS_VIEW]);
+        $this->getJson("/api/v1/reports/{$report->id}")->assertOk()
+            ->assertJsonPath('data.report.task_creation.reason', 'task_creation_not_allowed');
+        $this->create($report, $this->payload())->assertForbidden();
+        $this->assertDatabaseCount('tasks', 0);
+    }
 }

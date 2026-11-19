@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use App\Enums\MeetingStatus;
 use App\Enums\ReportStatus;
 use App\Models\Task;
+use App\Policies\ReportPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Gate;
@@ -19,10 +20,25 @@ class ReportResource extends JsonResource
         $canViewTasks = Gate::forUser($request->user())->allows('viewAny', Task::class);
 
         $actions = $this->allowedActions($request);
+        $taskBlockReason = $actions['create_task'] ? null : app(ReportPolicy::class)->taskCreationBlockReason($request->user(), $this->resource);
 
         return [
             'id' => $this->id,
             'allowed_actions' => $actions,
+            'task_creation' => [
+                'allowed' => $actions['create_task'],
+                'reason' => $taskBlockReason,
+                'message' => match ($taskBlockReason) {
+                    'inactive_user' => 'حساب کاربری برای ثبت تسک باید فعال باشد.',
+                    'not_report_recipient' => 'فقط مخاطب اصلی گزارش می‌تواند از آن تسک ثبت کند.',
+                    'report_not_sent' => 'گزارش باید ابتدا ارسال و توسط مخاطب مشاهده شود.',
+                    'report_not_viewed' => 'پس از ثبت مشاهدهٔ گزارش توسط مخاطب، ایجاد تسک فعال می‌شود.',
+                    'report_inactive' => 'برای گزارش غیرفعال نمی‌توان تسک ثبت کرد.',
+                    'report_not_visible' => 'دسترسی مشاهدهٔ این گزارش برای ثبت تسک لازم است.',
+                    'task_creation_not_allowed' => 'برای ثبت تسک، مجوز ایجاد تسک و جایگاه سازمانی لازم است.',
+                    default => null,
+                },
+            ],
             'requires_action' => in_array(true, array_intersect_key($actions, array_flip(['mark_viewed'])), true),
             'report_number' => $this->report_number,
             'status' => $this->status->value,

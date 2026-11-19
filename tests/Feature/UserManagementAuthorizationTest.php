@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\TaskParticipantRole;
 use App\Enums\TaskStatus;
-use App\Models\Role;
+use App\Models\OrgPosition;
 use App\Models\Task;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,7 +50,7 @@ class UserManagementAuthorizationTest extends TestCase
         $admin = User::factory()->admin()->create();
         Sanctum::actingAs($admin);
 
-        $this->patchJson("/api/v1/users/{$admin->id}", ['is_admin' => false])
+        $this->patchJson("/api/v1/users/{$admin->id}", ['access_role_ids' => []])
             ->assertUnprocessable();
         $this->postJson("/api/v1/users/{$admin->id}/deactivate")
             ->assertUnprocessable();
@@ -132,14 +132,14 @@ class UserManagementAuthorizationTest extends TestCase
 
         $this->patchJson("/api/v1/users/{$existing->id}", ['username' => 'Edited.User'])
             ->assertOk()
-            ->assertJsonPath('data.user.username', 'edited.user');
+            ->assertJsonPath('data.user.username', 'Edited.User');
 
         $this->patchJson("/api/v1/users/{$existing->id}", ['is_active' => false])
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors('is_active');
+            ->assertOk()
+            ->assertJsonPath('data.user.is_active', false);
     }
 
-    public function test_user_list_supports_username_search_page_activity_and_assigned_task_count(): void
+    public function test_user_list_supports_username_and_full_name_search_page_activity_and_task_count(): void
     {
         $admin = User::factory()->admin()->create(['username' => 'list.admin']);
         $user = User::factory()->create([
@@ -147,7 +147,8 @@ class UserManagementAuthorizationTest extends TestCase
             'first_name' => 'Ali',
             'last_name' => 'Rezaei',
         ]);
-        User::factory()->count(2)->create();
+        User::factory()->create(['first_name' => 'Ali', 'last_name' => 'Other']);
+        User::factory()->create(['first_name' => 'Other', 'last_name' => 'Rezaei']);
 
         $task = Task::query()->create([
             'title' => 'Assigned task',
@@ -168,12 +169,13 @@ class UserManagementAuthorizationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.meta.total', 1)
             ->assertJsonPath('data.items.0.username', 'searchable.user')
-            ->assertJsonPath('data.items.0.assigned_tasks_count', 1)
+            ->assertJsonPath('data.items.0.tasks_count', 1)
             ->assertJsonStructure(['data' => ['items' => [['last_activity_at']]]]);
 
         $this->getJson('/api/v1/users?search=Ali%20Rezaei')
             ->assertOk()
-            ->assertJsonPath('data.meta.total', 1);
+            ->assertJsonPath('data.meta.total', 1)
+            ->assertJsonPath('data.items.0.id', $user->id);
 
         $this->getJson('/api/v1/users?page=2&per_page=2')
             ->assertOk()
@@ -187,7 +189,7 @@ class UserManagementAuthorizationTest extends TestCase
     {
         Storage::fake('public');
         $admin = User::factory()->admin()->create();
-        $position = Role::query()->create(['title' => 'کارشناس محصول']);
+        $position = OrgPosition::query()->create(['title' => 'کارشناس محصول']);
         Sanctum::actingAs($admin);
 
         $fileId = $this->post('/api/v1/uploads/images', [
@@ -205,36 +207,37 @@ class UserManagementAuthorizationTest extends TestCase
             'password' => 'AvatarPass!123',
             'password_confirmation' => 'AvatarPass!123',
             'avatar_file_id' => $fileId,
-            'org_position_id' => $position->id,
+            'org_position_ids' => [$position->id],
         ])->assertCreated()
             ->assertJsonPath('data.user.avatar_file_id', $fileId)
             ->assertJsonPath('data.user.avatar.id', $fileId)
-            ->assertJsonPath('data.user.org_position.id', $position->id);
+            ->assertJsonPath('data.user.org_positions.0.id', $position->id);
 
         $userId = $response->json('data.user.id');
-        $this->assertDatabaseHas('roles', ['id' => $position->id, 'user_id' => $userId]);
+        $this->assertDatabaseHas('org_position_user', ['org_position_id' => $position->id, 'user_id' => $userId]);
 
         $this->patchJson("/api/v1/users/{$userId}", [
             'avatar_file_id' => null,
-            'org_position_id' => null,
+            'org_position_ids' => [],
         ])->assertOk()
             ->assertJsonPath('data.user.avatar_file_id', null)
             ->assertJsonPath('data.user.avatar', null)
-            ->assertJsonPath('data.user.org_position_id', null)
-            ->assertJsonPath('data.user.org_position', null);
+            ->assertJsonCount(0, 'data.user.org_positions');
 
-        $this->assertDatabaseHas('roles', ['id' => $position->id, 'user_id' => null]);
+        $this->assertDatabaseMissing('org_position_user', ['org_position_id' => $position->id, 'user_id' => $userId]);
+        $this->assertDatabaseHas('org_positions', ['id' => $position->id]);
     }
 
-    public function test_username_can_be_used_as_login_identifier(): void
+    public function test_organization_code_can_be_used_as_login_identifier(): void
     {
         User::factory()->create([
             'username' => 'login.user',
+            'org_code' => '100008',
             'password' => 'LoginPass!123',
         ]);
 
         $this->postJson('/api/v1/auth/login', [
-            'identifier' => 'LOGIN.USER',
+            'identifier' => '100008',
             'password' => 'LoginPass!123',
         ])->assertOk()->assertJsonPath('data.user.username', 'login.user');
     }
