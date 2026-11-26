@@ -49,7 +49,26 @@ class TaskService
                 }
             });
         }
-        ListFilters::textColumns($query, $filters, ['title' => 'tasks.title']);
+        ListFilters::textColumns($query, $filters, ['title' => 'tasks.title', 'number' => 'tasks.task_number']);
+        if (ListFilters::has($filters, 'actor_role')) {
+            $role = $filters['actor_role'];
+            if (in_array($role, ['assignee', 'follower', 'supervisor'], true)) {
+                $query->whereHas('participantRecords', fn (Builder $people) => $people->where('user_id', $actor->id)->where('role', $role));
+            } elseif ($role === 'team_member') {
+                $query->whereHas('teamMembers', fn (Builder $people) => $people->whereKey($actor->id));
+            } else {
+                $column = match ($role) {
+                    'creator' => 'created_by',
+                    'requester' => 'requester_id',
+                    'financial_provider' => 'financial_provider_user_id',
+                    'equipment_provider' => 'equipment_provider_user_id',
+                };
+                $query->where('tasks.'.$column, $actor->id);
+                if ($role === 'requester') {
+                    $query->where('tasks.submission_type', TaskSubmissionType::Request->value);
+                }
+            }
+        }
         if (ListFilters::has($filters, 'description')) {
             $grammar = $query->getQuery()->getGrammar();
             ListFilters::containsExpression($query, 'COALESCE('.$grammar->wrap('tasks.short_description').', '.$grammar->wrap('tasks.request_description').", '')", $filters['description']);

@@ -71,7 +71,19 @@ class MeetingService
         if (ListFilters::has($filters, 'status')) {
             $query->where('meetings.status', $filters['status']);
         }
-        ListFilters::textColumns($query, $filters, ['title' => 'meetings.title', 'location' => 'meetings.location']);
+        ListFilters::textColumns($query, $filters, ['title' => 'meetings.title', 'location' => 'meetings.location', 'meeting_number' => 'meetings.meeting_number']);
+        if (ListFilters::has($filters, 'actor_role')) {
+            if ($filters['actor_role'] === 'attendee') {
+                $query->whereHas('attendees', fn (Builder $users) => $users->whereKey($actor->id));
+            } else {
+                $column = match ($filters['actor_role']) {
+                    'creator' => 'created_by',
+                    'chairman' => 'chairman_user_id',
+                    'secretary' => 'secretary_user_id',
+                };
+                $query->where('meetings.'.$column, $actor->id);
+            }
+        }
         ListFilters::dateRange($query, $filters, 'meetings.meeting_date', 'from_date', 'to_date');
         if (ListFilters::has($filters, 'search')) {
             $query->where(function (Builder $text) use ($filters): void {

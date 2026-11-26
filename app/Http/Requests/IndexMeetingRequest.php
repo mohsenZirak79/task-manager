@@ -19,7 +19,8 @@ class IndexMeetingRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...$this->textFilterRules(['search', 'title', 'location']),
+            ...$this->textFilterRules(['search', 'meeting_number', 'title', 'location']),
+            'actor_role' => ['nullable', Rule::in(['creator', 'chairman', 'secretary', 'attendee'])],
             'status' => ['nullable', Rule::enum(MeetingStatus::class)],
             ...$this->dateRangeRules('from_date', 'to_date'),
             ...$this->paginationRules(),

@@ -20,7 +20,8 @@ class IndexTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            ...$this->textFilterRules(['search', 'title', 'description', 'assignee_search', 'financial_search', 'equipment_search', 'tag']),
+            ...$this->textFilterRules(['search', 'number', 'title', 'description', 'assignee_search', 'financial_search', 'equipment_search', 'tag']),
+            'actor_role' => ['nullable', Rule::in(['creator', 'requester', 'assignee', 'follower', 'supervisor', 'team_member', 'financial_provider', 'equipment_provider'])],
             'status' => ['nullable', Rule::enum(TaskStatus::class)],
             'submission_type' => ['nullable', Rule::enum(TaskSubmissionType::class)],
             'scope' => ['nullable', Rule::in(['created_by_me', 'assigned_to_me', 'involved', 'action_required', 'all'])],

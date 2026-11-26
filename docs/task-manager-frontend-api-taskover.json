@@ -1745,6 +1745,31 @@
               "default": 15
             },
             "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "meeting_number",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            },
+            "description": "Literal partial meeting number match."
+          },
+          {
+            "name": "actor_role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "creator",
+                "chairman",
+                "secretary",
+                "attendee"
+              ]
+            },
+            "description": "Authenticated user role in the meeting, within the existing visibility rules."
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexMeetingRequest"
@@ -8520,6 +8545,35 @@
               "default": 15
             },
             "x-implementation": "existing_hardened"
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "required": false,
+            "description": "Literal partial match on the persistent task/request number.",
+            "schema": {
+              "type": "string",
+              "maxLength": 255
+            }
+          },
+          {
+            "name": "actor_role",
+            "in": "query",
+            "required": false,
+            "description": "Filter by the authenticated user’s role in each task; combined with existing visibility and scope.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "creator",
+                "requester",
+                "assignee",
+                "follower",
+                "supervisor",
+                "team_member",
+                "financial_provider",
+                "equipment_provider"
+              ]
+            }
           }
         ],
         "x-validation-source": "App\\Http\\Requests\\IndexTaskRequest"

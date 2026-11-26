@@ -114,6 +114,31 @@ class ColumnFiltersTest extends TestCase
         $this->ids($this->getList('tasks', ['title' => 'خرید', 'search' => 'ویژه']), []);
     }
 
+    public function test_task_number_and_actor_role_filters_combine_before_pagination(): void
+    {
+        $other = User::factory()->create();
+        $wanted = $this->task(['title' => 'شماره هدف'], [$this->actor]);
+        $foreign = $this->task(['created_by' => $other->id, 'requester_id' => $other->id], [$other]);
+        $foreign->teamMembers()->attach($this->actor);
+        $this->ids($this->getList('tasks', ['number' => $wanted->task_number]), [$wanted->id]);
+        $this->ids($this->getList('tasks', ['actor_role' => 'assignee']), [$wanted->id]);
+        $this->ids($this->getList('tasks', ['actor_role' => 'creator']), [$wanted->id]);
+        $this->ids($this->getList('tasks', ['actor_role' => 'team_member']), [$foreign->id]);
+        $this->ids($this->getList('tasks', ['actor_role' => 'team_member', 'number' => $wanted->task_number]), []);
+        $this->getList('tasks', ['actor_role' => 'assignee', 'per_page' => 1])
+            ->assertOk()->assertJsonPath('data.meta.total', 1);
+        $this->getList('tasks', ['actor_role' => 'admin'])->assertUnprocessable();
+    }
+
+    public function test_actor_role_filter_does_not_expand_task_visibility(): void
+    {
+        $viewer = User::factory()->create();
+        $hidden = $this->task(['created_by' => $this->actor->id]);
+        $hidden->participantRecords()->create(['role' => 'follower', 'user_id' => $viewer->id]);
+        $this->restricted($viewer, ['tasks:view']);
+        $this->ids($this->getList('tasks', ['scope' => 'created_by_me', 'actor_role' => 'follower']), []);
+    }
+
     public function test_multi_assignee_exact_id_and_full_name_do_not_duplicate_tasks(): void
     {
         $one = User::factory()->create(['first_name' => 'كريم', 'last_name' => 'علي']);
