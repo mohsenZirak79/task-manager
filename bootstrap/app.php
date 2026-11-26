@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*')
-                || str_starts_with($request->getRequestUri(), '/api/'),
+                || str_starts_with($request->getRequestUri(), '/api/')
+                || str_starts_with($request->route()?->uri() ?? '', 'api/'),
         );
     })->create();
