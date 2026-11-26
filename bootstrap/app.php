@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\UpdateLastActivity;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -24,7 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*')
+            fn (Request $request, $exception) => $exception instanceof AuthenticationException
+                || $request->is('api/*')
                 || str_starts_with($request->getRequestUri(), '/api/')
                 || str_starts_with($request->route()?->uri() ?? '', 'api/'),
         );
