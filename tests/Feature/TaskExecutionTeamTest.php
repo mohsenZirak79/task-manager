@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Meeting;
 use App\Models\OrgPosition;
 use App\Models\Task;
 use App\Models\User;
@@ -138,6 +139,30 @@ class TaskExecutionTeamTest extends TestCase
             $this->postJson($url.'/acknowledge')->assertOk()->assertJsonPath('data.task.allowed_actions.start', true);
             $this->postJson($url.'/status', ['status' => 'in_progress'])->assertOk()->assertJsonPath('data.task.status', 'in_progress');
         }
+    }
+
+    public function test_transfer_keeps_the_meeting_resolution_and_compatible_planning_assignments(): void
+    {
+        $task = $this->task('pending_approval');
+        $meeting = Meeting::create(['title' => 'جلسه', 'short_description' => 'خلاصه', 'status' => 'completed', 'created_by' => $this->sender->id, 'chairman_user_id' => $this->sender->id, 'secretary_user_id' => $this->leader->id]);
+        $resolution = $meeting->resolutions()->create(['title' => 'مصوبه', 'resolution_type' => 'task', 'created_by' => $this->sender->id, 'task_id' => $task->id, 'materialized_at' => now()]);
+        $cleared = $task->planningItems()->create(['title' => 'کار بدون واگذاری', 'weight' => 2, 'assignee_user_id' => $this->member->id]);
+        $retained = $task->planningItems()->create(['title' => 'کار واگذارشده', 'weight' => 3, 'assignee_user_id' => $this->junior->id]);
+        $url = '/api/v1/tasks/'.$task->id;
+
+        Sanctum::actingAs($this->leader);
+        $this->postJson($url.'/transfer', ['assignee_user_id' => $this->member->id])->assertOk();
+
+        Sanctum::actingAs($this->member);
+        $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.task.meeting_source.resolution_id', $resolution->id)
+            ->assertJsonPath('data.task.submission_type', 'assignment')
+            ->assertJsonPath('data.task.allowed_actions.start', false)
+            ->assertJsonCount(2, 'data.task.planning_items');
+        $this->assertSame($task->id, $resolution->fresh()->task_id);
+        $this->assertNull($cleared->fresh()->assignee_user_id);
+        $this->assertSame($this->junior->id, $retained->fresh()->assignee_user_id);
+        $this->postJson($url.'/acknowledge')->assertOk()->assertJsonPath('data.task.allowed_actions.start', true);
     }
 
     public function test_transfer_rejects_unrelated_inactive_targets_and_non_leaders_and_cannot_repeat(): void
